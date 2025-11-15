@@ -204,7 +204,6 @@ def test_pipeline_passes_inputs_to_crew(tmp_path):
     assert dummy.inputs["questionnaire"] == questionnaire
     assert dummy.inputs["persona_context"] == inference
     assert "input_payload" in dummy.inputs
-    assert "normalized_trip_schema" in dummy.inputs
 
 
 def test_pipeline_persists_task_outputs(tmp_path):

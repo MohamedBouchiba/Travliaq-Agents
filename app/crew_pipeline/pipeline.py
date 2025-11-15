@@ -152,10 +152,6 @@ _CONFIG_FILENAMES = {
     "crew": "crew.yaml",
 }
 
-_NORMALIZED_TRIP_SCHEMA_FILE = "normalized_trip_request.schema.json"
-_NORMALIZED_TRIP_SCHEMA_CACHE: Optional[str] = None
-
-
 def _load_yaml_file(path: Path) -> Dict[str, Any]:
     if not path.exists():
         raise FileNotFoundError(f"Configuration CrewAI manquante: {path}")
@@ -179,21 +175,6 @@ def _load_pipeline_blueprint() -> Dict[str, Dict[str, Any]]:
             blueprint[section] = data.get(section, data)
         _CONFIG_CACHE[cache_key] = blueprint
     return _CONFIG_CACHE[cache_key]
-
-
-def _load_normalized_trip_schema() -> str:
-    """Charge le JSON Schema utilisé par l'agent de normalisation."""
-
-    global _NORMALIZED_TRIP_SCHEMA_CACHE
-    if _NORMALIZED_TRIP_SCHEMA_CACHE is None:
-        schema_path = _CONFIG_DIR / _NORMALIZED_TRIP_SCHEMA_FILE
-        if not schema_path.exists():
-            raise FileNotFoundError(
-                f"JSON Schema requis introuvable: {schema_path}"
-            )
-        _NORMALIZED_TRIP_SCHEMA_CACHE = schema_path.read_text(encoding="utf-8").strip()
-
-    return _NORMALIZED_TRIP_SCHEMA_CACHE
 
 
 def _build_default_llm() -> LLM:
@@ -438,13 +419,11 @@ class CrewPipeline:
                 base_payload[key] = deepcopy(value)
 
         try:
-            normalized_schema = _load_normalized_trip_schema()
             output = crew.kickoff(
                 inputs={
                     "questionnaire": questionnaire_data,
                     "persona_context": persona_inference,
                     "input_payload": base_payload,
-                    "normalized_trip_schema": normalized_schema,
                 }
             )
         except Exception as exc:
