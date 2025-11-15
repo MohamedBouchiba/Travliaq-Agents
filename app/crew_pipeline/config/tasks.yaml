@@ -65,3 +65,318 @@ tasks:
         "challenge_actions": ["Actions concrètes à transmettre"]
       }
     async_execution: false
+  normalized_trip_projection:
+    agent: normalized_trip_translator
+    context:
+      - persona_challenge_review
+    description: |-
+      Tu dois transformer le dernier JSON produit par le challenger en un
+      objet plus simple qui respecte notre schema NormalizedTripRequest.
+
+      JSON FINAL DU CHALLENGER:
+      {persona_challenge_review}
+
+      JSON SCHEMA DE RÉFÉRENCE:
+      {normalized_trip_schema}
+
+      Règles spécifiques à respecter impérativement:
+      - Gère les dates flexibles en générant toutes les dates de départ
+        possibles à partir de la date approximative et de la flexibilité
+        (ex: ±7 jours). Pas de dates inventées au-delà de cette fenêtre.
+      - Prépare toujours la structure multi-destinations via
+        trip_frame.destinations, même si une seule destination est connue ou
+        aucune (dans ce cas, garde les champs city/region/country à null).
+      - Nettoie les personas: supprime tous les personas émergents dont le
+        score est strictement inférieur à 70. Ils ne doivent jamais apparaître
+        dans le JSON final.
+      - N'inclus aucune métadonnée bruyante telle que
+        persona_inference.metadata ou persona_inference.scores_detailles.
+      - Conserve les paramètres nuls si l'utilisateur n'a pas fourni
+        l'information; ne tente pas de deviner.
+      - Ta réponse finale doit contenir uniquement l'objet JSON normalisé
+        demandé (pas de texte ou d'analyse additionnels).
+    expected_output: |-
+      You must output a single JSON object called "normalized_trip_request" with the following structure and rules.
+
+      normalized_trip_request: {
+        "trip_request_id": string,                    // use input.run_id if present, else input.questionnaire_id
+        "user": {
+          "user_id": string,                          // from questionnaire_data.user_id
+          "email": string|null,                       // from questionnaire_data.email
+          "preferred_language": string|null           // from questionnaire_data.langue, like "fr"
+        },
+        "context": {
+          "source_questionnaire_id": string,          // from questionnaire_id or questionnaire_data.id
+          "pipeline_run_id": string|null,             // from run_id if present, else null
+          "created_at": string|null,                  // ISO 8601 datetime from questionnaire_data.created_at
+          "updated_at": string|null                   // ISO 8601 datetime from questionnaire_data.updated_at
+        },
+        "travel_party": {
+          "group_type": "solo" | "duo" | "family" | "friends" | "group",
+          "travelers_count": integer >= 1,
+          "has_children": boolean,
+          "children": [ { "age": integer >= 0 } ]
+        },
+        "trip_frame": {
+          "origin": {
+            "city": string|null,                      // parsed from questionnaire_data.lieu_depart
+            "country": string|null,                   // parsed from questionnaire_data.lieu_depart
+            "airport_hint": string|null               // leave null if unknown
+          },
+          "destinations": [
+            {
+              "id": string,                           // e.g. "dest_1"
+              "role": "primary" | "stopover" | "extension",
+              "is_primary": boolean,
+              "order": integer >= 1,
+              "city": string|null,
+              "region": string|null,
+              "country": string|null,
+              "stay_nights": integer|null
+            }
+          ],
+          "dates": {
+            "dates_type": "fixed" | "flexible",
+            "departure_date": string|null,            // "YYYY-MM-DD" if fixed
+            "return_date": string|null,               // "YYYY-MM-DD" if fixed
+            "approx_departure_date": string|null,     // "YYYY-MM-DD" if flexible
+            "flexibility_days_minus": integer|null,   // days before approx date user accepts
+            "flexibility_days_plus": integer|null,    // days after approx date user accepts
+            "duration_nights": integer >= 1,          // parsed from questionnaire_data.duree (e.g. "7 nuits")
+            "duration_exact": boolean,                // true if nuits_exactes filled, else false
+            "candidate_departure_dates": [            // list of all possible departure dates, no hallucinations
+              "YYYY-MM-DD"
+            ],
+            "candidate_date_ranges": [                // optional explicit date ranges (can be empty)
+              {
+                "departure_date": "YYYY-MM-DD",
+                "return_date": "YYYY-MM-DD",
+                "nights": integer|null
+              }
+            ]
+          }
+        },
+        "budget": {
+          "is_known": boolean,                        // false if user answered "Je ne sais pas"
+          "currency": string|null,                    // e.g. "EUR"
+          "estimated_total_per_person": number|null,
+          "estimated_total_group": number|null,
+          "budget_type": string|null,                 // e.g. "low", "medium", "high", "luxury"
+          "notes": string|null
+        },
+        "preferences": {
+          "climate": [ string ],                      // array of tags like "cold_snowy", "mountain_altitude"
+          "vibe": string|null,                        // from ambiance_voyage
+          "rhythm": "chilled" | "balanced" | "intense" | null,
+          "activities": {
+            "tags": [ string ]                        // from affinites_voyage
+          },
+          "transport": {
+            "flight_preference": "cheapest" | "fastest" | "balanced" | "dont_care" | null,
+            "allowed_modes_local": [ string ],        // from mobilite
+            "baggage": {
+              "cabin": boolean,
+              "hold": boolean
+            }
+          },
+          "accommodation": {
+            "types": [ string ],                      // from type_hebergement
+            "comfort_min_rating": number|null,        // parse "note ≥8.5" as 8.5
+            "neighbourhood_style": string|null,       // from quartier
+            "board": [ string ],                      // from preferences_hotel
+            "equipment_preferences": [ string ]       // from equipements
+          },
+          "time_preferences": {
+            "needs_siesta": boolean,                  // true if "needs_siesta" in preferences_horaires
+            "needs_free_time": boolean               // true if "needs_free_time" in preferences_horaires
+          }
+        },
+        "constraints": {
+          "diet": {
+            "vegetarian": boolean,
+            "vegan": boolean,
+            "no_pork": boolean,
+            "no_alcohol": boolean,
+            "other": [ string ]
+          },
+          "safety": {
+            "special_constraints": boolean,
+            "notes": string|null
+          },
+          "mobility": {
+            "reduced_mobility": boolean,
+            "notes": string|null
+          },
+          "other": [ string ]
+        },
+        "assist_needed": {
+          "flights": boolean,
+          "accommodation": boolean,
+          "activities": boolean,
+          "other": [ string ]
+        },
+        "personas": {
+          "primary": {
+            "code": string|null,                      // optional internal code
+            "name": string,                           // from persona_inference.persona.principal
+            "confidence": integer                     // from persona_inference.persona.confiance
+          },
+          "emerging": [
+            {
+              "code": string,
+              "name": string,
+              "score": integer,                       // integer 0-100
+              "strength": "strong" | "medium" | null
+            }
+          ]
+        },
+        "explanations": {
+          "persona_summary": string|null,
+          "user_goals": [ string ],
+          "pros": [ string ],
+          "cons": [ string ],
+          "critical_needs": [ string ],
+          "non_critical_preferences": [ string ]
+        },
+        "planning_readiness": {
+          "has_fixed_destination": boolean,
+          "has_exact_dates": boolean,
+          "has_known_budget": boolean,
+          "blocking_gaps": [ string ]                 // e.g. ["destination_missing", "budget_unknown"]
+        }
+      }
+
+      TRANSFORMATION RULES:
+
+      1. Input JSON root contains at least:
+         - questionnaire_data
+         - persona_inference
+         - questionnaire_id
+         - run_id (optional)
+         - persona_analysis (optional)
+
+      2. trip_request_id:
+         - If run_id exists and is non-empty, use it.
+         - Else use questionnaire_id.
+
+      3. Multi-destination:
+         - If questionnaire_data.destination is null or user has not chosen a specific destination:
+           - Create exactly one destination object:
+             - id: "dest_1"
+             - role: "primary"
+             - is_primary: true
+             - order: 1
+             - city: null
+             - region: null
+             - country: null
+             - stay_nights: null
+         - In the future, if multiple destinations are available, they can be added as additional destination objects with increasing "order".
+
+      4. Dates:
+         - If questionnaire_data.type_dates is "flexible":
+           - dates_type = "flexible"
+           - approx_departure_date = questionnaire_data.date_depart_approximative (if any)
+           - Parse questionnaire_data.flexibilite like "±7j" into an integer N.
+             - flexibility_days_minus = N
+             - flexibility_days_plus = N
+           - Parse questionnaire_data.duree like "7 nuits" into an integer duration_nights = 7.
+           - duration_exact = false unless questionnaire_data.nuits_exactes is non-null and numeric.
+           - candidate_departure_dates:
+             - If approx_departure_date and N are available:
+               - list all calendar dates between (approx - N days) and (approx + N days), inclusive.
+               - Use ISO format "YYYY-MM-DD".
+             - If not computable safely, return an empty array.
+         - If questionnaire_data.type_dates is "fixed":
+           - dates_type = "fixed"
+           - departure_date = questionnaire_data.date_depart
+           - return_date = questionnaire_data.date_retour
+           - approx_departure_date can be null.
+           - candidate_departure_dates can be empty.
+         - candidate_date_ranges can be left empty for now.
+
+      5. Budget:
+         - If questionnaire_data.budget_par_personne is "Je ne sais pas" or null:
+           - is_known = false
+           - estimated_total_per_person = null
+           - estimated_total_group = null
+           - notes = "User answered: 'Je ne sais pas'"
+         - Else, if numeric information is available, you may parse and fill estimated_total_per_person and currency.
+
+      6. Preferences:
+         - climate:
+           - If questionnaire_data.preference_climat is a JSON-encoded string (e.g. "[\"cold_snowy\",\"mountain_altitude\"]"),
+             parse it into an array of strings.
+         - vibe = questionnaire_data.ambiance_voyage or null.
+         - rhythm = questionnaire_data.rythme (e.g. "balanced").
+         - activities.tags = questionnaire_data.affinites_voyage as-is.
+         - transport.flight_preference = questionnaire_data.preference_vol mapped to:
+             "cheapest" -> "cheapest"
+             otherwise keep as-is or map logically.
+         - transport.allowed_modes_local = questionnaire_data.mobilite.
+         - transport.baggage:
+             cabin = true if "cabin" is present in questionnaire_data.bagages values.
+             hold = true if "hold" is present.
+         - accommodation.types = questionnaire_data.type_hebergement.
+         - accommodation.comfort_min_rating:
+             parse questionnaire_data.confort like "note ≥8.5" into 8.5.
+         - accommodation.neighbourhood_style = questionnaire_data.quartier.
+         - accommodation.board = questionnaire_data.preferences_hotel.
+         - accommodation.equipment_preferences = questionnaire_data.equipements.
+         - time_preferences:
+             needs_siesta = true if "needs_siesta" in questionnaire_data.preferences_horaires.
+             needs_free_time = true if "needs_free_time" in questionnaire_data.preferences_horaires.
+
+      7. Constraints:
+         - Diet:
+             vegetarian = true if "vegetarian" in questionnaire_data.contraintes.
+             vegan = true if "vegan" in questionnaire_data.contraintes.
+             no_pork = true if "no_pork" in questionnaire_data.contraintes.
+             no_alcohol = true if "no_alcohol" in questionnaire_data.contraintes.
+             other = all remaining constraint strings not in the four keys above.
+         - Safety:
+             If questionnaire_data.securite contains only "Aucune contrainte particulière":
+               special_constraints = false
+               notes = "Aucune contrainte particulière"
+             Else:
+               special_constraints = true
+               notes = join all securite entries as a single string.
+         - Mobility:
+             reduced_mobility = false by default unless questionnaire explicitly mentions mobility issues.
+
+      8. Assist_needed:
+         - flights = true if "flights" in questionnaire_data.aide_avec.
+         - accommodation = true if "accommodation" in questionnaire_data.aide_avec.
+         - activities = true if "activities" in questionnaire_data.aide_avec.
+         - other = any additional values.
+
+      9. Personas (very important):
+         - primary:
+             name = persona_inference.persona.principal
+             confidence = persona_inference.persona.confiance
+             code can be null or a simplified slug of the name.
+         - emerging:
+             Take persona_inference.profils_emergents.
+             Filter out all personas with score < 70 (they are noise and must not appear in the final JSON).
+             For each remaining persona:
+               code = a slugified version of the name (e.g. "Beach Lover (Plage & Détente)" -> "beach_lover").
+               name = original persona name string.
+               score = persona.score
+               strength = "strong" if score >= 80, "medium" if 70 <= score < 80.
+         - Ignore persona_inference.metadata, persona_inference.signaux_detection and persona_inference.scores_detailles; do not copy them to the normalized JSON.
+
+      10. Explanations:
+         - persona_summary = persona_analysis.persona_summary if available, else null.
+         - user_goals = persona_analysis.user_goals if available, else empty array.
+         - pros, cons, critical_needs, non_critical_preferences are taken directly from persona_analysis if present, else empty arrays.
+
+      11. Planning_readiness:
+         - has_fixed_destination = true if at least one destination with non-null city or country is known, else false.
+         - has_exact_dates = true if dates_type is "fixed" and both departure_date and return_date are non-null.
+         - has_known_budget = budget.is_known.
+         - blocking_gaps:
+             include "destination_missing" if has_fixed_destination is false.
+             include "budget_unknown" if has_known_budget is false.
+             you may add other gaps if critical information is clearly missing.
+
+      You must strictly follow these rules and do not invent destinations or dates beyond the candidate_departure_dates logic. Output only the normalized_trip_request JSON object, without any explanation.
+    async_execution: false
