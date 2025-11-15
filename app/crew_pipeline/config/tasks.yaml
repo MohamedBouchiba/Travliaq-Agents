@@ -71,184 +71,53 @@ tasks:
       - persona_challenge_review
     description: |-
       Tu dois transformer le dernier JSON produit par le challenger en un
-      objet plus simple qui respecte notre schema NormalizedTripRequest.
+      objet conforme à notre schema NormalizedTripRequest.
 
-      JSON FINAL DU CHALLENGER:
-      Il est disponible via ta mémoire de contexte (tâche
-      «persona_challenge_review»). Tu dois t'appuyer sur ce JSON brut pour
-      produire la version normalisée, sans l'altérer inutilement.
+      INPUTS CLÉS:
+      - input_payload.questionnaire_data: la source fiable pour tout ce qui
+        concerne l'utilisateur, le foyer de voyage, l'origine et les dates.
+      - input_payload.persona_inference: pour les personas et le contexte.
+      - persona_challenge_review: pour les explications, pros/cons et besoins.
 
       JSON SCHEMA DE RÉFÉRENCE:
       {normalized_trip_schema}
 
       Règles spécifiques à respecter impérativement:
-      - Gère les dates flexibles en générant toutes les dates de départ
-        possibles à partir de la date approximative et de la flexibilité
-        (ex: ±7 jours). Pas de dates inventées au-delà de cette fenêtre.
-      - Prépare toujours la structure multi-destinations via
-        trip_frame.destinations, même si une seule destination est connue ou
-        aucune (dans ce cas, garde les champs city/region/country à null).
-      - Nettoie les personas: supprime tous les personas émergents dont le
-        score est strictement inférieur à 70. Ils ne doivent jamais apparaître
-        dans le JSON final.
-      - N'inclus aucune métadonnée bruyante telle que
-        persona_inference.metadata ou persona_inference.scores_detailles.
-      - Conserve les paramètres nuls si l'utilisateur n'a pas fourni
-        l'information; ne tente pas de deviner.
-      - Ta réponse finale doit contenir uniquement l'objet JSON normalisé
-        demandé (pas de texte ou d'analyse additionnels).
+      - Chaque champ obligatoire (trip_request_id, user.user_id, context.
+        source_questionnaire_id, origin, dates, etc.) doit être rempli à partir
+        des données de input_payload. Ne laisse JAMAIS ces valeurs à null si
+        elles existent côté questionnaire.
+      - Gère les dates flexibles en listant toutes les dates possibles à partir
+        de la date approximative ± flexibilité. Lorsque l'utilisateur fournit
+        des dates fixes, remplis departure_date/return_date ET duration_nights.
+      - Prépare toujours trip_frame.destinations (au minimum dest_1 avec des
+        valeurs nulles si aucune destination n'est choisie) et renseigne
+        obligatoirement trip_frame.origin.city/country quand lieu_depart est
+        fourni (ex: «Bruxelles, Belgique» → city=Bruxelles, country=Belgique).
+      - Conserve les valeurs nulles lorsque l'information est réellement
+        absente. Ne devine rien, n'invente aucun email, date ou destination.
+      - Les personas émergents avec score < 70 doivent être supprimés.
+      - L'output doit être un JSON propre: pas de texte additionnel, pas de
+        commentaires, pas d'autres clés que celles demandées.
     expected_output: |-
-      You must output a single JSON object called "normalized_trip_request" with the following structure and rules.
-
-      normalized_trip_request: {
-        "trip_request_id": string,                    // use input.run_id if present, else input.questionnaire_id
-        "user": {
-          "user_id": string,                          // from questionnaire_data.user_id
-          "email": string|null,                       // from questionnaire_data.email
-          "preferred_language": string|null           // from questionnaire_data.langue, like "fr"
-        },
-        "context": {
-          "source_questionnaire_id": string,          // from questionnaire_id or questionnaire_data.id
-          "pipeline_run_id": string|null,             // from run_id if present, else null
-          "created_at": string|null,                  // ISO 8601 datetime from questionnaire_data.created_at
-          "updated_at": string|null                   // ISO 8601 datetime from questionnaire_data.updated_at
-        },
-        "travel_party": {
-          "group_type": "solo" | "duo" | "family" | "friends" | "group",
-          "travelers_count": integer >= 1,
-          "has_children": boolean,
-          "children": [ { "age": integer >= 0 } ]
-        },
-        "trip_frame": {
-          "origin": {
-            "city": string|null,                      // parsed from questionnaire_data.lieu_depart
-            "country": string|null,                   // parsed from questionnaire_data.lieu_depart
-            "airport_hint": string|null               // leave null if unknown
-          },
-          "destinations": [
-            {
-              "id": string,                           // e.g. "dest_1"
-              "role": "primary" | "stopover" | "extension",
-              "is_primary": boolean,
-              "order": integer >= 1,
-              "city": string|null,
-              "region": string|null,
-              "country": string|null,
-              "stay_nights": integer|null
-            }
-          ],
-          "dates": {
-            "dates_type": "fixed" | "flexible",
-            "departure_date": string|null,            // "YYYY-MM-DD" if fixed
-            "return_date": string|null,               // "YYYY-MM-DD" if fixed
-            "approx_departure_date": string|null,     // "YYYY-MM-DD" if flexible
-            "flexibility_days_minus": integer|null,   // days before approx date user accepts
-            "flexibility_days_plus": integer|null,    // days after approx date user accepts
-            "duration_nights": integer >= 1,          // parsed from questionnaire_data.duree (e.g. "7 nuits")
-            "duration_exact": boolean,                // true if nuits_exactes filled, else false
-            "candidate_departure_dates": [            // list of all possible departure dates, no hallucinations
-              "YYYY-MM-DD"
-            ],
-            "candidate_date_ranges": [                // optional explicit date ranges (can be empty)
-              {
-                "departure_date": "YYYY-MM-DD",
-                "return_date": "YYYY-MM-DD",
-                "nights": integer|null
-              }
-            ]
-          }
-        },
-        "budget": {
-          "is_known": boolean,                        // false if user answered "Je ne sais pas"
-          "currency": string|null,                    // e.g. "EUR"
-          "estimated_total_per_person": number|null,
-          "estimated_total_group": number|null,
-          "budget_type": string|null,                 // e.g. "low", "medium", "high", "luxury"
-          "notes": string|null
-        },
-        "preferences": {
-          "climate": [ string ],                      // array of tags like "cold_snowy", "mountain_altitude"
-          "vibe": string|null,                        // from ambiance_voyage
-          "rhythm": "chilled" | "balanced" | "intense" | null,
-          "activities": {
-            "tags": [ string ]                        // from affinites_voyage
-          },
-          "transport": {
-            "flight_preference": "cheapest" | "fastest" | "balanced" | "dont_care" | null,
-            "allowed_modes_local": [ string ],        // from mobilite
-            "baggage": {
-              "cabin": boolean,
-              "hold": boolean
-            }
-          },
-          "accommodation": {
-            "types": [ string ],                      // from type_hebergement
-            "comfort_min_rating": number|null,        // parse "note ≥8.5" as 8.5
-            "neighbourhood_style": string|null,       // from quartier
-            "board": [ string ],                      // from preferences_hotel
-            "equipment_preferences": [ string ]       // from equipements
-          },
-          "time_preferences": {
-            "needs_siesta": boolean,                  // true if "needs_siesta" in preferences_horaires
-            "needs_free_time": boolean               // true if "needs_free_time" in preferences_horaires
-          }
-        },
-        "constraints": {
-          "diet": {
-            "vegetarian": boolean,
-            "vegan": boolean,
-            "no_pork": boolean,
-            "no_alcohol": boolean,
-            "other": [ string ]
-          },
-          "safety": {
-            "special_constraints": boolean,
-            "notes": string|null
-          },
-          "mobility": {
-            "reduced_mobility": boolean,
-            "notes": string|null
-          },
-          "other": [ string ]
-        },
-        "assist_needed": {
-          "flights": boolean,
-          "accommodation": boolean,
-          "activities": boolean,
-          "other": [ string ]
-        },
-        "personas": {
-          "primary": {
-            "code": string|null,                      // optional internal code
-            "name": string,                           // from persona_inference.persona.principal
-            "confidence": integer                     // from persona_inference.persona.confiance
-          },
-          "emerging": [
-            {
-              "code": string,
-              "name": string,
-              "score": integer,                       // integer 0-100
-              "strength": "strong" | "medium" | null
-            }
-          ]
-        },
-        "explanations": {
-          "persona_summary": string|null,
-          "user_goals": [ string ],
-          "pros": [ string ],
-          "cons": [ string ],
-          "critical_needs": [ string ],
-          "non_critical_preferences": [ string ]
-        },
-        "planning_readiness": {
-          "has_fixed_destination": boolean,
-          "has_exact_dates": boolean,
-          "has_known_budget": boolean,
-          "blocking_gaps": [ string ]                 // e.g. ["destination_missing", "budget_unknown"]
-        }
+      Réponds exclusivement avec un objet JSON qui contient:
+      {
+        "normalized_trip_request": NormalizedTripRequest issu du schéma,
+        "transformation_notes": "Phrase courte expliquant les hypothèses sûres",
+        "missing_fields": ["Liste des champs restés à null faute de données"]
       }
 
-      TRANSFORMATION RULES:
+      Rappels critiques:
+      - Utilise input_payload.run_id comme trip_request_id lorsqu'il existe,
+        sinon fallback vers questionnaire_id.
+      - Remplis user.user_id, user.email, user.preferred_language à partir de
+        questionnaire_data (même si email = null explicite).
+      - Conserve context.created_at/updated_at en ISO8601 lorsqu'elles sont
+        fournies. Si absentes, mets null.
+      - Lorsque questionnaire_data.lieu_depart contient «Ville, Pays», découpe
+        proprement la ville et le pays pour trip_frame.origin.
+      - Assure-toi que planning_readiness.blocking_gaps inclut destination_missing
+        lorsque aucune destination n'est définie.
 
       1. Input JSON root contains at least:
          - questionnaire_data
@@ -380,5 +249,40 @@ tasks:
              include "budget_unknown" if has_known_budget is false.
              you may add other gaps if critical information is clearly missing.
 
-      You must strictly follow these rules and do not invent destinations or dates beyond the candidate_departure_dates logic. Output only the normalized_trip_request JSON object, without any explanation.
+      Respecte strictement ces règles et n'invente jamais de destinations ou
+      de dates au-delà de la logique candidate_departure_dates. Ta sortie doit
+      conserver EXACTEMENT la structure décrite plus haut
+      {normalized_trip_request, transformation_notes, missing_fields}.
+    async_execution: false
+  normalized_trip_quality_gate:
+    agent: normalized_trip_auditor
+    context:
+      - normalized_trip_projection
+    description: |-
+      Tu reçois la proposition normalisée produite par le traducteur ainsi que
+      toutes les données d'entrée (input_payload). Ton rôle est de jouer le
+      garde-fou:
+      1. Vérifie le JSON par rapport au schema NormalizedTripRequest fourni.
+      2. Contrôle que chaque champ obligatoire a une justification explicite
+         dans le questionnaire ou l'inférence. En cas de manquement,
+         corrige-toi même le JSON (ne renvoie jamais un simple rapport d'erreur).
+      3. Résume les corrections ou validations dans un bloc "validation_report".
+      4. Si tu modifies des valeurs (ex: ajout de l'origine, dates, ids),
+         explique pourquoi dans le rapport.
+
+      Tu dois absolument livrer un JSON final prêt pour la production. Si tu ne
+      peux pas remplir un champ, indique-le dans validation_report.issues avec
+      une justification claire.
+
+      JSON SCHEMA DE RÉFÉRENCE:
+      {normalized_trip_schema}
+    expected_output: |-
+      {
+        "normalized_trip_request": NormalizedTripRequest conforme et corrigé,
+        "validation_report": {
+          "is_valid": boolean,
+          "issues": ["Liste des écarts détectés"],
+          "fixes_applied": ["Liste des corrections apportées"]
+        }
+      }
     async_execution: false

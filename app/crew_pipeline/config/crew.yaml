@@ -3,8 +3,10 @@ crew:
     - traveller_insights_analyst
     - persona_quality_challenger
     - normalized_trip_translator
+    - normalized_trip_auditor
   tasks:
     - traveller_profile_brief
     - persona_challenge_review
     - normalized_trip_projection
+    - normalized_trip_quality_gate
   process: sequential
