@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# -*- coding: utf-8 -*-
 
 import json
 import logging
@@ -13,7 +14,7 @@ class PersonaInference:
     persona_principal: str
     confiance: int
     niveau: str
-    profils_emergents: List[Tuple[str, int]]
+    profil_emergent: Optional[Tuple[str, int]]
     caracteristiques_sures: List[str]
     incertitudes: List[str]
 
@@ -27,715 +28,541 @@ class InferenceResult:
 
 class PersonaInferenceEngine:
     CONFIDENCE_HIGH = 85
-    CONFIDENCE_MEDIUM = 70
-    CONFIDENCE_LOW = 55
+    CONFIDENCE_MEDIUM = 65
 
     def infer_persona(self, questionnaire_data: Dict[str, Any]) -> InferenceResult:
         try:
-            normalized_data = self._normalize_data(questionnaire_data)
-            base_persona, base_confidence = self._identify_base_persona(normalized_data)
-            minor_personas = self._detect_minor_personas(normalized_data)
-            global_confidence = self._calculate_global_confidence(
-                normalized_data,
-                base_confidence,
-                minor_personas,
+            data = self._normalize_data(questionnaire_data)
+            macro_label, base_conf = self._identify_macro_persona(data)
+            emerging_profiles = self._detect_emerging_profiles(data)
+            best_emergent = self._select_best_emergent(emerging_profiles)
+            global_conf = self._calculate_global_confidence(
+                data, macro_label, base_conf, best_emergent
             )
-            niveau = self._confidence_level(global_confidence)
-            persona_label = self._finalize_persona_label(
-                base_persona, global_confidence, minor_personas
+            niveau = self._confidence_level(global_conf)
+            caracteristiques_sures = self._extract_sure_characteristics(
+                data, macro_label, best_emergent
             )
-            sure_characteristics = self._extract_sure_characteristics(normalized_data)
-            uncertainties = self._identify_uncertainties(normalized_data)
-            recommandations = self._generate_recommandations(
-                normalized_data, persona_label, minor_personas, global_confidence
+            incertitudes = self._identify_uncertainties(data)
+            recommandations = self._generate_recommendations(
+                data, macro_label, best_emergent
             )
-            persona_inference = PersonaInference(
-                persona_principal=persona_label,
-                confiance=global_confidence,
+
+            persona = PersonaInference(
+                persona_principal=macro_label,
+                confiance=global_conf,
                 niveau=niveau,
-                profils_emergents=minor_personas,
-                caracteristiques_sures=sure_characteristics,
-                incertitudes=uncertainties,
+                profil_emergent=best_emergent,
+                caracteristiques_sures=caracteristiques_sures,
+                incertitudes=incertitudes,
             )
             return InferenceResult(
-                questionnaire_data=normalized_data,
-                persona_inference=persona_inference,
+                questionnaire_data=data,
+                persona_inference=persona,
                 recommandations=recommandations,
             )
         except Exception as exc:
-            logger.error(f"Erreur lors de l'inférence: {exc}")
+            logger.error(f"Erreur lors de l'inférence de persona: {exc}")
             raise
 
-    def _normalize_data(self, data: Dict[str, Any]) -> Dict[str, Any]:
-        normalized = dict(data) if data is not None else {}
+    # ----------------------------
+    # NORMALISATION
+    # ----------------------------
+    def _normalize_data(self, raw: Dict[str, Any]) -> Dict[str, Any]:
+        data: Dict[str, Any] = dict(raw) if raw else {}
 
-        groupe = normalized.get("groupe_voyage")
-        if groupe is not None:
-            normalized["travel_group"] = self._normalize_travel_group(groupe)
+        # Groupe de voyage → travel_group canonique
+        g = data.get("groupe_voyage") or data.get("travel_group")
+        if g:
+            g2 = str(g).lower().strip()
+            if "duo" in g2:
+                data["travel_group"] = "duo"
+            elif "solo" in g2:
+                data["travel_group"] = "solo"
+            elif "family" in g2 or "famille" in g2:
+                data["travel_group"] = "family"
+            elif "group" in g2 or "ami" in g2:
+                data["travel_group"] = "friends"
+            else:
+                data["travel_group"] = g2
+        else:
+            data["travel_group"] = None
 
-        if "a_destination" in normalized:
-            normalized["has_destination"] = self._normalize_yes_no(
-                normalized.get("a_destination")
-            )
+        def norm_yes_no(v: Any) -> Optional[str]:
+            if not v:
+                return None
+            x = str(v).lower().strip()
+            if x in ("yes", "oui", "y"):
+                return "yes"
+            if x in ("no", "non", "n"):
+                return "no"
+            return x
 
-        if "a_date_depart_approximative" in normalized:
-            normalized["has_approx_depart_date"] = self._normalize_yes_no(
-                normalized.get("a_date_depart_approximative")
-            )
+        data["has_destination"] = norm_yes_no(
+            data.get("a_destination") or data.get("has_destination")
+        )
 
-        if "type_dates" in normalized:
-            normalized["dates_type"] = self._normalize_dates_type(
-                normalized.get("type_dates")
-            )
+        data["has_approx_date"] = norm_yes_no(
+            data.get("a_date_depart_approximative")
+            or data.get("has_approximate_departure_date")
+        )
 
-        json_like_fields = [
+        dt = data.get("type_dates") or data.get("dates_type")
+        if dt:
+            t = str(dt).lower()
+            if "fix" in t:
+                data["dates_type"] = "fixed"
+            elif "flex" in t:
+                data["dates_type"] = "flexible"
+            else:
+                data["dates_type"] = t
+        else:
+            data["dates_type"] = None
+
+        # Champs potentiellement sérialisés en JSON
+        json_fields = [
             "preference_climat",
             "affinites_voyage",
             "styles",
             "mobilite",
-            "mobility",
             "type_hebergement",
-            "accommodation_type",
             "equipements",
-            "amenities",
             "contraintes",
-            "constraints",
             "securite",
-            "security",
             "preferences_hotel",
-            "hotel_preferences",
             "preferences_horaires",
-            "schedule_prefs",
             "aide_avec",
-            "help_with",
         ]
-        for field in json_like_fields:
-            value = normalized.get(field)
-            if isinstance(value, str):
-                value_stripped = value.strip()
-                if value_stripped:
-                    try:
-                        loaded = json.loads(value_stripped)
-                        normalized[field] = loaded
-                    except Exception:
-                        if "," in value_stripped:
-                            parts = [
-                                p.strip()
-                                for p in value_stripped.split(",")
-                                if p.strip()
-                            ]
-                            normalized[field] = parts
+        for field in json_fields:
+            v = data.get(field)
+            if isinstance(v, str):
+                vs = v.strip()
+                if vs:
+                    if vs.startswith("[") or vs.startswith("{"):
+                        try:
+                            data[field] = json.loads(vs)
+                        except Exception:
+                            # On laisse tel quel si ce n'est pas du JSON valide
+                            pass
 
-        bagages = normalized.get("bagages")
-        if isinstance(bagages, dict):
+        # Bagages → liste ordonnée
+        bag = data.get("bagages")
+        if isinstance(bag, dict):
             try:
-                ordered = []
-                for key in sorted(bagages.keys(), key=lambda x: int(x)):
-                    ordered.append(bagages[key])
-                normalized["bagages_list"] = ordered
+                ordered = [bag[k] for k in sorted(bag.keys(), key=lambda x: int(x))]
+                data["bagages_list"] = ordered
             except Exception:
-                normalized["bagages_list"] = list(bagages.values())
-        elif isinstance(bagages, list):
-            normalized["bagages_list"] = bagages
+                data["bagages_list"] = list(bag.values())
+        elif isinstance(bag, list):
+            data["bagages_list"] = bag
         else:
-            normalized["bagages_list"] = None
+            data["bagages_list"] = None
 
-        if "help_with" not in normalized and "aide_avec" in normalized:
-            normalized["help_with"] = normalized.get("aide_avec")
-        if "aide_avec" not in normalized and "help_with" in normalized:
-            normalized["aide_avec"] = normalized.get("help_with")
+        # Durée & budget
+        data["duration_nights"] = self._extract_nights(data)
+        data["budget_segment"] = self._parse_budget(data)
+        return data
 
-        if "mobility" not in normalized and "mobilite" in normalized:
-            normalized["mobility"] = normalized.get("mobilite")
-        if "mobilite" not in normalized and "mobility" in normalized:
-            normalized["mobilite"] = normalized.get("mobility")
-
-        if "accommodation_type" not in normalized and "type_hebergement" in normalized:
-            normalized["accommodation_type"] = normalized.get("type_hebergement")
-        if "type_hebergement" not in normalized and "accommodation_type" in normalized:
-            normalized["type_hebergement"] = normalized.get("accommodation_type")
-
-        if "amenities" not in normalized and "equipements" in normalized:
-            normalized["amenities"] = normalized.get("equipements")
-        if "equipements" not in normalized and "amenities" in normalized:
-            normalized["equipements"] = normalized.get("amenities")
-
-        if "constraints" not in normalized and "contraintes" in normalized:
-            normalized["constraints"] = normalized.get("contraintes")
-        if "contraintes" not in normalized and "constraints" in normalized:
-            normalized["contraintes"] = normalized.get("constraints")
-
-        if "security" not in normalized and "securite" in normalized:
-            normalized["security"] = normalized.get("securite")
-        if "securite" not in normalized and "security" in normalized:
-            normalized["securite"] = normalized.get("security")
-
-        if "schedule_prefs" not in normalized and "preferences_horaires" in normalized:
-            normalized["schedule_prefs"] = normalized.get("preferences_horaires")
-        if "preferences_horaires" not in normalized and "schedule_prefs" in normalized:
-            normalized["preferences_horaires"] = normalized.get("schedule_prefs")
-
-        return normalized
-
-    def _normalize_travel_group(self, value: Any) -> Optional[str]:
-        if value is None:
-            return None
-        text = str(value).lower()
-        if text in {"solo", "duo", "group35", "family"}:
-            return text
-        if "solo" in text or "seul" in text:
-            return "solo"
-        if "duo" in text or "couple" in text:
-            return "duo"
-        if "famille" in text or "family" in text:
-            return "family"
-        if "ami" in text or "friends" in text or "groupe" in text or "group 3-5" in text:
-            return "group35"
-        if "business" in text or "affaires" in text or "travail" in text:
-            return "business"
-        return text
-
-    def _normalize_yes_no(self, value: Any) -> Optional[str]:
-        if value is None:
-            return None
-        text = str(value).lower().strip()
-        if text in {"yes", "oui", "y"}:
-            return "yes"
-        if text in {"no", "non", "n"}:
-            return "no"
-        return text
-
-    def _normalize_dates_type(self, value: Any) -> Optional[str]:
-        if value is None:
-            return None
-        text = str(value).lower().strip()
-        if "fix" in text:
-            return "fixed"
-        if "flex" in text:
-            return "flexible"
-        return text
-
-    def _ensure_list(self, value: Any) -> List[Any]:
-        if value is None:
-            return []
-        if isinstance(value, list):
-            return value
-        if isinstance(value, str):
-            value_stripped = value.strip()
-            if not value_stripped:
-                return []
-            try:
-                loaded = json.loads(value_stripped)
-                if isinstance(loaded, list):
-                    return loaded
-                return [loaded]
-            except Exception:
-                return [value]
-        return [value]
-
-    def _lower_list(self, value: Any) -> List[str]:
-        base_list = self._ensure_list(value)
-        return [str(v).lower() for v in base_list]
-
-    def _concat_lower(self, value: Any) -> str:
-        if value is None:
-            return ""
-        if isinstance(value, list):
-            return " ".join(str(v).lower() for v in value)
-        return str(value).lower()
-
-    def _has_keyword_in_list(self, value: Any, keywords: List[str]) -> bool:
-        if not keywords:
-            return False
-        items = self._lower_list(value)
-        for item in items:
-            for k in keywords:
-                if k in item:
-                    return True
-        return False
-
-    def _has_keyword_in_text(self, value: Any, keywords: List[str]) -> bool:
-        if not keywords:
-            return False
-        text = self._concat_lower(value)
-        return any(k in text for k in keywords)
-
-    def _identify_base_persona(self, data: Dict[str, Any]) -> Tuple[str, int]:
-        travel_group = data.get("travel_group")
-        children = data.get("enfants") or data.get("children")
-        budget_value = (
-            data.get("budget_par_personne")
-            or data.get("montant_budget")
-            or data.get("budget_amount")
-        )
-        budget_segment = self._detect_budget_segment(budget_value)
-
-        label = "Voyageur loisirs"
-        confidence = 60
-
-        has_children = False
-        if isinstance(children, list) and len(children) > 0:
-            has_children = True
-        elif isinstance(children, int) and children > 0:
-            has_children = True
-
-        if travel_group == "family" and has_children:
-            label = "Famille avec enfants"
-            confidence = 95
-        elif travel_group == "family":
-            label = "Famille"
-            confidence = 90
-        elif travel_group == "solo":
-            label = "Voyageur solo"
-            confidence = 90
-        elif travel_group == "duo":
-            if has_children:
-                label = "Couple avec enfants"
-                confidence = 90
-            else:
-                label = "Couple"
-                confidence = 92
-        elif travel_group in {"group35", "friends", "group"}:
-            label = "Groupe d'amis"
-            confidence = 90
-        elif travel_group == "business":
-            label = "Voyageur d'affaires"
-            confidence = 90
-
-        ambiance = data.get("ambiance_voyage") or ""
-        ambiance_lower = str(ambiance).lower()
-        if (
-            ("romant" in ambiance_lower or "intim" in ambiance_lower)
-            and travel_group == "duo"
-            and not has_children
-        ):
-            label = "Couple romantique"
-            confidence = max(confidence, 93)
-
-        if budget_segment == "luxe":
-            label = f"{label} - Segment luxe"
-            confidence = max(confidence, 88)
-        elif budget_segment == "budget":
-            label = f"{label} - Budget-conscient"
-            confidence = max(confidence, 85)
-
-        help_with = data.get("aide_avec") or data.get("help_with") or []
-        help_with_list = self._ensure_list(help_with)
-        help_set = {str(h) for h in help_with_list}
-
-        if help_set == {"activities"} and travel_group in {"solo", "duo"}:
-            label = f"{label} orienté expériences"
-        elif help_set == {"flights"}:
-            label = f"{label} autonome sur place"
-        elif help_set == {"accommodation"}:
-            label = f"{label} centré hébergement"
-        elif {"flights", "accommodation", "activities"}.issubset(help_set):
-            label = f"{label} accompagné de bout en bout"
-
-        return label, confidence
-
-    def _detect_budget_segment(self, budget_value: Any) -> Optional[str]:
-        if not budget_value:
-            return None
-        text = str(budget_value).lower()
-
-        if ">" in text or "plus de" in text or "supérieur à" in text:
-            return "luxe"
-
-        digits: List[int] = []
-        current = ""
-        for ch in text:
-            if ch.isdigit():
-                current += ch
-            else:
-                if current:
-                    digits.append(int(current))
-                    current = ""
-        if current:
-            digits.append(int(current))
-
-        if not digits:
-            return None
-
-        if len(digits) == 1:
-            amount = digits[0]
-        else:
-            amount = sum(digits) / len(digits)
-
-        if amount <= 400:
-            return "budget"
-        if amount >= 1200:
-            return "luxe"
-        return "mid"
-
-    def _extract_duration_nights(self, data: Dict[str, Any]) -> Optional[int]:
-        exact = data.get("nuits_exactes") or data.get("exact_nights")
-        if isinstance(exact, int):
-            return exact
-
-        duree = data.get("duree") or data.get("duration")
+    def _extract_nights(self, data: Dict[str, Any]) -> Optional[int]:
+        if isinstance(data.get("nuits_exactes"), int):
+            return data["nuits_exactes"]
+        duree = data.get("duree")
         if not duree:
             return None
-        text = str(duree).lower()
-
-        digits: List[int] = []
-        current = ""
+        text = str(duree)
+        digits = ""
         for ch in text:
             if ch.isdigit():
-                current += ch
-            else:
-                if current:
-                    digits.append(int(current))
-                    current = ""
-        if current:
-            digits.append(int(current))
+                digits += ch
         if digits:
-            return digits[0]
+            try:
+                return int(digits)
+            except Exception:
+                return None
         return None
 
-    def _extract_children_count(self, data: Dict[str, Any]) -> int:
-        enfants = data.get("enfants") or data.get("children")
-        if isinstance(enfants, list):
-            return len(enfants)
-        if isinstance(enfants, int):
-            return enfants
-        return 0
-
-    def _extract_flex_days(self, data: Dict[str, Any]) -> Optional[int]:
-        flex = data.get("flexibilite") or data.get("flexibility")
-        if not flex:
+    def _parse_budget(self, data: Dict[str, Any]) -> Optional[str]:
+        b = data.get("budget_par_personne") or data.get("montant_budget")
+        if not b:
             return None
-        text = str(flex)
-        digits: List[int] = []
-        current = ""
-        for ch in text:
-            if ch.isdigit():
-                current += ch
+        t = str(b).lower()
+        nums: List[int] = []
+        buf = ""
+        for c in t:
+            if c.isdigit():
+                buf += c
             else:
-                if current:
-                    digits.append(int(current))
-                    current = ""
-        if current:
-            digits.append(int(current))
-        if not digits:
+                if buf:
+                    nums.append(int(buf))
+                    buf = ""
+        if buf:
+            nums.append(int(buf))
+        if not nums:
+            if "je ne sais" in t:
+                return "unknown"
             return None
-        return max(digits)
+        avg = sum(nums) / len(nums)
+        if avg <= 400:
+            return "budget"
+        if avg >= 1200:
+            return "high"
+        return "mid"
 
-    def _check_digital_nomad(self, data: Dict[str, Any]) -> int:
+    # ----------------------------
+    # MACRO PERSONA
+    # ----------------------------
+    def _identify_macro_persona(self, data: Dict[str, Any]) -> Tuple[str, int]:
+        group = data.get("travel_group")
+        enfants = data.get("enfants")
+        nb_voyageurs = data.get("nombre_voyageurs")
+        ambiance = self._safe_lower(data.get("ambiance_voyage"))
+        help_with = data.get("aide_avec") or data.get("help_with") or []
+        if not isinstance(help_with, list):
+            help_with = [help_with]
+
+        has_children = False
+        if isinstance(enfants, list) and len(enfants) > 0:
+            has_children = True
+        elif isinstance(enfants, int) and enfants > 0:
+            has_children = True
+
+        label = "Voyageur Loisirs"
+        base_conf = 55
+
+        if group == "solo":
+            label = "Voyageur Solo"
+            base_conf = 80
+        elif group == "family":
+            if has_children or (isinstance(nb_voyageurs, int) and nb_voyageurs >= 3):
+                label = "Famille"
+                base_conf = 85
+            else:
+                label = "Famille / Petit groupe"
+                base_conf = 80
+        elif group in ("friends", "group35", "group"):
+            label = "Groupe d'amis"
+            base_conf = 82
+        elif group == "duo":
+            # Cas ambigu : duo peut être couple ou amis → on reste neutre
+            if "romant" in ambiance or "honeymoon" in ambiance:
+                label = "Couple"
+                base_conf = 85
+            else:
+                label = "Duo Loisirs"
+                base_conf = 78
+
+        # Cas business / bleisure
+        if "business" in str(group or "") or "affaires" in ambiance:
+            if "flights" in help_with and "accommodation" in help_with:
+                label = "Voyageur d'affaires / Bleisure"
+                base_conf = max(base_conf, 80)
+
+        # Raffinage par budget
+        seg = data.get("budget_segment")
+        if seg == "budget":
+            label = f"{label} - Budget-Conscient"
+            base_conf = max(base_conf, 78)
+        elif seg == "mid":
+            label = f"{label} - Confort modéré"
+            base_conf = max(base_conf, 80)
+        elif seg == "high":
+            label = f"{label} - Haut de gamme"
+            base_conf = max(base_conf, 82)
+
+        # Duo non explicitement romantique → on ne monte pas trop la confiance
+        if group == "duo" and not ("romant" in ambiance or "honeymoon" in ambiance):
+            base_conf = min(base_conf, 83)
+
+        return label, base_conf
+
+    # ----------------------------
+    # PROFILS ÉMERGENTS
+    # ----------------------------
+    def _detect_emerging_profiles(self, data: Dict[str, Any]) -> List[Tuple[str, int]]:
+        profiles: List[Tuple[str, int]] = []
+
+        digital = self._score_digital_nomad(data)
+        if digital >= 70:
+            profiles.append(("Digital Nomad", digital))
+
+        slow = self._score_slow_travel(data)
+        if slow >= 70:
+            profiles.append(("Slow Traveler", slow))
+
+        wellness = self._score_wellness(data)
+        if wellness >= 70:
+            profiles.append(("Wellness Traveler", wellness))
+
+        bleisure = self._score_bleisure(data)
+        if bleisure >= 70:
+            profiles.append(("Bleisure Traveler", bleisure))
+
+        eco = self._score_eco_conscious(data)
+        if eco >= 70:
+            profiles.append(("Voyageur éco-conscient", eco))
+
+        beach = self._score_beach_lover(data)
+        if beach >= 70:
+            profiles.append(("Amateur de Plage & Détente", beach))
+
+        nature = self._score_nature_lover(data)
+        if nature >= 70:
+            profiles.append(("Amoureux de Nature & Paysages", nature))
+
+        city = self._score_city_breaker(data)
+        if city >= 70:
+            profiles.append(("City Breaker", city))
+
+        parks = self._score_theme_parks(data)
+        if parks >= 70:
+            profiles.append(("Fan de Parcs & Attractions", parks))
+
+        return profiles
+
+    def _select_best_emergent(
+        self, profiles: List[Tuple[str, int]]
+    ) -> Optional[Tuple[str, int]]:
+        if not profiles:
+            return None
+        profiles_sorted = sorted(profiles, key=lambda p: p[1], reverse=True)
+        best = profiles_sorted[0]
+        if best[1] < 70:
+            return None
+        return best
+
+    def _score_digital_nomad(self, data: Dict[str, Any]) -> int:
         score = 0
-        additional = self._concat_lower(data.get("infos_supplementaires"))
-        keywords = [
-            "digital nomad",
-            "nomade digital",
-            "remote work",
-            "full remote",
-            "travailler en voyage",
-            "work from abroad",
-            "workation",
-        ]
-        if any(k in additional for k in keywords):
+        infos = self._safe_lower(data.get("infos_supplementaires"))
+        nights = data.get("duration_nights")
+        if any(
+            k in infos
+            for k in [
+                "digital nomad",
+                "nomade digital",
+                "remote work",
+                "workation",
+                "travailler en voyage",
+            ]
+        ):
             score += 60
-        nights = self._extract_duration_nights(data)
-        if nights and nights >= 30:
-            score += 25
-        if nights and nights >= 60:
+        if isinstance(nights, int) and nights >= 21:
+            score += 20
+        help_with = data.get("aide_avec") or []
+        if isinstance(help_with, list) and "accommodation" in help_with:
             score += 10
         return min(score, 100)
 
-    def _check_slow_travel(self, data: Dict[str, Any]) -> int:
+    def _score_slow_travel(self, data: Dict[str, Any]) -> int:
         score = 0
-        nights = self._extract_duration_nights(data)
-        if nights and nights >= 10:
+        nights = data.get("duration_nights")
+        if isinstance(nights, int) and nights >= 10:
             score += 35
-        if nights and nights >= 14:
-            score += 15
-        rythme = data.get("rythme") or data.get("rhythm") or ""
-        rythme_lower = str(rythme).lower()
-        if (
-            "lent" in rythme_lower
-            or "relax" in rythme_lower
-            or "tranquille" in rythme_lower
-            or "slow" in rythme_lower
-            or "relaxed" in rythme_lower
-        ):
+        if isinstance(nights, int) and nights >= 14:
+            score += 10
+        rythme = self._safe_lower(data.get("rythme"))
+        if any(k in rythme for k in ["lent", "relax", "tranquille", "relaxed", "slow"]):
             score += 35
-        ambiance = data.get("ambiance_voyage") or ""
-        ambiance_lower = str(ambiance).lower()
-        if (
-            "détente" in ambiance_lower
-            or "detente" in ambiance_lower
-            or "relax" in ambiance_lower
-            or "calme" in ambiance_lower
-        ):
-            score += 15
+        ambiance = self._safe_lower(data.get("ambiance_voyage"))
+        if any(k in ambiance for k in ["détente", "detente", "relaxation"]):
+            score += 10
         return min(score, 100)
 
-    def _check_wellness(self, data: Dict[str, Any]) -> int:
+    def _score_wellness(self, data: Dict[str, Any]) -> int:
         score = 0
-        affinities = data.get("affinites_voyage") or data.get("travel_affinities") or []
-        joined = self._concat_lower(affinities)
-        wellness_keywords = [
-            "bien_etre",
-            "bien-être",
-            "bien etre",
-            "spa",
-            "thermes",
-            "thermal",
-            "yoga",
-            "meditation",
-            "méditation",
-            "retraite",
-            "retreat",
-            "detox",
-            "détox",
-        ]
-        if any(k in joined for k in wellness_keywords):
-            score += 60
-        ambiance = data.get("ambiance_voyage") or ""
-        ambiance_lower = str(ambiance).lower()
-        if (
-            "relax" in ambiance_lower
-            or "détente" in ambiance_lower
-            or "detente" in ambiance_lower
+        affinities = self._as_list(data.get("affinites_voyage"))
+        affinities_text = " ".join(self._safe_lower(a) for a in affinities)
+        if any(
+            k in affinities_text
+            for k in ["yoga", "bien-être", "bien_etre", "spa", "wellness", "thermes"]
         ):
+            score += 60
+        ambiance = self._safe_lower(data.get("ambiance_voyage"))
+        if any(k in ambiance for k in ["relax", "détente", "detente", "calme"]):
             score += 20
         return min(score, 100)
 
-    def _check_bleisure(self, data: Dict[str, Any]) -> int:
+    def _score_bleisure(self, data: Dict[str, Any]) -> int:
         score = 0
-        additional = self._concat_lower(data.get("infos_supplementaires"))
-        keywords = [
-            "business trip",
-            "voyage d'affaires",
-            "voyage pro",
-            "conférence",
-            "conference",
-            "séminaire",
-            "seminaire",
-            "salon",
-        ]
-        if any(k in additional for k in keywords):
+        infos = self._safe_lower(data.get("infos_supplementaires"))
+        if any(
+            k in infos
+            for k in [
+                "voyage pro",
+                "voyage professionnel",
+                "conférence",
+                "conference",
+                "séminaire",
+                "seminaire",
+                "salon",
+                "business trip",
+            ]
+        ):
             score += 60
         dates_type = data.get("dates_type")
         if dates_type == "fixed":
             score += 10
-        aide = data.get("aide_avec") or data.get("help_with")
-        if isinstance(aide, list) and "flights" in aide and "accommodation" in aide:
-            score += 15
         return min(score, 100)
 
-    def _check_eco_conscious(self, data: Dict[str, Any]) -> int:
+    def _score_eco_conscious(self, data: Dict[str, Any]) -> int:
         score = 0
-        contraintes = data.get("contraintes") or data.get("constraints") or []
-        additional = data.get("infos_supplementaires") or ""
-        texts: List[str] = []
-        if isinstance(contraintes, list):
-            texts.extend(str(x).lower() for x in contraintes)
-        elif contraintes:
-            texts.append(str(contraintes).lower())
-        texts.append(str(additional).lower())
+        contraintes = self._as_list(data.get("contraintes"))
+        additional = self._safe_lower(data.get("infos_supplementaires"))
+        text = " ".join(self._safe_lower(c) for c in contraintes) + " " + additional
         eco_keywords = [
             "écologique",
             "ecologique",
             "environnement",
             "co2",
             "empreinte",
-            "train plutôt que l'avion",
-            "train plutot que l'avion",
             "pas d'avion",
             "no plane",
-            "low impact",
+            "train plutôt que l'avion",
+            "train plutot que l'avion",
         ]
-        if any(k in t for t in texts for k in eco_keywords):
+        if any(k in text for k in eco_keywords):
             score += 65
-        preference_vol = str(
-            data.get("preference_vol") or data.get("flight_preference") or ""
-        ).lower()
-        if (
-            "train" in preference_vol
-            or "pas d'avion" in preference_vol
-            or "no plane" in preference_vol
-        ):
-            score += 20
+        pref_vol = self._safe_lower(data.get("preference_vol"))
+        if any(k in pref_vol for k in ["train", "no plane", "pas d'avion"]):
+            score += 15
         return min(score, 100)
 
-    def _check_roadtrip(self, data: Dict[str, Any]) -> int:
+    def _score_beach_lover(self, data: Dict[str, Any]) -> int:
         score = 0
-        nights = self._extract_duration_nights(data) or 0
-        mobility = data.get("mobilite") or data.get("mobility")
-        affinities = data.get("affinites_voyage") or data.get("travel_affinities") or []
-        if nights >= 7:
-            score += 30
-        if self._has_keyword_in_list(
-            mobility, ["location voiture", "rental car", "moto", "scooter", "roadtrip"]
+        climat = self._as_list(data.get("preference_climat"))
+        climat_txt = " ".join(self._safe_lower(c) for c in climat)
+        if any(
+            k in climat_txt
+            for k in [
+                "hot",
+                "chaud",
+                "ensoleillé",
+                "sunny",
+                "tropical",
+                "plage",
+                "beach",
+            ]
         ):
             score += 40
-        if self._has_keyword_in_list(
-            affinities, ["nature", "randonnée", "hiking", "roadtrip", "paysages"]
+        affinities = self._as_list(data.get("affinites_voyage"))
+        affin_txt = " ".join(self._safe_lower(a) for a in affinities)
+        if any(
+            k in affin_txt
+            for k in [
+                "plage",
+                "beach",
+                "détente",
+                "detente",
+                "paradise beaches",
+                "snorkeling",
+                "diving",
+            ]
         ):
-            score += 20
+            score += 35
         return min(score, 100)
 
-    def _check_city_break(self, data: Dict[str, Any]) -> int:
+    def _score_nature_lover(self, data: Dict[str, Any]) -> int:
         score = 0
-        nights = self._extract_duration_nights(data) or 0
-        travel_group = data.get("travel_group")
-        affinities = data.get("affinites_voyage") or data.get("travel_affinities") or []
-        mobility = data.get("mobilite") or data.get("mobility")
-        if nights and nights <= 4:
+        climat = self._as_list(data.get("preference_climat"))
+        climat_txt = " ".join(self._safe_lower(c) for c in climat)
+        if any(k in climat_txt for k in ["mountain", "montagne", "altitude"]):
             score += 40
-        if travel_group in {"solo", "duo"}:
-            score += 20
-        if self._has_keyword_in_list(
-            affinities,
-            ["shopping", "mode", "shopping & fashion", "culture", "musée", "museum"],
+        affinities = self._as_list(data.get("affinites_voyage"))
+        affin_txt = " ".join(self._safe_lower(a) for a in affinities)
+        if any(
+            k in affin_txt
+            for k in [
+                "nature",
+                "randonnée",
+                "hiking",
+                "paysages",
+                "ski",
+                "winter",
+                "montagne",
+            ]
         ):
-            score += 20
-        if self._has_keyword_in_list(
-            mobility, ["métro", "metro", "train", "transports en commun", "subway"]
-        ):
-            score += 10
+            score += 35
         return min(score, 100)
 
-    def _detect_minor_personas(self, data: Dict[str, Any]) -> List[Tuple[str, int]]:
-        personas: List[Tuple[str, int]] = []
-
-        score_digital = self._check_digital_nomad(data)
-        if score_digital >= 80:
-            personas.append(("Digital nomad", score_digital))
-
-        score_slow = self._check_slow_travel(data)
-        if score_slow >= 80:
-            personas.append(("Slow traveler", score_slow))
-
-        score_wellness = self._check_wellness(data)
-        if score_wellness >= 80:
-            personas.append(("Voyage bien-être", score_wellness))
-
-        score_bleisure = self._check_bleisure(data)
-        if score_bleisure >= 80:
-            personas.append(("Bleisure traveler", score_bleisure))
-
-        score_eco = self._check_eco_conscious(data)
-        if score_eco >= 80:
-            personas.append(("Voyageur éco-conscient", score_eco))
-
-        score_roadtrip = self._check_roadtrip(data)
-        if score_roadtrip >= 80:
-            personas.append(("Amateur de roadtrip", score_roadtrip))
-
-        score_city_break = self._check_city_break(data)
-        if score_city_break >= 80:
-            personas.append(("Amateur de city-break urbain", score_city_break))
-
-        affinities = data.get("affinites_voyage") or data.get("travel_affinities") or []
-        styles = data.get("styles") or []
-        affinities_lower = self._lower_list(affinities)
-        styles_lower = self._lower_list(styles)
-
-        def list_has_any(values: List[str], keywords: List[str]) -> bool:
-            for v in values:
-                for k in keywords:
-                    if k in v:
-                        return True
-            return False
-
-        if list_has_any(
-            affinities_lower + styles_lower,
-            ["plage", "beach", "détente", "detente", "sun", "paradise beaches"],
+    def _score_city_breaker(self, data: Dict[str, Any]) -> int:
+        score = 0
+        affinities = self._as_list(data.get("affinites_voyage"))
+        affin_txt = " ".join(self._safe_lower(a) for a in affinities)
+        if any(
+            k in affin_txt
+            for k in [
+                "city",
+                "ville",
+                "city-trip",
+                "city break",
+                "historic_cities",
+                "culture",
+                "musées",
+            ]
         ):
-            personas.append(("Amateur de plage & détente", 85))
+            score += 40
+        nights = data.get("duration_nights")
+        if isinstance(nights, int) and nights <= 5:
+            score += 25
+        return min(score, 100)
 
-        if list_has_any(
-            affinities_lower + styles_lower,
-            ["nature", "randonnée", "hiking", "montagne", "mountain", "paysages"],
+    def _score_theme_parks(self, data: Dict[str, Any]) -> int:
+        score = 0
+        affinities = self._as_list(data.get("affinites_voyage"))
+        affin_txt = " ".join(self._safe_lower(a) for a in affinities)
+        if any(
+            k in affin_txt
+            for k in [
+                "parcs d'attractions",
+                "amusement parks",
+                "theme park",
+                "parcs d'attraction",
+            ]
         ):
-            personas.append(("Amoureux de nature & paysages", 85))
+            score += 70
+        return min(score, 100)
 
-        if list_has_any(
-            affinities_lower + styles_lower,
-            ["culture", "histoire", "museum", "musée", "city tour"],
-        ):
-            personas.append(("Passionné de culture & histoire", 82))
-
-        if list_has_any(
-            affinities_lower + styles_lower,
-            ["gastronomie", "food", "cuisine", "street food"],
-        ):
-            personas.append(("Gourmet & gastronomie", 82))
-
-        if list_has_any(
-            affinities_lower + styles_lower,
-            ["parc d'attractions", "amusement park", "roller coaster"],
-        ):
-            personas.append(("Fan de parcs & attractions", 82))
-
-        if list_has_any(
-            affinities_lower + styles_lower,
-            ["festival", "festivals", "nightlife", "fête", "soirée", "party"],
-        ):
-            personas.append(("Amateur de vie nocturne & festivals", 82))
-
-        unique: Dict[str, int] = {}
-        for name, score in personas:
-            if name not in unique or score > unique[name]:
-                unique[name] = score
-
-        sorted_personas = sorted(unique.items(), key=lambda x: x[1], reverse=True)
-        return sorted_personas[:1]
-
+    # ----------------------------
+    # CONFIANCE GLOBALE
+    # ----------------------------
     def _calculate_global_confidence(
         self,
         data: Dict[str, Any],
-        base_confidence: int,
-        minor_personas: List[Tuple[str, int]],
+        macro_label: str,
+        base_conf: int,
+        best_emergent: Optional[Tuple[str, int]],
     ) -> int:
-        score = base_confidence
-
-        core_fields = [
-            "travel_group",
-            "has_destination",
-            "dates_type",
-            "budget_par_personne",
-            "montant_budget",
-            "lieu_depart",
-            "destination",
-        ]
-        filled_core = sum(
-            1 for f in core_fields if data.get(f) not in (None, "", [])
-        )
-        score += min(filled_core * 2, 8)
-
-        if data.get("affinites_voyage") or data.get("travel_affinities"):
-            score += 1
-        if data.get("preference_climat") or data.get("climate_preference"):
-            score += 1
-        if data.get("rythme") or data.get("rhythm"):
-            score += 1
-        if data.get("mobilite") or data.get("mobility"):
-            score += 1
+        score = base_conf
 
         filled = self._count_filled_fields(data)
-        total = len(data) if data else 1
+        total = max(len(data), 1)
         ratio = filled / total
         if ratio >= 0.7:
-            score += 3
+            score += 5
         elif ratio <= 0.3:
             score -= 5
 
-        if minor_personas:
-            score += 2
+        if best_emergent:
+            score += 3
 
-        destination_flag = data.get("has_destination")
-        if destination_flag == "no":
+        if data.get("has_destination") == "no":
             score -= 2
 
-        dates_type = data.get("dates_type")
-        if dates_type == "flexible":
+        if data.get("dates_type") == "flexible":
             score -= 1
 
-        score = max(0, min(100, score))
-        return score
+        seg = data.get("budget_segment")
+        if seg == "unknown":
+            score -= 2
+
+        group = data.get("travel_group")
+        ambiance = self._safe_lower(data.get("ambiance_voyage"))
+        if group == "duo" and not ("romant" in ambiance or "honeymoon" in ambiance):
+            # Duo ambigu (ami/couple) → on réduit la confiance
+            score -= 4
+            score = min(score, 88)
+
+        score = max(40, min(score, 96))
+        return int(round(score))
 
     def _confidence_level(self, score: int) -> str:
         if score >= self.CONFIDENCE_HIGH:
@@ -744,480 +571,438 @@ class PersonaInferenceEngine:
             return "MOYEN"
         return "FAIBLE"
 
-    def _finalize_persona_label(
+    # ----------------------------
+    # CARACTÉRISTIQUES SURES
+    # ----------------------------
+    def _extract_sure_characteristics(
         self,
-        base_persona: str,
-        confidence: int,
-        minor_personas: List[Tuple[str, int]],
-    ) -> str:
-        label = base_persona
-        if minor_personas:
-            top_minor = minor_personas[0][0]
-            label = f"{label} + {top_minor}"
-        if confidence < self.CONFIDENCE_MEDIUM:
-            label = f"{label} (persona à confirmer)"
-        elif self.CONFIDENCE_MEDIUM <= confidence < self.CONFIDENCE_HIGH:
-            label = f"{label} (persona probable)"
-        return label
-
-    def _extract_sure_characteristics(self, data: Dict[str, Any]) -> List[str]:
+        data: Dict[str, Any],
+        macro_label: str,
+        best_emergent: Optional[Tuple[str, int]],
+    ) -> List[str]:
         items: List[str] = []
 
-        travel_group = data.get("travel_group")
-        if travel_group == "solo":
+        group = data.get("travel_group")
+        if group == "solo":
             items.append("Voyage en solo")
-        elif travel_group == "duo":
-            items.append("Voyage en duo")
-        elif travel_group == "family":
+        elif group == "duo":
+            if "Couple" in macro_label:
+                items.append("Voyage en couple")
+            else:
+                items.append("Voyage en duo (profil exact à préciser)")
+        elif group == "family":
             items.append("Voyage en famille")
-        elif travel_group in {"friends", "group", "group35"}:
+        elif group in ("friends", "group35", "group"):
             items.append("Voyage en groupe d'amis")
 
-        nombre = data.get("nombre_voyageurs") or data.get("number_of_travelers")
-        if isinstance(nombre, int) and nombre > 0:
-            items.append(f"Nombre de voyageurs: {nombre}")
+        nb = data.get("nombre_voyageurs")
+        if isinstance(nb, int) and nb > 0:
+            items.append(f"Nombre de voyageurs: {nb}")
 
-        children_count = self._extract_children_count(data)
-        if children_count > 0:
-            items.append(f"Présence d'enfants dans le groupe: {children_count}")
+        enfants = data.get("enfants")
+        if isinstance(enfants, list) and len(enfants) > 0:
+            items.append(f"Présence d'enfants (détails fournis pour {len(enfants)}).")
 
-        budget = (
-            data.get("budget_par_personne")
-            or data.get("montant_budget")
-            or data.get("budget_amount")
-        )
+        budget = data.get("budget_par_personne") or data.get("montant_budget")
         if budget:
             items.append(f"Budget indicatif renseigné: {budget}")
 
-        nights = self._extract_duration_nights(data)
-        duree = data.get("duree") or data.get("duration")
-        if nights is not None:
+        nights = data.get("duration_nights")
+        if isinstance(nights, int):
             items.append(f"Durée prévue approximative: {nights} nuits")
-        elif duree:
-            items.append(f"Durée prévue: {duree}")
 
+        flex = data.get("flexibilite")
         dates_type = data.get("dates_type")
-        flex = data.get("flexibilite") or data.get("flexibility")
         if dates_type == "fixed":
-            items.append("Dates de voyage plutôt fixes")
+            items.append("Dates de voyage plutôt fixes.")
         elif dates_type == "flexible":
             if flex:
-                items.append(f"Dates de voyage flexibles ({flex})")
+                items.append(f"Dates de voyage flexibles ({flex}).")
             else:
-                items.append("Dates de voyage flexibles")
+                items.append("Dates de voyage flexibles.")
 
-        climat = data.get("preference_climat") or data.get("climate_preference")
-        if isinstance(climat, list) and climat:
-            labels: List[str] = []
-            for c in climat:
-                labels.append(str(c))
-            items.append("Préférence de climat: " + ", ".join(labels))
+        climat = self._as_list(data.get("preference_climat"))
+        if climat:
+            raw = ", ".join(str(c) for c in climat)
+            items.append(f"Préférence de climat: {raw}")
 
         ambiance = data.get("ambiance_voyage")
         if ambiance:
             items.append(f"Ambiance recherchée: {ambiance}")
 
-        bagages_list = data.get("bagages_list")
-        if isinstance(bagages_list, list) and len(bagages_list) > 0:
-            only_personal = all(
-                str(b).lower().startswith("personal")
-                or "objet personnel" in str(b).lower()
-                for b in bagages_list
-            )
-            if only_personal:
-                items.append(
-                    "Voyage prévu avec uniquement des petits bagages personnels"
-                )
-
-        aide = data.get("aide_avec") or data.get("help_with")
-        if isinstance(aide, list) and aide:
+        help_with = self._as_list(data.get("aide_avec"))
+        if help_with:
             items.append(
-                "Aide demandée en priorité sur: "
-                + ", ".join(str(a) for a in aide)
+                "Aide demandée en priorité sur: " + ", ".join(str(a) for a in help_with)
             )
 
-        langue = data.get("langue") or data.get("language")
+        langue = data.get("langue")
         if langue:
             items.append(f"Langue principale du questionnaire: {langue}")
 
-        depart = data.get("lieu_depart") or data.get("departure_location")
+        depart = data.get("lieu_depart")
         if depart:
             items.append(f"Lieu de départ: {depart}")
 
+        constraints = self._as_list(data.get("contraintes"))
+        if constraints:
+            items.append(
+                "Contraintes spécifiques indiquées: "
+                + ", ".join(str(c) for c in constraints)
+            )
+
+        mobility = self._as_list(data.get("mobilite"))
+        if mobility:
+            items.append(
+                "Modes de déplacement envisagés sur place: "
+                + ", ".join(str(m) for m in mobility)
+            )
+
+        acc_types = self._as_list(data.get("type_hebergement"))
+        if acc_types:
+            items.append(
+                "Types d'hébergement envisagés: " + ", ".join(str(t) for t in acc_types)
+            )
+
+        confort = data.get("confort")
+        if confort:
+            items.append(f"Niveau de confort souhaité: {confort}")
+
+        quartier = data.get("quartier")
+        if quartier:
+            items.append(f"Préférence de quartier: {quartier}")
+
+        amenities = self._as_list(data.get("equipements"))
+        if amenities:
+            items.append(
+                "Équipements prioritaires pour l'hébergement: "
+                + ", ".join(str(e) for e in amenities)
+            )
+
+        schedule = self._as_list(data.get("preferences_horaires"))
+        if schedule:
+            items.append(
+                "Préférences de rythme/journée: " + ", ".join(str(s) for s in schedule)
+            )
+
+        if best_emergent:
+            name, conf = best_emergent
+            items.append(f"Profil émergent détecté: {name} (confiance ≈ {conf}%).")
+
         return items
 
+    # ----------------------------
+    # INCERTITUDES
+    # ----------------------------
     def _identify_uncertainties(self, data: Dict[str, Any]) -> List[str]:
         items: List[str] = []
-
-        destination_flag = data.get("has_destination")
-        destination_value = data.get("destination")
-        if destination_flag != "yes" or not destination_value:
-            items.append("Destination finale non précisée")
-
-        if not data.get("date_depart") and not data.get("departure_date"):
-            items.append("Date précise de départ non renseignée")
-
-        if not data.get("date_retour") and not data.get("return_date"):
-            items.append("Date précise de retour non renseignée")
-
-        if not data.get("type_hebergement") and not data.get("accommodation_type"):
-            items.append("Type d'hébergement souhaité non précisé")
-
-        if not data.get("rythme") and not data.get("rhythm"):
-            items.append("Rythme de voyage préféré non précisé")
-
-        if not data.get("mobilite") and not data.get("mobility"):
-            items.append("Contraintes ou préférences de mobilité non renseignées")
-
-        if not data.get("securite") and not data.get("security"):
-            items.append("Niveau de sensibilité à la sécurité non précisé")
-
-        if not data.get("preferences_hotel") and not data.get("hotel_preferences"):
-            items.append("Préférences détaillées pour l'hébergement non renseignées")
-
+        if data.get("has_destination") != "yes" or not data.get("destination"):
+            items.append("Destination finale non précisée.")
+        if not data.get("date_depart") or not data.get("date_retour"):
+            items.append("Dates précises de départ et de retour non renseignées.")
+        if not data.get("type_hebergement"):
+            items.append("Type d'hébergement souhaité non précisé.")
+        if not data.get("rythme"):
+            items.append("Rythme de voyage préféré non précisé.")
+        if not data.get("mobilite"):
+            items.append("Modes de déplacement sur place peu détaillés.")
+        if not data.get("securite"):
+            items.append("Niveau de sensibilité à la sécurité non précisé.")
+        if not data.get("preferences_hotel"):
+            items.append("Préférences détaillées pour l'hôtel non renseignées.")
         return items
 
-    def _generate_recommandations(
+    # ----------------------------
+    # RECOMMANDATIONS (TOP 3)
+    # ----------------------------
+    def _generate_recommendations(
         self,
         data: Dict[str, Any],
-        persona_label: str,
-        minor_personas: List[Tuple[str, int]],
-        global_confidence: int,
+        macro_label: str,
+        best_emergent: Optional[Tuple[str, int]],
     ) -> List[Dict[str, Any]]:
-        recs: Dict[str, int] = {}
+        recs: List[Dict[str, Any]] = []
 
-        def add_rec(texte: str, base_score: int) -> None:
-            if not texte:
-                return
-            adjusted = base_score + (global_confidence - 70) // 4
-            score = max(60, min(98, adjusted))
-            prev = recs.get(texte)
-            if prev is None or score > prev:
-                recs[texte] = score
+        group = data.get("travel_group")
+        nights = data.get("duration_nights")
+        seg = data.get("budget_segment")
+        climat = self._as_list(data.get("preference_climat"))
+        affinities = self._as_list(data.get("affinites_voyage"))
+        help_with = self._as_list(data.get("aide_avec"))
+        constraints = self._as_list(data.get("contraintes"))
+        depart = data.get("lieu_depart")
+        flex = data.get("flexibilite")
+        pref_vol = self._safe_lower(data.get("preference_vol"))
 
-        travel_group = data.get("travel_group")
-        children_count = self._extract_children_count(data)
-        nights = self._extract_duration_nights(data)
-        budget_value = (
-            data.get("budget_par_personne")
-            or data.get("montant_budget")
-            or data.get("budget_amount")
-        )
-        budget_segment = self._detect_budget_segment(budget_value) if budget_value else None
-        help_with = data.get("aide_avec") or data.get("help_with") or []
-        dates_type = data.get("dates_type")
-        flex_days = self._extract_flex_days(data)
-        climat = data.get("preference_climat") or data.get("climate_preference")
-        constraints = data.get("contraintes") or data.get("constraints") or []
-        security = data.get("securite") or data.get("security") or []
-        ambiance = data.get("ambiance_voyage") or ""
-        ambiance_lower = str(ambiance).lower()
-        langue = data.get("langue") or data.get("language")
-        depart = data.get("lieu_depart") or data.get("departure_location")
-        affinities = data.get("affinites_voyage") or data.get("travel_affinities") or []
-        styles = data.get("styles") or []
-        mobility = data.get("mobilite") or data.get("mobility") or []
-        accommodation_type = data.get("type_hebergement") or data.get("accommodation_type") or []
-        amenities = data.get("equipements") or data.get("amenities") or []
-        schedule_prefs = data.get("preferences_horaires") or data.get("schedule_prefs") or []
-
-        if travel_group == "solo":
-            add_rec(
-                "Privilégier des quartiers faciles à naviguer et perçus comme sûrs pour un voyageur solo, avec une logistique simple.",
-                90,
+        # 1. Reco liée au groupe
+        if group == "solo":
+            recs.append(
+                {
+                    "texte": "Concevoir un itinéraire simple à naviguer pour un voyageur solo, avec des zones perçues comme sûres et une logistique fluide.",
+                    "confiance": 88,
+                }
             )
-        elif travel_group == "duo":
-            if "romant" in ambiance_lower or "intim" in ambiance_lower:
-                add_rec(
-                    "Concevoir un itinéraire pensé pour un couple, avec des temps de qualité à deux et quelques moments forts mémorables.",
-                    90,
-                )
-            elif "fête" in ambiance_lower or "nightlife" in ambiance_lower or "party" in ambiance_lower:
-                add_rec(
-                    "Prévoir un mix d'activités à partager à deux et de soirées animées, tout en gardant des temps de repos.",
-                    90,
+        elif group == "family":
+            recs.append(
+                {
+                    "texte": "Intégrer des temps de repos et des activités adaptées au groupe/famille pour garder le voyage gérable pour tout le monde.",
+                    "confiance": 90,
+                }
+            )
+        elif group in ("friends", "group35", "group"):
+            recs.append(
+                {
+                    "texte": "Prévoir des activités faciles à partager en groupe et des hébergements qui facilitent les moments conviviaux.",
+                    "confiance": 88,
+                }
+            )
+        elif group == "duo":
+            if "Couple" in macro_label:
+                recs.append(
+                    {
+                        "texte": "Structurer le voyage pour un couple avec un bon équilibre entre expériences à deux, découvertes et temps libre.",
+                        "confiance": 88,
+                    }
                 )
             else:
-                add_rec(
-                    "Structurer le voyage pour un couple, avec un bon équilibre entre découvertes, moments à deux et temps libre.",
-                    88,
+                recs.append(
+                    {
+                        "texte": "Construire un itinéraire adapté à un duo (amis ou couple), en limitant les contraintes logistiques et en laissant de la marge pour l'improvisation.",
+                        "confiance": 86,
+                    }
                 )
-        elif travel_group == "family":
-            if children_count > 0:
-                add_rec(
-                    "Adapter le rythme et les activités pour une famille avec enfants, en alternant temps de jeu, découvertes et pauses.",
-                    90,
+
+        # 2. Reco liée à la durée
+        if isinstance(nights, int):
+            if nights <= 4:
+                recs.append(
+                    {
+                        "texte": "Limiter l'itinéraire à une seule zone principale afin d'éviter les déplacements fatigants sur un court séjour.",
+                        "confiance": 90,
+                    }
+                )
+            elif 5 <= nights <= 9:
+                recs.append(
+                    {
+                        "texte": "Structurer le voyage autour d'une ou deux zones bien reliées pour garder un bon équilibre entre découvertes et repos.",
+                        "confiance": 88,
+                    }
                 )
             else:
-                add_rec(
-                    "Penser le voyage pour une famille sans enfants à charge, avec un rythme confortable pour tous les membres du groupe.",
-                    88,
+                recs.append(
+                    {
+                        "texte": "Profiter de la durée plus longue pour proposer une immersion progressive avec plusieurs étapes cohérentes et des temps de pause réguliers.",
+                        "confiance": 86,
+                    }
                 )
-        elif travel_group in {"friends", "group", "group35"}:
-            add_rec(
-                "Proposer des activités faciles à partager en groupe et des hébergements qui facilitent les moments conviviaux.",
-                90,
+
+        # 3. Reco liée au budget
+        if seg == "budget":
+            recs.append(
+                {
+                    "texte": "Optimiser fortement le rapport qualité/prix sur les vols et hébergements, en privilégiant des options simples mais bien notées.",
+                    "confiance": 90,
+                }
             )
-        elif travel_group == "business":
-            add_rec(
-                "Distinguer clairement les contraintes professionnelles des temps libres pour optimiser un voyage mêlant travail et loisirs.",
-                88,
+        elif seg == "mid":
+            recs.append(
+                {
+                    "texte": "Rechercher un bon équilibre entre confort et budget, avec quelques expériences à forte valeur ajoutée plutôt qu'un programme surchargé.",
+                    "confiance": 88,
+                }
+            )
+        elif seg == "high":
+            recs.append(
+                {
+                    "texte": "Inclure des hébergements et expériences plus premium cohérents avec un positionnement haut de gamme.",
+                    "confiance": 86,
+                }
             )
 
-        if nights is not None:
-            if nights <= 3:
-                add_rec(
-                    "Limiter l'itinéraire à une seule destination principale pour éviter la fatigue sur un séjour très court.",
-                    86,
-                )
-            elif 4 <= nights <= 8:
-                add_rec(
-                    "Construire un itinéraire concentré autour d'une ou deux zones bien reliées, sans multiplier les changements d'hébergement.",
-                    86,
+        # 4. Vols / optimisation
+        if "flights" in help_with:
+            texte = "Mettre l'accent sur l'optimisation des vols"
+            if depart:
+                texte += f" au départ de {depart}"
+            texte += ", en comparant plusieurs combinaisons réalistes (durée totale, escales, horaires)."
+            base_conf = 88
+            if flex:
+                base_conf += 2
+            if "cheapest" in pref_vol:
+                base_conf += 2
+            recs.append({"texte": texte, "confiance": min(base_conf, 94)})
+
+        # 5. Hébergement
+        if "accommodation" in help_with:
+            recs.append(
+                {
+                    "texte": "Sélectionner des hébergements cohérents avec le niveau de confort et le type de quartier indiqués, en gardant un bon équilibre localisation/qualité/prix.",
+                    "confiance": 88,
+                }
+            )
+
+        # 6. Activités
+        if "activities" in help_with:
+            if affinities:
+                recs.append(
+                    {
+                        "texte": "Construire un programme d'activités ancré dans les affinités déclarées (ex: "
+                        + ", ".join(str(a) for a in affinities)
+                        + "), avec une intensité adaptée au rythme souhaité.",
+                        "confiance": 90,
+                    }
                 )
             else:
-                add_rec(
-                    "Profiter de la durée du séjour pour proposer une immersion progressive avec quelques étapes cohérentes plutôt qu'un programme surchargé.",
-                    86,
+                recs.append(
+                    {
+                        "texte": "Proposer un mix d'activités emblématiques et de temps libre, en restant cohérent avec l'ambiance souhaitée.",
+                        "confiance": 84,
+                    }
                 )
 
-        if budget_segment == "budget":
-            add_rec(
-                "Optimiser le rapport qualité/prix en sélectionnant des transports et hébergements simples mais bien notés, en évitant les frais cachés.",
-                86,
-            )
-        elif budget_segment == "mid":
-            add_rec(
-                "Rechercher un équilibre entre budget et confort, avec quelques expériences à forte valeur ajoutée plutôt que des journées surchargées.",
-                84,
-            )
-        elif budget_segment == "luxe":
-            add_rec(
-                "Inclure des hébergements et expériences de standing cohérents avec un budget plus confortable, tout en gardant une logistique fluide.",
-                86,
+        # 7. Contraintes (alimentaires, pratiques, etc.)
+        if constraints:
+            nb = len(constraints)
+            base_conf = 88 if nb >= 2 else 84
+            recs.append(
+                {
+                    "texte": "Tenir systématiquement compte des contraintes déclarées (alimentation, pratiques, santé) dans les propositions de transports, activités et hébergements.",
+                    "confiance": min(base_conf + nb, 95),
+                }
             )
 
-        if dates_type == "fixed":
-            add_rec(
-                "Donner la priorité à la fiabilité des trajets et des horaires, même si certains prix sont légèrement plus élevés.",
-                82,
-            )
-        elif dates_type == "flexible":
-            if flex_days is not None and flex_days >= 2:
-                add_rec(
-                    f"Exploiter la flexibilité des dates (±{flex_days} jours) pour cibler les meilleures fenêtres de prix sur les vols et hébergements.",
-                    84,
+        # 8. Logique ski vs mer / climat & affinités
+        climat_txt = " ".join(self._safe_lower(c) for c in climat)
+        affin_txt = " ".join(self._safe_lower(a) for a in affinities)
+        if climat or affinities:
+            if (
+                "cold" in climat_txt
+                or "neige" in climat_txt
+                or "ski" in affin_txt
+                or "winter" in affin_txt
+            ) and (
+                "hot" in climat_txt
+                or "tropical" in climat_txt
+                or "beach" in affin_txt
+                or "plage" in affin_txt
+            ):
+                recs.append(
+                    {
+                        "texte": "Explorer au moins deux scénarios typés (ex: séjour montagne/neige vs destination mer ensoleillée) puis comparer les budgets et contraintes pour aider à trancher.",
+                        "confiance": 92,
+                    }
                 )
-            elif flex_days is not None and flex_days <= 1:
-                add_rec(
-                    "Considérer les dates comme quasi fixes et privilégier des trajets simples et fiables sur la période demandée.",
-                    82,
+            elif "cold" in climat_txt or "neige" in climat_txt or "ski" in affin_txt:
+                recs.append(
+                    {
+                        "texte": "Prioriser des destinations adaptées aux sports d'hiver ou à la montagne, en vérifiant la saisonnalité et l'accès depuis le lieu de départ.",
+                        "confiance": 88,
+                    }
                 )
-
-        if isinstance(climat, list):
-            clean_climat = [c for c in climat if str(c).lower() not in {"dont_mind", "peu importe"}]
-            if clean_climat:
-                add_rec(
-                    "Tenir compte en priorité des préférences de climat déclarées pour filtrer les régions et la saison les plus pertinentes.",
-                    82,
-                )
-
-        if isinstance(help_with, list):
-            if "flights" in help_with:
-                if depart:
-                    add_rec(
-                        "Optimiser les vols à partir du lieu de départ indiqué, en comparant quelques combinaisons réalistes de durée totale et de prix.",
-                        84,
-                    )
-                else:
-                    add_rec(
-                        "Optimiser les vols en recherchant un bon compromis entre durée totale de trajet, nombre d'escales et budget.",
-                        82,
-                    )
-            if "accommodation" in help_with:
-                add_rec(
-                    "Mettre l'accent sur la sélection d'hébergements alignés avec le niveau de confort souhaité et le type de quartier recherché.",
-                    84,
-                )
-            if "activities" in help_with:
-                add_rec(
-                    "Structurer les journées autour de quelques activités fortes en lien avec les affinités principales, tout en gardant du temps libre planifié.",
-                    84,
+            elif "hot" in climat_txt or "tropical" in climat_txt or "plage" in affin_txt:
+                recs.append(
+                    {
+                        "texte": "Cibler des destinations à climat chaud/ensoleillé avec un bon accès à la plage ou à la mer, en tenant compte de la saison des pluies et de la fréquentation.",
+                        "confiance": 88,
+                    }
                 )
 
-        constraints_text = " ".join(str(c).lower() for c in self._ensure_list(constraints))
-        if constraints_text:
-            if any(k in constraints_text for k in ["halal", "sans porc", "no pork", "no alcohol", "sans alcool"]):
-                add_rec(
-                    "Intégrer explicitement les contraintes alimentaires (halal/sans porc/sans alcool) dans le choix des destinations, quartiers et restaurants proposés.",
-                    90,
+        # 9. Reco liée au profil émergent (un seul profil retenu)
+        if best_emergent:
+            name, prof_conf = best_emergent
+            if name == "Amateur de Plage & Détente":
+                recs.append(
+                    {
+                        "texte": "Réserver de vrais créneaux 'plage/piscine sans contrainte', sans autre activité structurée, pour respecter le besoin de détente identifié.",
+                        "confiance": min(90, prof_conf),
+                    }
                 )
-            else:
-                add_rec(
-                    "Tenir systématiquement compte des contraintes déclarées (santé, alimentation, pratiques) dans les propositions de transports, activités et hébergements.",
-                    86,
+            elif name == "Amoureux de Nature & Paysages":
+                recs.append(
+                    {
+                        "texte": "Intégrer des panoramas, randonnées accessibles ou excursions nature au cœur de l'itinéraire, plutôt que de rester uniquement en milieu urbain.",
+                        "confiance": min(90, prof_conf),
+                    }
                 )
-
-        security_text = " ".join(str(s).lower() for s in self._ensure_list(security))
-        if security_text:
-            if "éviter zones peu sûres" in security_text or "avoid unsafe" in security_text:
-                add_rec(
-                    "Limiter les suggestions à des quartiers perçus comme sûrs, bien desservis et adaptés aux attentes exprimées en matière de sécurité.",
-                    88,
+            elif name == "City Breaker":
+                recs.append(
+                    {
+                        "texte": "Structurer l'itinéraire comme un city-break efficace (quartier central, temps de trajet courts, sélection limitée mais forte de lieux à visiter).",
+                        "confiance": min(88, prof_conf),
+                    }
                 )
-
-        affinities_lower = self._lower_list(affinities)
-        styles_lower = self._lower_list(styles)
-        if affinities_lower or styles_lower:
-            if any("parc" in v or "amusement" in v for v in affinities_lower + styles_lower):
-                add_rec(
-                    "Réserver à l'avance les activités à forte demande comme les parcs d'attractions ou excursions populaires pour sécuriser les créneaux.",
-                    84,
+            elif name == "Wellness Traveler":
+                recs.append(
+                    {
+                        "texte": "Ajouter des expériences orientées bien-être (spa, thermes, yoga, nature calme) pour aligner le voyage avec le besoin de récupération identifié.",
+                        "confiance": min(90, prof_conf),
+                    }
                 )
-            if any("plongée" in v or "diving" in v or "snorkeling" in v for v in affinities_lower + styles_lower):
-                add_rec(
-                    "Prévoir les activités à contraintes météo comme la plongée ou le snorkeling en gardant des jours tampons pour s'adapter aux conditions.",
-                    84,
-                )
-            if any("yoga" in v or "bien-être" in v or "wellness" in v for v in affinities_lower + styles_lower):
-                add_rec(
-                    "Positionner les expériences bien-être (spa, yoga, retraites) à des moments clés du séjour pour favoriser la récupération.",
-                    84,
-                )
-
-        mobility_lower = self._lower_list(mobility)
-        if mobility_lower:
-            if any("location voiture" in v or "rental car" in v or "moto" in v or "scooter" in v for v in mobility_lower):
-                add_rec(
-                    "Organiser les étapes de manière à optimiser les trajets en voiture ou scooter, en limitant les longs allers-retours inutiles.",
-                    84,
-                )
-            if any("métro" in v or "metro" in v or "train" in v or "transports en commun" in v for v in mobility_lower):
-                add_rec(
-                    "Choisir des hébergements bien connectés aux transports en commun pour simplifier les déplacements quotidiens.",
-                    84,
+            elif name == "Digital Nomad":
+                recs.append(
+                    {
+                        "texte": "Privilégier des hébergements avec connexion fiable et espaces de travail, en limitant le nombre de changements de logement.",
+                        "confiance": min(90, prof_conf),
+                    }
                 )
 
-        accommodation_lower = self._lower_list(accommodation_type)
-        if accommodation_lower:
-            if any("resort" in v for v in accommodation_lower):
-                add_rec(
-                    "Prévoir du temps sur place pour profiter pleinement des services du resort plutôt que de multiplier les sorties extérieures.",
-                    84,
-                )
-            if any("camping" in v or "glamping" in v for v in accommodation_lower):
-                add_rec(
-                    "Adapter l'itinéraire aux contraintes d'un séjour en camping ou glamping, en tenant compte des trajets et de la météo.",
-                    82,
-                )
-
-        amenities_lower = self._lower_list(amenities)
-        if amenities_lower:
-            if any("wifi" in v or "wi-fi" in v for v in amenities_lower):
-                add_rec(
-                    "Vérifier la qualité de la connexion internet dans les hébergements clés si le voyage nécessite de rester joignable ou de travailler.",
-                    80,
-                )
-            if any("cuisine" in v or "kitchen" in v for v in amenities_lower):
-                add_rec(
-                    "Tirer parti d'une cuisine équipée pour réduire certains coûts de repas tout en gardant quelques expériences culinaires locales.",
-                    80,
-                )
-
-        schedule_lower = self._lower_list(schedule_prefs)
-        if schedule_lower:
-            if any("night_owl" in v or "couche-tard" in v for v in schedule_lower):
-                add_rec(
-                    "Éviter de placer des vols ou activités très matinaux si le voyageur a un rythme de couche-tard déclaré.",
-                    82,
-                )
-            if any("early_bird" in v or "lève-tôt" in v for v in schedule_lower):
-                add_rec(
-                    "Placer les expériences majeures en début de journée pour profiter de la préférence pour les matinées.",
-                    82,
-                )
-
-        if langue in {"fr", "en"}:
-            add_rec(
-                "Privilégier des destinations et des prestataires où la langue du voyageur (ou l'anglais) est couramment utilisée pour réduire la friction sur place.",
-                80,
+        if not recs:
+            recs.append(
+                {
+                    "texte": "Clarifier au moins la destination approximative, le budget et la durée pour pouvoir construire un itinéraire exploitable.",
+                    "confiance": 70,
+                }
             )
 
-        if depart:
-            add_rec(
-                "Construire l'itinéraire à partir du lieu de départ déclaré afin de limiter les ruptures de charge et les temps de trajet inutiles.",
-                82,
-            )
+        # On garde seulement les 3 meilleures recommandations
+        recs_sorted = sorted(recs, key=lambda r: r["confiance"], reverse=True)
+        return recs_sorted[:3]
 
-        for name, score in minor_personas:
-            if name == "Digital nomad":
-                add_rec(
-                    "Favoriser des hébergements avec bonne connexion internet et espaces de travail adaptés si le voyage mélange travail et découverte.",
-                    86,
-                )
-            elif name == "Slow traveler":
-                add_rec(
-                    "Limiter volontairement le nombre d'étapes pour privilégier l'immersion locale plutôt qu'une liste de lieux à cocher.",
-                    86,
-                )
-            elif name == "Voyage bien-être":
-                add_rec(
-                    "Inclure des expériences orientées bien-être (spa, thermes, espaces calmes, activités corps-esprit) en cohérence avec les attentes.",
-                    86,
-                )
-            elif name == "Bleisure traveler":
-                add_rec(
-                    "Organiser les temps libres autour des contraintes professionnelles, en limitant les déplacements complexes les jours de travail.",
-                    84,
-                )
-            elif name == "Voyageur éco-conscient":
-                add_rec(
-                    "Mettre en avant des options plus durables (train, bus, hébergements engagés) lorsqu'elles sont réalistes par rapport à l'itinéraire.",
-                    84,
-                )
-            elif name == "Amateur de roadtrip":
-                add_rec(
-                    "Structurer le voyage comme un roadtrip fluide avec des étapes d'une à trois nuits, en évitant les retours en arrière inutiles.",
-                    86,
-                )
-            elif name == "Amateur de city-break urbain":
-                add_rec(
-                    "Concentrer les efforts sur une ville ou deux au maximum, en optimisant les déplacements à pied et en transports en commun.",
-                    86,
-                )
+    # ----------------------------
+    # UTILITAIRES
+    # ----------------------------
+    def _as_list(self, value: Any) -> List[Any]:
+        if value is None:
+            return []
+        if isinstance(value, list):
+            return value
+        return [value]
 
-        sorted_recs = sorted(recs.items(), key=lambda x: x[1], reverse=True)
-        top_recs = sorted_recs[:3]
-
-        return [{"texte": texte, "confiance": score} for texte, score in top_recs]
+    def _safe_lower(self, value: Any) -> str:
+        if value is None:
+            return ""
+        return str(value).lower()
 
     def _count_filled_fields(self, data: Dict[str, Any]) -> int:
         if not data:
             return 0
         count = 0
-        for value in data.values():
-            if value is None:
+        for v in data.values():
+            if v is None:
                 continue
-            if isinstance(value, str) and value.strip() == "":
+            if isinstance(v, str) and v.strip() == "":
                 continue
-            if isinstance(value, (list, dict)) and not value:
+            if isinstance(v, (list, dict)) and not v:
                 continue
             count += 1
         return count
 
     def to_dict(self, result: InferenceResult) -> Dict[str, Any]:
+        persona = result.persona_inference
+        profil_emergent = (
+            {"nom": persona.profil_emergent[0], "confiance": persona.profil_emergent[1]}
+            if persona.profil_emergent
+            else None
+        )
         return {
             "persona": {
-                "principal": result.persona_inference.persona_principal,
-                "confiance": result.persona_inference.confiance,
-                "niveau": result.persona_inference.niveau,
-                "profils_emergents": [
-                    {"nom": p[0], "confiance": p[1]}
-                    for p in result.persona_inference.profils_emergents
-                ],
+                "principal": persona.persona_principal,
+                "confiance": persona.confiance,
+                "niveau": persona.niveau,
+                "profil_emergent": profil_emergent,
             },
-            "caracteristiques_sures": result.persona_inference.caracteristiques_sures,
-            "incertitudes": result.persona_inference.incertitudes,
+            "caracteristiques_sures": persona.caracteristiques_sures,
+            "incertitudes": persona.incertitudes,
             "recommandations": result.recommandations,
         }
 

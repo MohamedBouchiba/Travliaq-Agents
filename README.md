@@ -13,7 +13,7 @@ API Endpoint → PostgreSQL (Supabase) → Récupération Questionnaire → Crew
 ### 1. Cloner le projet
 
 ```bash
-git clone <repo-url>
+git clone git@github.com:MohamedBouchiba/Travliaq-Agents.git
 cd Travliaq-Agents
 ```
 
