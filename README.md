@@ -58,6 +58,12 @@ pip install -r requirements.txt
 
 Le fichier `.env` est déjà configuré avec les credentials Supabase.
 
+> ℹ️ Remplacez la valeur `OPENAI_API_KEY` ou laissez-la vide si vous
+> préférez fournir la clé via une variable d'environnement (par exemple
+> `set OPENAI_API_KEY=...` sous Windows ou `export OPENAI_API_KEY=...` sur
+> macOS/Linux). Les valeurs factices comme `your_key_here` sont ignorées
+> automatiquement afin de privilégier les clés réellement définies.
+
 ```bash
 cat .env  # Linux/macOS
 type .env # Windows

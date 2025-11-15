@@ -8,6 +8,7 @@ from pathlib import Path
 import pytest
 
 from app.crew_pipeline import run_pipeline_from_payload
+from app.crew_pipeline import pipeline as pipeline_module
 from app.crew_pipeline.pipeline import CrewPipeline
 
 
@@ -161,4 +162,54 @@ def test_run_pipeline_from_payload_uses_provided_pipeline(tmp_path):
     )
 
     assert result == expected
+
+
+def test_placeholder_api_key_allows_env_override(monkeypatch):
+    monkeypatch.setattr(
+        pipeline_module.settings,
+        "openai_api_key",
+        "your_key_here",
+        raising=False,
+    )
+    monkeypatch.setenv("LLM_PROVIDER", "openai")
+    monkeypatch.setenv("OPENAI_API_KEY", "sk-test-value")
+    monkeypatch.setenv("MODEL", "gpt-unit-test")
+
+    captured: dict[str, dict[str, object]] = {}
+
+    def fake_llm(**kwargs):
+        captured["kwargs"] = kwargs
+
+        class DummyLLM:  # pragma: no cover - simple conteneur
+            pass
+
+        return DummyLLM()
+
+    monkeypatch.setattr(pipeline_module, "LLM", fake_llm)
+
+    pipeline_module._build_default_llm()
+
+    assert captured["kwargs"]["api_key"] == "sk-test-value"
+
+
+@pytest.mark.parametrize(
+    "candidate,expected",
+    [
+        ("your_key_here", None),
+        ("  your_key*here  ", None),
+        ("changeme", None),
+        ("", None),
+        (None, None),
+        ("sk-live-123", "sk-live-123"),
+    ],
+)
+def test_pick_first_secret_filters_placeholders(candidate, expected):
+    other = "sk-env-456"
+    if expected is None and candidate is not None:
+        assert (
+            pipeline_module._pick_first_secret(candidate, other)
+            == (other if other else None)
+        )
+    else:
+        assert pipeline_module._pick_first_secret(candidate) == expected
 

@@ -64,6 +64,48 @@ def _default_result_from_raw(raw: str, note: str) -> CrewPipelineResult:
     )
 
 
+_PLACEHOLDER_TOKENS = {
+    "your_key_here",
+    "your-api-key",
+    "your_api_key",
+    "changeme",
+    "replace_me",
+    "todo",
+    "set_me",
+}
+
+
+def _is_placeholder_secret(value: Optional[str]) -> bool:
+    """Indique si une valeur ressemble à un secret de substitution."""
+
+    if value is None:
+        return True
+
+    normalized = value.strip().lower()
+    if not normalized:
+        return True
+
+    if normalized in _PLACEHOLDER_TOKENS:
+        return True
+
+    # Les exemples classiques dans les fichiers `.env` contiennent souvent
+    # "your" + "key" + "here" avec diverses ponctuations.
+    if "your" in normalized and "key" in normalized and "here" in normalized:
+        return True
+
+    return False
+
+
+def _pick_first_secret(*candidates: Optional[str]) -> Optional[str]:
+    """Retourne le premier secret non vide qui n'est pas un placeholder."""
+
+    for candidate in candidates:
+        if _is_placeholder_secret(candidate):
+            continue
+        return candidate
+    return None
+
+
 def _detect_llm_provider() -> str:
     """Détermine le provider LLM à utiliser en priorité."""
 
@@ -146,19 +188,28 @@ def _build_default_llm() -> LLM:
     }
 
     if provider in {"openai", "default"}:
-        api_key = settings.openai_api_key or os.getenv("OPENAI_API_KEY")
+        api_key = _pick_first_secret(
+            getattr(settings, "openai_api_key", None),
+            os.getenv("OPENAI_API_KEY"),
+        )
         if not api_key:
             raise RuntimeError(
                 "OPENAI_API_KEY requis pour exécuter la pipeline CrewAI"
             )
         base_kwargs["api_key"] = api_key
     elif provider == "groq":
-        api_key = settings.groq_api_key or os.getenv("GROQ_API_KEY")
+        api_key = _pick_first_secret(
+            getattr(settings, "groq_api_key", None),
+            os.getenv("GROQ_API_KEY"),
+        )
         if not api_key:
             raise RuntimeError("GROQ_API_KEY requis pour le provider Groq")
         base_kwargs["api_key"] = api_key
     elif provider in {"azure", "azure_openai"}:
-        api_key = settings.azure_openai_api_key or os.getenv("AZURE_OPENAI_API_KEY")
+        api_key = _pick_first_secret(
+            getattr(settings, "azure_openai_api_key", None),
+            os.getenv("AZURE_OPENAI_API_KEY"),
+        )
         endpoint = settings.azure_openai_endpoint or os.getenv("AZURE_OPENAI_ENDPOINT")
         deployment = (
             settings.azure_openai_deployment or os.getenv("AZURE_OPENAI_DEPLOYMENT")
