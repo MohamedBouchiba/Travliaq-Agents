@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import json
 import logging
+import os
 import sys
 from copy import deepcopy
 from pathlib import Path
@@ -55,6 +56,18 @@ def _build_payload_from_questionnaire(questionnaire_id: str) -> Dict[str, Any]:
     }
 
 
+def _apply_llm_overrides(*, provider: str | None, model: str | None) -> None:
+    """Injecte les surcharges de provider et de modèle dans les variables d'env."""
+
+    if provider:
+        os.environ["LLM_PROVIDER"] = provider
+        LOGGER.info("⚙️  Provider LLM forcé via la CLI", extra={"provider": provider})
+
+    if model:
+        os.environ["MODEL"] = model
+        LOGGER.info("⚙️  Modèle LLM forcé via la CLI", extra={"model": model})
+
+
 def parse_args(argv: Optional[list[str]] = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="Exécute la pipeline CrewAI pour Travliaq",
@@ -82,6 +95,22 @@ def parse_args(argv: Optional[list[str]] = None) -> argparse.Namespace:
         help="Afficher aussi la réponse brute renvoyée par CrewAI",
     )
 
+    parser.add_argument(
+        "--model",
+        help=(
+            "Nom du modèle à utiliser (équivalent à la variable d'environnement MODEL). "
+            "Permet par exemple de tester `gpt-4.1` ou `gpt-4.1-mini`."
+        ),
+    )
+    parser.add_argument(
+        "--llm-provider",
+        choices=["openai", "groq", "azure", "azure_openai", "default"],
+        help=(
+            "Provider LLM à utiliser pour cette exécution uniquement. "
+            "Par défaut la valeur provient de LLM_PROVIDER ou de la configuration."
+        ),
+    )
+
     return parser.parse_args(argv)
 
 
@@ -94,6 +123,8 @@ def main(argv: Optional[list[str]] = None) -> int:
             payload = _load_payload_from_file(args.input_file)
         else:
             payload = _build_payload_from_questionnaire(args.questionnaire_id)
+
+        _apply_llm_overrides(provider=args.llm_provider, model=args.model)
 
         LOGGER.info("🚀 Lancement de la pipeline CrewAI (mode CLI)")
         result = run_pipeline_from_payload(payload, pipeline=travliaq_crew_pipeline)

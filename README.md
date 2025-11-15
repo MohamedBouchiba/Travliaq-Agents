@@ -186,6 +186,20 @@ ou à partir d'un identifiant de questionnaire :
 python crew_pipeline_cli.py --questionnaire-id <UUID>
 ```
 
+Vous pouvez également forcer dynamiquement le provider et le modèle utilisés par
+les agents CrewAI sans modifier la configuration globale :
+
+```bash
+python crew_pipeline_cli.py \
+  --input-file examples/traveller_persona_input.json \
+  --llm-provider openai \
+  --model gpt-4.1-mini
+```
+
+La pipeline instancie désormais deux agents complémentaires : un architecte
+d'insights qui produit l'analyse primaire et un challenger de type ChatGPT qui
+raisonne explicitement avant de valider ou d'amender la première proposition.
+
 > 💡  L'ancien raccourci (`python -m app.crew_pipeline`) reste disponible si le dossier
 > du projet se trouve dans votre `PYTHONPATH` (par exemple en exécutant la commande
 > depuis la racine du dépôt).
