@@ -1,8 +1,18 @@
 #!/usr/bin/env python3
-"""Script de test rapide pour l'API."""
+"""Tests d'intégration optionnels pour l'API."""
 
-import requests
 import json
+import os
+
+import pytest
+import requests
+
+
+if not os.getenv("RUN_API_TESTS"):
+    pytest.skip(
+        "Tests d'intégration API désactivés (RUN_API_TESTS non défini)",
+        allow_module_level=True,
+    )
 
 BASE_URL = "http://localhost:8000"
 TEST_QUESTIONNAIRE_ID = "c92a18b0-c2d4-4903-abdb-6e7669eb0633"
@@ -31,10 +41,10 @@ def test_process_post():
     if response.status_code == 200:
         data = response.json()
 
-        print(f"\n✅ Traitement réussi!")
+        print("\n✅ Traitement réussi!")
         print(f"Questionnaire ID: {data['questionnaire_id']}")
 
-        print(f"\n📊 DONNÉES QUESTIONNAIRE:")
+        print("\n📊 DONNÉES QUESTIONNAIRE:")
         q_data = data['questionnaire_data']
         print(f"  • Email: {q_data.get('email')}")
         print(f"  • Groupe: {q_data.get('groupe_voyage')}")
@@ -42,7 +52,7 @@ def test_process_post():
         print(f"  • Budget: {q_data.get('budget_par_personne')}")
         print(f"  • Durée: {q_data.get('duree')}")
 
-        print(f"\n🧠 INFÉRENCE PERSONA:")
+        print("\n🧠 INFÉRENCE PERSONA:")
         persona = data['persona_inference']['persona']
         print(f"  • Persona principal: {persona['principal']}")
         print(f"  • Confiance: {persona['confiance']}%")
@@ -50,34 +60,34 @@ def test_process_post():
         print(f"  • Action: {persona['action_recommandee']}")
 
         if persona['profils_emergents']:
-            print(f"\n🌟 Profils émergents:")
+            print("\n🌟 Profils émergents:")
             for profil in persona['profils_emergents']:
                 print(f"  • {profil['nom']}: {profil['confiance']}%")
 
         caracteristiques = data['persona_inference']['caracteristiques_sures']
         if caracteristiques:
-            print(f"\n✅ Caractéristiques sûres:")
+            print("\n✅ Caractéristiques sûres:")
             for carac in caracteristiques:
                 print(f"  • {carac}")
 
         incertitudes = data['persona_inference']['incertitudes']
         if incertitudes:
-            print(f"\n❓ Incertitudes:")
+            print("\n❓ Incertitudes:")
             for incert in incertitudes:
                 print(f"  • {incert}")
 
         signaux = data['persona_inference']['signaux']
-        print(f"\n📊 Signaux détectés:")
+        print("\n📊 Signaux détectés:")
         print(f"  • Signaux forts: {len(signaux['forts'])}")
         print(f"  • Signaux moyens: {len(signaux['moyens'])}")
 
         recommandations = data['persona_inference']['recommandations']
         if recommandations:
-            print(f"\n💡 Recommandations:")
+            print("\n💡 Recommandations:")
             for reco in recommandations:
                 print(f"  {reco}")
 
-        print(f"\n📄 JSON COMPLET (persona_inference):")
+        print("\n📄 JSON COMPLET (persona_inference):")
         print(json.dumps(data['persona_inference'], indent=2, ensure_ascii=False))
 
     else:
