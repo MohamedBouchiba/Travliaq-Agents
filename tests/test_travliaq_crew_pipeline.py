@@ -69,6 +69,8 @@ def test_pipeline_parses_json_string(tmp_path):
             "user_goals": ["Vivre une expérience culinaire"],
             "narrative": "Une exploratrice urbaine en quête de découvertes.",
             "analysis_notes": "Profil cohérent avec les données du questionnaire.",
+            "challenge_summary": "Challenge validé",
+            "challenge_actions": ["Insister sur la flexibilité des transferts"],
         }
     )
 
@@ -77,6 +79,8 @@ def test_pipeline_parses_json_string(tmp_path):
 
     assert result["persona_analysis"]["persona_summary"] == "Voyageuse flexible"
     assert "Budget confortable" in result["persona_analysis"]["pros"]
+    assert result["persona_analysis"]["challenge_summary"] == "Challenge validé"
+    assert "Insister sur la flexibilité" in result["persona_analysis"]["challenge_actions"][0]
     assert result["questionnaire_id"] == "123"
     run_dir = tmp_path / result["run_id"]
     assert run_dir.exists()

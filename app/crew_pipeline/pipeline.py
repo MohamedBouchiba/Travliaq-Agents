@@ -34,6 +34,8 @@ class CrewPipelineResult:
     user_goals: List[str] = field(default_factory=list)
     narrative: str = ""
     analysis_notes: str = ""
+    challenge_summary: str = ""
+    challenge_actions: List[str] = field(default_factory=list)
     raw_response: str = ""
 
     def to_dict(self) -> Dict[str, Any]:
@@ -48,6 +50,8 @@ class CrewPipelineResult:
             "user_goals": self.user_goals,
             "narrative": self.narrative,
             "analysis_notes": self.analysis_notes,
+            "challenge_summary": self.challenge_summary,
+            "challenge_actions": self.challenge_actions,
             "raw_response": self.raw_response,
         }
 
@@ -515,6 +519,8 @@ class CrewPipeline:
             user_goals=_as_list(data.get("user_goals")),
             narrative=str(data.get("narrative", "")).strip(),
             analysis_notes=str(data.get("analysis_notes", "")).strip(),
+            challenge_summary=str(data.get("challenge_summary", "")).strip(),
+            challenge_actions=_as_list(data.get("challenge_actions")),
             raw_response=raw or json.dumps(data, ensure_ascii=False),
         )
 

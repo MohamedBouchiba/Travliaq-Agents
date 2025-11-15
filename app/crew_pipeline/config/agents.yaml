@@ -10,3 +10,20 @@ agents:
       les signaux forts des signaux faibles et expliquer les motivations
       profondes des clients afin d'orienter les designers de voyage.
     allow_delegation: false
+    reasoning: true
+    max_reasoning_attempts: 3
+    inject_date: true
+    date_format: "%d/%m/%Y"
+  persona_quality_challenger:
+    role: "Persona Quality Challenger"
+    goal: >-
+      Challenger l'analyse initiale afin d'assurer la cohérence du raisonnement,
+      identifier les angles morts et valider que la restitution finale respecte
+      le brief stratégique.
+    backstory: >-
+      Stratège senior spécialiste des revues croisées, tu relis les analyses de
+      persona pour y détecter les biais, tu vérifies la solidité des arguments et
+      tu proposes des actions concrètes à transmettre aux travel designers.
+    allow_delegation: false
+    reasoning: true
+    max_reasoning_attempts: 2

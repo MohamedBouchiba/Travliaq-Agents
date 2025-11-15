@@ -32,3 +32,36 @@ tasks:
         "analysis_notes": "Synthèse de ta réflexion"
       }
     async_execution: false
+  persona_challenge_review:
+    agent: persona_quality_challenger
+    context:
+      - traveller_profile_brief
+    description: |-
+      Tu es le relecteur critique de l'analyse précédente. Exploite le contexte
+      pour évaluer la solidité du raisonnement, détecter les contradictions avec
+      le questionnaire et ajouter les recommandations qui manquent pour
+      opérationnaliser la proposition.
+
+      1. Challenge l'argumentation: signale les hypothèses fragiles ou les biais
+         et propose des correctifs précis.
+      2. Vérifie que les pros/cons/besoins/goals sont complets et aligne-les avec
+         les signaux forts du questionnaire.
+      3. Termine par une synthèse actionnable expliquant quoi transmettre à un
+         travel designer.
+
+      La restitution finale DOIT respecter le même schéma JSON que la première
+      tâche en y ajoutant un bloc dédié à ton challenge.
+    expected_output: |-
+      {
+        "persona_summary": "Résumé mis à jour après challenge",
+        "pros": ["Liste consolidée"],
+        "cons": ["Liste consolidée"],
+        "critical_needs": ["Besoins confirmés"],
+        "non_critical_preferences": ["Préférences"],
+        "user_goals": ["Objectifs"],
+        "narrative": "Récit affiné",
+        "analysis_notes": "Synthèse complète",
+        "challenge_summary": "Ce que ton challenge a apporté",
+        "challenge_actions": ["Actions concrètes à transmettre"]
+      }
+    async_execution: false
