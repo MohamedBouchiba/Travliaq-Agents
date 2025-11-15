@@ -74,7 +74,9 @@ tasks:
       objet plus simple qui respecte notre schema NormalizedTripRequest.
 
       JSON FINAL DU CHALLENGER:
-      {persona_challenge_review}
+      Il est disponible via ta mémoire de contexte (tâche
+      «persona_challenge_review»). Tu dois t'appuyer sur ce JSON brut pour
+      produire la version normalisée, sans l'altérer inutilement.
 
       JSON SCHEMA DE RÉFÉRENCE:
       {normalized_trip_schema}
