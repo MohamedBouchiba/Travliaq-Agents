@@ -1,0 +1,34 @@
+tasks:
+  traveller_profile_brief:
+    agent: traveller_insights_analyst
+    description: |-
+      Analyse attentivement le questionnaire client et l'inférence persona existante
+      (déjà calculée par un service amont — ne la recalculer pas, utilise-la comme
+      contexte fiable).
+
+      QUESTIONNAIRE BRUT:
+      {questionnaire}
+
+      INFÉRENCE PERSONA FOURNIE:
+      {persona_context}
+
+      Ton objectif est de comprendre les motivations, priorités et contraintes
+      du voyageur. Produit un raisonnement explicite: identifie les éléments
+      positifs (pour), les points de vigilance (contre), les besoins critiques,
+      les préférences non critiques et les objectifs implicites. Termine par un
+      paragraphe narratif immersif qui décrit la personne comme si tu la
+      présentais à un travel designer.
+    expected_output: |-
+      Réponds STRICTEMENT en JSON suivant la structure ci-dessous. Utilise des
+      phrases complètes et précises.
+      {
+        "persona_summary": "Résumé synthétique du profil",
+        "pros": ["Liste des points favorables"],
+        "cons": ["Liste des risques ou points d'attention"],
+        "critical_needs": ["Besoins indispensables"],
+        "non_critical_preferences": ["Envies confort mais non bloquantes"],
+        "user_goals": ["Objectifs explicites ou implicites"],
+        "narrative": "Paragraphe narratif en français",
+        "analysis_notes": "Synthèse de ta réflexion"
+      }
+    async_execution: false
