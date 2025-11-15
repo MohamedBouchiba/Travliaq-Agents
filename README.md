@@ -58,6 +58,12 @@ pip install -r requirements.txt
 
 Le fichier `.env` est déjà configuré avec les credentials Supabase.
 
+> ℹ️ Remplacez la valeur `OPENAI_API_KEY` ou laissez-la vide si vous
+> préférez fournir la clé via une variable d'environnement (par exemple
+> `set OPENAI_API_KEY=...` sous Windows ou `export OPENAI_API_KEY=...` sur
+> macOS/Linux). Les valeurs factices comme `your_key_here` sont ignorées
+> automatiquement afin de privilégier les clés réellement définies.
+
 ```bash
 cat .env  # Linux/macOS
 type .env # Windows
@@ -165,6 +171,24 @@ curl http://localhost:8000/api/v1/questionnaire/c92a18b0-c2d4-4903-abdb-6e7669eb
   }
 }
 ```
+
+### 4. Exécuter la pipeline CrewAI manuellement
+
+Pour lancer la pipeline en ligne de commande sans passer par l'API :
+
+```bash
+python crew_pipeline_cli.py --input-file examples/traveller_persona_input.json
+```
+
+ou à partir d'un identifiant de questionnaire :
+
+```bash
+python crew_pipeline_cli.py --questionnaire-id <UUID>
+```
+
+> 💡  L'ancien raccourci (`python -m app.crew_pipeline`) reste disponible si le dossier
+> du projet se trouve dans votre `PYTHONPATH` (par exemple en exécutant la commande
+> depuis la racine du dépôt).
 
 ## Test Rapide
 

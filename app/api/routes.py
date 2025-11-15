@@ -7,6 +7,7 @@ from pydantic import BaseModel, Field
 
 from app.services.supabase_service import supabase_service
 from app.services.persona_inference_service import persona_engine
+from app.crew_pipeline import travliaq_crew_pipeline
 
 logger = logging.getLogger(__name__)
 
@@ -20,10 +21,13 @@ class QuestionnaireRequest(BaseModel):
 
 class TravliaqResponse(BaseModel):
     """Réponse complète du traitement."""
+
     status: str
+    pipeline_run_id: str
     questionnaire_id: str
     questionnaire_data: Dict[str, Any]
     persona_inference: Dict[str, Any]
+    persona_analysis: Dict[str, Any]
 
 
 class StatusResponse(BaseModel):
@@ -92,7 +96,7 @@ async def process_questionnaire(request: QuestionnaireRequest):
                 detail=f"Questionnaire not found: {request.questionnaire_id}"
             )
 
-        logger.info(f"✅ Questionnaire récupéré")
+        logger.info("✅ Questionnaire récupéré")
 
         # Étape 2: Inférer le persona
         logger.info("🧠 Inférence du persona...")
@@ -102,12 +106,29 @@ async def process_questionnaire(request: QuestionnaireRequest):
         logger.info(f"✅ Persona inféré: {inference_dict['persona']['principal']}")
         logger.info(f"📊 Confiance: {inference_dict['persona']['confiance']}% ({inference_dict['persona']['niveau']})")
 
+        # Étape 3: Analyse approfondie via CrewAI
+        logger.info("🧠 Analyse approfondie via CrewAI...")
+        persona_analysis_payload = travliaq_crew_pipeline.run(
+            questionnaire_data=questionnaire_data,
+            persona_inference=inference_dict,
+            payload_metadata={
+                "questionnaire_id": request.questionnaire_id,
+                "status": "ok",
+            },
+        )
+
+        logger.info("✅ Analyse CrewAI terminée")
+
         # Retourner le tout en JSON (en mémoire)
         return TravliaqResponse(
-            status="ok",
-            questionnaire_id=request.questionnaire_id,
-            questionnaire_data=questionnaire_data,
-            persona_inference=inference_dict
+            status=persona_analysis_payload.get("status", "ok"),
+            pipeline_run_id=persona_analysis_payload["run_id"],
+            questionnaire_id=persona_analysis_payload.get(
+                "questionnaire_id", request.questionnaire_id
+            ),
+            questionnaire_data=persona_analysis_payload["questionnaire_data"],
+            persona_inference=persona_analysis_payload["persona_inference"],
+            persona_analysis=persona_analysis_payload["persona_analysis"],
         )
 
     except HTTPException:
