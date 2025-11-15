@@ -11,14 +11,18 @@ Travliaq en dehors de l'API.
 ## Lancer la pipeline en ligne de commande
 
 ```bash
-python -m app.crew_pipeline --input-file examples/traveller_persona_input.json
+python crew_pipeline_cli.py --input-file examples/traveller_persona_input.json
 ```
 
 Pour reconstruire les données à partir d'un identifiant Supabase :
 
 ```bash
-python -m app.crew_pipeline --questionnaire-id <UUID>
+python crew_pipeline_cli.py --questionnaire-id <UUID>
 ```
+
+> ℹ️  Si vous préférez exécuter le module directement (`python -m app.crew_pipeline`),
+> assurez-vous d'être positionné dans le dossier racine du projet ou que celui-ci
+> figure dans votre variable d'environnement `PYTHONPATH`.
 
 Ajoutez `--include-raw` pour afficher la réponse brute renvoyée par CrewAI.
 

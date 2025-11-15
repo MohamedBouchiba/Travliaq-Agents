@@ -166,6 +166,24 @@ curl http://localhost:8000/api/v1/questionnaire/c92a18b0-c2d4-4903-abdb-6e7669eb
 }
 ```
 
+### 4. Exécuter la pipeline CrewAI manuellement
+
+Pour lancer la pipeline en ligne de commande sans passer par l'API :
+
+```bash
+python crew_pipeline_cli.py --input-file examples/traveller_persona_input.json
+```
+
+ou à partir d'un identifiant de questionnaire :
+
+```bash
+python crew_pipeline_cli.py --questionnaire-id <UUID>
+```
+
+> 💡  L'ancien raccourci (`python -m app.crew_pipeline`) reste disponible si le dossier
+> du projet se trouve dans votre `PYTHONPATH` (par exemple en exécutant la commande
+> depuis la racine du dépôt).
+
 ## Test Rapide
 
 Un script de test est fourni:
