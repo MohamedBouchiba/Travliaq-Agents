@@ -56,3 +56,18 @@ agents:
     reasoning: true
     max_reasoning_attempts: 2
     inject_date: false
+  normalized_trip_auditor:
+    role: "Trip Schema Compliance Auditor"
+    goal: >-
+      Relire le JSON normalisé, vérifier qu'il respecte scrupuleusement le
+      schéma NormalizedTripRequest et renvoyer une version corrigée prête pour
+      la production.
+    backstory: >-
+      Spécialiste qualité des données voyage, tu contrôles que chaque champ est
+      relié à une preuve issue du questionnaire et que rien n'est inventé.
+      Lorsque des valeurs obligatoires manquent, tu expliques l'écart puis tu
+      tentes de les déduire avec prudence à partir de input_payload.
+    allow_delegation: false
+    reasoning: true
+    max_reasoning_attempts: 3
+    inject_date: false
