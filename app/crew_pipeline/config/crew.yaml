@@ -2,7 +2,9 @@ crew:
   agents:
     - traveller_insights_analyst
     - persona_quality_challenger
+    - normalized_trip_translator
   tasks:
     - traveller_profile_brief
     - persona_challenge_review
+    - normalized_trip_projection
   process: sequential

@@ -37,6 +37,7 @@ class CrewPipelineResult:
     challenge_summary: str = ""
     challenge_actions: List[str] = field(default_factory=list)
     raw_response: str = ""
+    normalized_trip_request: Dict[str, Any] = field(default_factory=dict)
 
     def to_dict(self) -> Dict[str, Any]:
         """Transforme le résultat en dictionnaire JSON sérialisable."""
@@ -53,6 +54,7 @@ class CrewPipelineResult:
             "challenge_summary": self.challenge_summary,
             "challenge_actions": self.challenge_actions,
             "raw_response": self.raw_response,
+            "normalized_trip_request": self.normalized_trip_request,
         }
 
 
@@ -150,6 +152,9 @@ _CONFIG_FILENAMES = {
     "crew": "crew.yaml",
 }
 
+_NORMALIZED_TRIP_SCHEMA_FILE = "normalized_trip_request.schema.json"
+_NORMALIZED_TRIP_SCHEMA_CACHE: Optional[str] = None
+
 
 def _load_yaml_file(path: Path) -> Dict[str, Any]:
     if not path.exists():
@@ -174,6 +179,21 @@ def _load_pipeline_blueprint() -> Dict[str, Dict[str, Any]]:
             blueprint[section] = data.get(section, data)
         _CONFIG_CACHE[cache_key] = blueprint
     return _CONFIG_CACHE[cache_key]
+
+
+def _load_normalized_trip_schema() -> str:
+    """Charge le JSON Schema utilisé par l'agent de normalisation."""
+
+    global _NORMALIZED_TRIP_SCHEMA_CACHE
+    if _NORMALIZED_TRIP_SCHEMA_CACHE is None:
+        schema_path = _CONFIG_DIR / _NORMALIZED_TRIP_SCHEMA_FILE
+        if not schema_path.exists():
+            raise FileNotFoundError(
+                f"JSON Schema requis introuvable: {schema_path}"
+            )
+        _NORMALIZED_TRIP_SCHEMA_CACHE = schema_path.read_text(encoding="utf-8").strip()
+
+    return _NORMALIZED_TRIP_SCHEMA_CACHE
 
 
 def _build_default_llm() -> LLM:
@@ -418,11 +438,13 @@ class CrewPipeline:
                 base_payload[key] = deepcopy(value)
 
         try:
+            normalized_schema = _load_normalized_trip_schema()
             output = crew.kickoff(
                 inputs={
                     "questionnaire": questionnaire_data,
                     "persona_context": persona_inference,
                     "input_payload": base_payload,
+                    "normalized_trip_schema": normalized_schema,
                 }
             )
         except Exception as exc:
@@ -524,6 +546,10 @@ class CrewPipeline:
             raw_response=raw or json.dumps(data, ensure_ascii=False),
         )
 
+        normalized_trip = data.get("normalized_trip_request")
+        if isinstance(normalized_trip, dict):
+            result.normalized_trip_request = normalized_trip
+
         return result
 
 
@@ -572,7 +598,11 @@ class CrewPipeline:
         enriched = deepcopy(base_payload)
         enriched.setdefault("status", "ok")
         enriched["run_id"] = run_id
-        enriched["persona_analysis"] = analysis.to_dict()
+        persona_analysis = analysis.to_dict()
+        enriched["persona_analysis"] = persona_analysis
+
+        if analysis.normalized_trip_request:
+            enriched["normalized_trip_request"] = analysis.normalized_trip_request
 
         questionnaire_id = self._extract_questionnaire_id(enriched)
         if questionnaire_id:
