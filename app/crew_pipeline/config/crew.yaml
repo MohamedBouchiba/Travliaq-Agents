@@ -1,0 +1,6 @@
+crew:
+  agents:
+    - traveller_insights_analyst
+  tasks:
+    - traveller_profile_brief
+  process: sequential

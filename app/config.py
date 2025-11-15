@@ -38,15 +38,23 @@ class Settings(BaseSettings):
     dates_type: str = "flexible"
     budget_precise: str = "no"
 
-    # LLM API Keys
+    # LLM API Keys & Providers
+    model_provider: str = "openai"
+    model_name: str = "gpt-4o-mini"
     openai_api_key: Optional[str] = None
     anthropic_api_key: Optional[str] = None
+    groq_api_key: Optional[str] = None
+    azure_openai_api_key: Optional[str] = None
+    azure_openai_endpoint: Optional[str] = None
+    azure_openai_api_version: Optional[str] = None
+    azure_openai_deployment: Optional[str] = None
 
     # CrewAI
     max_rpm: int = 50
     temperature: float = 0.3
     max_iter: int = 5
     verbose: bool = True
+    crew_output_dir: str = "output/crew_runs"
 
     # Logging
     log_level: str = "INFO"
