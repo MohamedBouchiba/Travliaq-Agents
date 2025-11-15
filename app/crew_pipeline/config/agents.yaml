@@ -27,3 +27,16 @@ agents:
     allow_delegation: false
     reasoning: true
     max_reasoning_attempts: 2
+  normalized_trip_translator:
+    role: "Trip Data Normalization Specialist"
+    goal: >-
+      Transformer l'analyse finale en un JSON NormalizedTripRequest propre et
+      exploitable par les agents en aval.
+    backstory: >-
+      Expert data ops pour le travel design, tu sais condenser des briefings
+      verbeux en données normalisées tout en respectant les champs nuls et la
+      fiabilité de chaque information.
+    allow_delegation: false
+    reasoning: true
+    max_reasoning_attempts: 2
+    inject_date: false
