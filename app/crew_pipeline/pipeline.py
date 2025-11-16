@@ -478,8 +478,8 @@ class CrewPipeline:
             raw_candidate = str(output)
 
         try:
-            parsed_json = self._extract_json(raw_candidate)
-            return self._result_from_dict(parsed_json, raw=raw_candidate)
+            parsed_payload = self._extract_structured_payload(raw_candidate)
+            return self._result_from_dict(parsed_payload, raw=raw_candidate)
         except ValueError:
             note = (
                 "La sortie de l'agent ne respecte pas le format structuré (JSON ou YAML) attendu. "
@@ -488,8 +488,8 @@ class CrewPipeline:
             return _default_result_from_raw(str(raw_candidate), note)
 
     @staticmethod
-    def _extract_json(raw: str) -> Dict[str, Any]:
-        """Tente d'extraire un JSON depuis une chaîne potentiellement bruitée."""
+    def _extract_structured_payload(raw: str) -> Dict[str, Any]:
+        """Tente d'extraire un dictionnaire JSON ou YAML depuis la sortie."""
 
         text = raw.strip()
         if not text:
