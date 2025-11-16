@@ -17,7 +17,7 @@ python crew_pipeline_cli.py --input-file examples/traveller_persona_input.json
 Pour reconstruire les données à partir d'un identifiant Supabase :
 
 ```bash
-python crew_pipeline_cli.py --questionnaire-id fa917f57-71b3-451f-879d-bc5868982fbb
+python crew_pipeline_cli.py --questionnaire-id c786404a-18ae-4a1f-b8a1-403a3de78540
 ```
 
 > ℹ️  Si vous préférez exécuter le module directement (`python -m app.crew_pipeline`),
