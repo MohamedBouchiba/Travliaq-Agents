@@ -56,6 +56,20 @@ agents:
     reasoning: true
     max_reasoning_attempts: 2
     inject_date: false
+  trip_signal_challenger:
+    role: "Trip Payload Challenger"
+    goal: >-
+      Relire le JSON synthétique, supprimer les derniers bruits, corriger les
+      oublis et s'assurer que la version finale est cohérente avec le
+      questionnaire.
+    backstory: >-
+      Coach qualité pour briefs voyage, tu es réputé pour tes revues sans
+      concession: tu vérifies chaque détail, coupes les redondances et renvoies
+      un payload final prêt pour la production sans dépendre d'un JSON Schema.
+    allow_delegation: false
+    reasoning: true
+    max_reasoning_attempts: 2
+    inject_date: false
   normalized_trip_auditor:
     role: "Trip Schema Compliance Auditor"
     goal: >-

@@ -472,18 +472,18 @@ class CrewPipeline:
             raw_candidate = str(output)
 
         try:
-            parsed_json = self._extract_json(raw_candidate)
-            return self._result_from_dict(parsed_json, raw=raw_candidate)
+            parsed_payload = self._extract_structured_payload(raw_candidate)
+            return self._result_from_dict(parsed_payload, raw=raw_candidate)
         except ValueError:
             note = (
-                "La sortie de l'agent ne respecte pas le format JSON attendu. "
+                "La sortie de l'agent ne respecte pas le format JSON/YAML attendu. "
                 "Voir raw_response pour l'analyse brute."
             )
             return _default_result_from_raw(str(raw_candidate), note)
 
     @staticmethod
-    def _extract_json(raw: str) -> Dict[str, Any]:
-        """Tente d'extraire un JSON depuis une chaîne potentiellement bruitée."""
+    def _extract_structured_payload(raw: str) -> Dict[str, Any]:
+        """Tente d'extraire un dictionnaire JSON ou YAML depuis la sortie."""
 
         text = raw.strip()
         if not text:
@@ -496,8 +496,20 @@ class CrewPipeline:
             end = text.rfind("}")
             if start != -1 and end != -1 and end > start:
                 snippet = text[start : end + 1]
-                return json.loads(snippet)
-            raise ValueError("invalid json")
+                try:
+                    return json.loads(snippet)
+                except json.JSONDecodeError:
+                    pass
+
+        try:
+            data = yaml.safe_load(text)
+        except yaml.YAMLError as exc:  # pragma: no cover - dépend de PyYAML
+            raise ValueError("invalid structured data") from exc
+
+        if isinstance(data, dict):
+            return data
+
+        raise ValueError("invalid structured data")
 
     def _result_from_dict(
         self, data: Dict[str, Any], *, raw: Optional[str] = None
