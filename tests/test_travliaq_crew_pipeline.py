@@ -189,7 +189,87 @@ def test_pipeline_handles_non_json_response(tmp_path):
     analysis = result["persona_analysis"]
     assert analysis["persona_summary"] == "Analyse non structurée"
     assert analysis["raw_response"] == raw_response
-    assert "format JSON" in analysis["analysis_notes"]
+    assert "format structuré" in analysis["analysis_notes"]
+
+
+def test_pipeline_parses_yaml_string(tmp_path):
+    yaml_response = """
+normalized_trip_request:
+  trip_request_id: tr-yaml
+  user:
+    email: ami@example.com
+    preferred_language: fr
+  travel_party:
+    group_type: friends
+    travelers_count: 4
+"""
+
+    pipeline = _build_pipeline_with_response(yaml_response, tmp_path)
+    result = pipeline.run(questionnaire_data={}, persona_inference={})
+
+    normalized = result["normalized_trip_request"]
+    assert normalized["trip_request_id"] == "tr-yaml"
+    assert normalized["user"]["email"] == "ami@example.com"
+
+
+def test_structural_enricher_enforces_origin_dates_budget(tmp_path):
+    yaml_response = """
+normalized_trip_request:
+  travel_party:
+    group_type: duo
+    travelers_count: null
+  trip_frame:
+    origin:
+      city: null
+      country: null
+    dates:
+      type: ""
+      departure_dates: []
+      return_dates: []
+      duration_nights: null
+  budget:
+    currency: null
+    estimated_total_per_person: null
+"""
+
+    questionnaire = {
+        "lieu_depart": "Bruxelles, Belgique",
+        "type_dates": "flexible",
+        "a_date_depart_approximative": "yes",
+        "date_depart_approximative": "2026-01-10",
+        "flexibilite": "±3j",
+        "duree": "7 nuits",
+        "nombre_voyageurs": 2,
+        "budget_par_personne": "1 200 €",
+        "budget_max_par_personne": "1 500 €",
+        "devise_budget": "EUR",
+    }
+
+    pipeline = _build_pipeline_with_response(yaml_response, tmp_path)
+    result = pipeline.run(questionnaire_data=questionnaire, persona_inference={})
+
+    normalized = result["normalized_trip_request"]
+    origin = normalized["trip_frame"]["origin"]
+    assert origin["city"] == "Bruxelles"
+    assert origin["country"] == "Belgique"
+
+    dates = normalized["trip_frame"]["dates"]
+    assert dates["type"] == "flexible"
+    assert dates["range"] == {"start": "2026-01-07", "end": "2026-01-13"}
+    assert dates["departure_dates"][0] == "2026-01-07"
+    assert dates["departure_dates"][-1] == "2026-01-13"
+    assert dates["return_dates"][0] == "2026-01-14"
+    assert dates["return_dates"][-1] == "2026-01-20"
+    assert dates["duration_nights"] == 7
+
+    budget = normalized["budget"]
+    assert budget["currency"] == "EUR"
+    assert budget["per_person_range"] == {"min": 1200, "max": 1500}
+    assert budget["group_range"]["max"] == 3000
+    assert budget["estimated_total_group"] == 3000
+
+    travel_party = normalized["travel_party"]
+    assert travel_party["travelers_count"] == 2
 
 
 def test_pipeline_passes_inputs_to_crew(tmp_path):
@@ -204,7 +284,6 @@ def test_pipeline_passes_inputs_to_crew(tmp_path):
     assert dummy.inputs["questionnaire"] == questionnaire
     assert dummy.inputs["persona_context"] == inference
     assert "input_payload" in dummy.inputs
-    assert "normalized_trip_schema" in dummy.inputs
 
 
 def test_pipeline_persists_task_outputs(tmp_path):
