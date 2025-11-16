@@ -18,6 +18,7 @@ from crewai import LLM
 import yaml
 
 from app.config import settings
+from app.crew_pipeline.trip_structural_enricher import enrich_trip_structural_data
 
 logger = logging.getLogger(__name__)
 
@@ -431,6 +432,11 @@ class CrewPipeline:
             raise
 
         result = self._parse_output(output)
+        questionnaire_source = base_payload.get("questionnaire_data") or {}
+        result.normalized_trip_request = enrich_trip_structural_data(
+            result.normalized_trip_request,
+            questionnaire_source,
+        )
         run_id = self._generate_run_id(base_payload)
         enriched = self._compose_enriched_payload(
             run_id=run_id,
