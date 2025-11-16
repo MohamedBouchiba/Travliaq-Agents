@@ -85,11 +85,10 @@ tasks:
         la conception du voyage doivent rester.
       - Lorsque les dates sont flexibles, calcule toutes les dates possibles en
         utilisant la date approximative ± flexibilité (liste departure_dates et
-        return_dates synchronisées). Fournis bien toutes les combinaisons
-        plausibles de départ/retour.
+        return_dates synchronisées). Si les dates sont fixes, garde-les telles
+        quelles.
       - Conserve les valeurs nulles lorsqu'une information manque (ex: airport
-        hint), mais n'invente rien, et conserve impérativement la ville et le
-        pays d'origine si l'utilisateur les a fournis.
+        hint), mais n'invente rien.
       - Si plusieurs sources répètent la même information, garde la version la
         plus claire et indique dans discarded_elements ce que tu as supprimé.
       - Toute donnée avec une confiance < 70 (scores personas, signaux faibles)
@@ -99,82 +98,87 @@ tasks:
         imaginaires.
       - Liste explicitement les assistances demandées, les contraintes et les
         besoins critiques remontés par le challenger.
-      - Calcule toujours un budget global de groupe (estimated_total_group) en
-        multipliant le budget par personne par le nombre de voyageurs lorsque
-        ces données sont connues.
       - Les sections doivent rester concises: pas de paragraphes répétitifs.
-      - Le rendu final DOIT être en YAML.
+      - Préserve systématiquement les informations d'origine (ville + pays)
+        lorsqu'elles sont connues. Ne les remplace pas par null si elles sont
+        présentes dans le questionnaire.
+      - Calcule le budget global du voyage (estimated_total_group) à partir du
+        budget par personne et du nombre total de voyageurs si ces deux
+        informations sont fournies.
+      - Le rendu final doit impérativement être en YAML lisible.
     expected_output: |-
-      Réponds STRICTEMENT en YAML structuré comme suit (adapte les valeurs):
-        normalized_trip_request:
-          user:
-            email: ""
-            preferred_language: ""
-          travel_party:
-            group_type: ""
-            travelers_count: 0
-            has_children: false
-            children: []
-          trip_frame:
-            origin:
+      Retourne uniquement un YAML structuré comme suit:
+      normalized_trip_request:
+        user:
+          email: ""
+          preferred_language: ""
+        travel_party:
+          group_type: ""
+          travelers_count: 0
+          has_children: false
+          children: []
+        trip_frame:
+          origin:
+            city: null
+            country: null
+            airport_hint: null
+          destinations:
+            - label: primary
               city: null
               country: null
-              airport_hint: null
-            destinations:
-              - label: "primary"
-                city: null
-                country: null
-                stay_nights: null
-            dates:
-              type: "fixed|flexible"
-              departure_dates: []
-              return_dates: []
-              duration_nights: null
-          budget:
-            is_known: false
-            currency: null
-            estimated_total_per_person: null
-            estimated_total_group: null
-            notes: null
-          preferences:
-            climate: []
-            vibe: null
-            rhythm: null
-            activities: []
-            accommodation:
-              types: []
-              comfort_min_rating: null
-            transport:
-              flight_preference: null
-              allowed_modes_local: []
-              baggage:
-                cabin: false
-                hold: false
-          constraints:
-            diet: []
-            safety: null
-            mobility: null
-            other: []
-          assist_needed:
-            flights: false
-            accommodation: false
-            activities: false
-            other: []
-          personas:
-            primary:
-              name: null
-              confidence: null
-            emerging: []
-          explanations:
-            persona_summary: null
-            pros: []
-            cons: []
-            critical_needs: []
-            non_critical_preferences: []
-            user_goals: []
-        synthesis_notes: "Explique comment tu as consolidé les infos"
-        discarded_elements:
-          - "Ce que tu as supprimé car redondant ou <70 de confiance"
+              stay_nights: null
+          dates:
+            type: fixed|flexible
+            departure_dates:
+              - "YYYY-MM-DD"
+            return_dates:
+              - "YYYY-MM-DD"
+            duration_nights: null
+        budget:
+          is_known: false
+          currency: null
+          estimated_total_per_person: null
+          estimated_total_group: null
+          notes: null
+        preferences:
+          climate: []
+          vibe: null
+          rhythm: null
+          activities: []
+          accommodation:
+            types: []
+            comfort_min_rating: null
+          transport:
+            flight_preference: null
+            allowed_modes_local: []
+            baggage:
+              cabin: false
+              hold: false
+        constraints:
+          diet: []
+          safety: null
+          mobility: null
+          other: []
+        assist_needed:
+          flights: false
+          accommodation: false
+          activities: false
+          other: []
+        personas:
+          primary:
+            name: null
+            confidence: null
+          emerging: []
+        explanations:
+          persona_summary: null
+          pros: []
+          cons: []
+          critical_needs: []
+          non_critical_preferences: []
+          user_goals: []
+      synthesis_notes: "Explique comment tu as consolidé les infos"
+      discarded_elements:
+        - "Ce que tu as supprimé car redondant ou <70 de confiance"
     async_execution: false
   trip_signal_quality_challenge:
     agent: trip_signal_challenger
@@ -191,24 +195,27 @@ tasks:
          seraient faux ou incomplets.
       2. Confirme que les dates flexibles contiennent toutes les combinaisons
          plausibles et que les destinations/points de départ correspondent à ce
-         qui est connu (ex: Bruxelles, Belgique comme origine si fourni). Ne
-         supprime jamais la ville/pays d'origine lorsqu'ils sont fournis.
-      3. Supprime toute répétition restante, les détails superflus (notes trop
+         qui est connu (ex: Bruxelles, Belgique comme origine si fourni).
+      3. Vérifie que le budget global a bien été calculé et cohérent avec la
+         taille du groupe lorsque les entrées le permettent.
+      4. Supprime toute répétition restante, les détails superflus (notes trop
          longues, ids, pourcentages inutiles) et assure-toi que les sections
          sont équilibrées.
-      4. Si tu supprimes un élément, ajoute une justification courte dans
+      5. Si tu supprimes un élément, ajoute une justification courte dans
          challenge_feedback.removals. Si tu ajoutes ou ajustes une donnée,
          indique-le dans challenge_feedback.additions.
-      5. Laisse les champs null quand l'information manque vraiment.
-      6. Calcule ou vérifie le budget global de groupe pour éviter tout oubli.
-      7. Le rendu final DOIT être en YAML.
+      6. Laisse les champs null quand l'information manque vraiment et assure-toi
+         que la restitution finale reste en YAML propre et lisible.
     expected_output: |-
-      Réponds STRICTEMENT en YAML:
-        normalized_trip_request:
-          ... JSON final après challenge mais en YAML ...
-        challenge_feedback:
-          issues_found: []
-          fixes_applied: []
-          removals: []
-          additions: []
+      normalized_trip_request:
+        ... YAML final après challenge ...
+      challenge_feedback:
+        issues_found:
+          - "Problèmes détectés"
+        fixes_applied:
+          - "Correctifs réalisés"
+        removals:
+          - "Détails supprimés"
+        additions:
+          - "Infos ajoutées"
     async_execution: false

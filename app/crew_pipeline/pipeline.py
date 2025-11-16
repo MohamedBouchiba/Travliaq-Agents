@@ -476,7 +476,7 @@ class CrewPipeline:
             return self._result_from_dict(parsed_payload, raw=raw_candidate)
         except ValueError:
             note = (
-                "La sortie de l'agent ne respecte pas le format JSON/YAML attendu. "
+                "La sortie de l'agent ne respecte pas le format structuré (JSON ou YAML) attendu. "
                 "Voir raw_response pour l'analyse brute."
             )
             return _default_result_from_raw(str(raw_candidate), note)
@@ -502,14 +502,14 @@ class CrewPipeline:
                     pass
 
         try:
-            data = yaml.safe_load(text)
-        except yaml.YAMLError as exc:  # pragma: no cover - dépend de PyYAML
-            raise ValueError("invalid structured data") from exc
+            yaml_data = yaml.safe_load(text)
+        except yaml.YAMLError as exc:  # pragma: no cover - dépend du contenu
+            raise ValueError("invalid structured payload") from exc
 
-        if isinstance(data, dict):
-            return data
+        if isinstance(yaml_data, dict):
+            return yaml_data
 
-        raise ValueError("invalid structured data")
+        raise ValueError("invalid structured payload")
 
     def _result_from_dict(
         self, data: Dict[str, Any], *, raw: Optional[str] = None
