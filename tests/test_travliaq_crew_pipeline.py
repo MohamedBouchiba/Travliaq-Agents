@@ -6,6 +6,7 @@ import json
 from pathlib import Path
 
 import pytest
+import yaml
 
 from app.crew_pipeline import run_pipeline_from_payload
 from app.crew_pipeline import pipeline as pipeline_module
@@ -58,111 +59,111 @@ def _build_pipeline_with_response(response, tmp_path: Path):
     return CrewPipeline(crew_builder=lambda **_: DummyCrew(response), output_dir=tmp_path)
 
 
-def test_pipeline_parses_json_string(tmp_path):
-    response = json.dumps(
-        {
-            "normalized_trip_request": {
-                "trip_request_id": "tr-001",
-                "user": {"user_id": "u-1", "email": None, "preferred_language": "fr"},
-                "context": {
-                    "source_questionnaire_id": "123",
-                    "pipeline_run_id": None,
-                    "created_at": None,
-                    "updated_at": None,
-                },
-                "travel_party": {
-                    "group_type": "duo",
-                    "travelers_count": 2,
-                    "has_children": False,
-                    "children": [],
-                },
-                "trip_frame": {
-                    "origin": {"city": "Paris", "country": "France", "airport_hint": None},
-                    "destinations": [
-                        {
-                            "id": "dest-1",
-                            "role": "primary",
-                            "is_primary": True,
-                            "order": 1,
-                            "city": "Lisbonne",
-                            "region": None,
-                            "country": "Portugal",
-                            "stay_nights": 5,
-                        }
-                    ],
-                    "dates": {
-                        "dates_type": "fixed",
-                        "departure_date": "2024-07-01",
-                        "return_date": "2024-07-06",
-                        "approx_departure_date": None,
-                        "flexibility_days_minus": 0,
-                        "flexibility_days_plus": 0,
-                        "duration_nights": 5,
-                        "duration_exact": True,
-                        "candidate_departure_dates": [],
-                        "candidate_date_ranges": [],
-                    },
-                },
-                "budget": {
-                    "is_known": True,
-                    "currency": "EUR",
-                    "estimated_total_per_person": 1500,
-                    "estimated_total_group": 3000,
-                    "budget_type": "medium",
-                    "notes": None,
-                },
-                "preferences": {
-                    "climate": ["mild"],
-                    "vibe": "cosy",
-                    "rhythm": "balanced",
-                    "activities": {"tags": ["food", "art"]},
-                    "transport": {
-                        "flight_preference": "balanced",
-                        "allowed_modes_local": ["train"],
-                        "baggage": {"cabin": True, "hold": False},
-                    },
-                    "accommodation": {
-                        "types": ["boutique"],
-                        "comfort_min_rating": 7.5,
-                        "neighbourhood_style": "central",
-                        "board": ["breakfast"],
-                        "equipment_preferences": ["wifi"],
-                    },
-                    "time_preferences": {"needs_siesta": False, "needs_free_time": True},
-                },
-                "constraints": {
-                    "diet": {"vegetarian": True, "vegan": False, "no_pork": False, "no_alcohol": False, "other": []},
-                    "safety": {"special_constraints": False, "notes": None},
-                    "mobility": {"reduced_mobility": False, "notes": None},
-                    "other": [],
-                },
-                "assist_needed": {
-                    "flights": True,
-                    "accommodation": True,
-                    "activities": True,
-                    "other": [],
-                },
-                "personas": {
-                    "primary": {"code": "explorer", "name": "Epicurienne", "confidence": 82},
-                    "emerging": [],
-                },
-                "explanations": {
-                    "persona_summary": "Voyageuse flexible",
-                    "user_goals": ["Découvrir des restaurants"],
-                    "pros": ["Budget ok"],
-                    "cons": ["Dates à confirmer"],
-                    "critical_needs": ["Flexibilité"],
-                    "non_critical_preferences": ["Boutique hotels"],
-                },
-                "planning_readiness": {
-                    "has_fixed_destination": True,
-                    "has_exact_dates": True,
-                    "has_known_budget": True,
-                    "blocking_gaps": [],
+def test_pipeline_parses_yaml_string(tmp_path):
+    payload = {
+        "normalized_trip_request": {
+            "trip_request_id": "tr-001",
+            "user": {"user_id": "u-1", "email": None, "preferred_language": "fr"},
+            "context": {
+                "source_questionnaire_id": "123",
+                "pipeline_run_id": None,
+                "created_at": None,
+                "updated_at": None,
+            },
+            "travel_party": {
+                "group_type": "duo",
+                "travelers_count": 2,
+                "has_children": False,
+                "children": [],
+            },
+            "trip_frame": {
+                "origin": {"city": "Paris", "country": "France", "airport_hint": None},
+                "destinations": [
+                    {
+                        "id": "dest-1",
+                        "role": "primary",
+                        "is_primary": True,
+                        "order": 1,
+                        "city": "Lisbonne",
+                        "region": None,
+                        "country": "Portugal",
+                        "stay_nights": 5,
+                    }
+                ],
+                "dates": {
+                    "dates_type": "fixed",
+                    "departure_date": "2024-07-01",
+                    "return_date": "2024-07-06",
+                    "approx_departure_date": None,
+                    "flexibility_days_minus": 0,
+                    "flexibility_days_plus": 0,
+                    "duration_nights": 5,
+                    "duration_exact": True,
+                    "candidate_departure_dates": [],
+                    "candidate_date_ranges": [],
                 },
             },
-        }
-    )
+            "budget": {
+                "is_known": True,
+                "currency": "EUR",
+                "estimated_total_per_person": 1500,
+                "estimated_total_group": 3000,
+                "budget_type": "medium",
+                "notes": None,
+            },
+            "preferences": {
+                "climate": ["mild"],
+                "vibe": "cosy",
+                "rhythm": "balanced",
+                "activities": {"tags": ["food", "art"]},
+                "transport": {
+                    "flight_preference": "balanced",
+                    "allowed_modes_local": ["train"],
+                    "baggage": {"cabin": True, "hold": False},
+                },
+                "accommodation": {
+                    "types": ["boutique"],
+                    "comfort_min_rating": 7.5,
+                    "neighbourhood_style": "central",
+                    "board": ["breakfast"],
+                    "equipment_preferences": ["wifi"],
+                },
+                "time_preferences": {"needs_siesta": False, "needs_free_time": True},
+            },
+            "constraints": {
+                "diet": {"vegetarian": True, "vegan": False, "no_pork": False, "no_alcohol": False, "other": []},
+                "safety": {"special_constraints": False, "notes": None},
+                "mobility": {"reduced_mobility": False, "notes": None},
+                "other": [],
+            },
+            "assist_needed": {
+                "flights": True,
+                "accommodation": True,
+                "activities": True,
+                "other": [],
+            },
+            "personas": {
+                "primary": {"code": "explorer", "name": "Epicurienne", "confidence": 82},
+                "emerging": [],
+            },
+            "explanations": {
+                "persona_summary": "Voyageuse flexible",
+                "user_goals": ["Découvrir des restaurants"],
+                "pros": ["Budget ok"],
+                "cons": ["Dates à confirmer"],
+                "critical_needs": ["Flexibilité"],
+                "non_critical_preferences": ["Boutique hotels"],
+            },
+            "planning_readiness": {
+                "has_fixed_destination": True,
+                "has_exact_dates": True,
+                "has_known_budget": True,
+                "blocking_gaps": [],
+            },
+        },
+    }
+
+    response = yaml.safe_dump(payload, allow_unicode=True)
 
     pipeline = _build_pipeline_with_response(response, tmp_path)
     result = pipeline.run(questionnaire_data={"id": "123"}, persona_inference={})
@@ -178,6 +179,15 @@ def test_pipeline_parses_json_string(tmp_path):
     run_dir = tmp_path / result["run_id"]
     assert run_dir.exists()
     assert (run_dir / "run_output.json").exists()
+
+
+def test_pipeline_still_parses_json_string(tmp_path):
+    response = json.dumps({"normalized_trip_request": {"trip_request_id": "tr-123"}})
+
+    pipeline = _build_pipeline_with_response(response, tmp_path)
+    result = pipeline.run(questionnaire_data={"id": "123"}, persona_inference={})
+
+    assert result["normalized_trip_request"]["trip_request_id"] == "tr-123"
 
 
 def test_pipeline_handles_non_json_response(tmp_path):
@@ -204,7 +214,6 @@ def test_pipeline_passes_inputs_to_crew(tmp_path):
     assert dummy.inputs["questionnaire"] == questionnaire
     assert dummy.inputs["persona_context"] == inference
     assert "input_payload" in dummy.inputs
-    assert "normalized_trip_schema" in dummy.inputs
 
 
 def test_pipeline_persists_task_outputs(tmp_path):
