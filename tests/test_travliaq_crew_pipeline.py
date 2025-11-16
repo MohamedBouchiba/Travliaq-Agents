@@ -189,7 +189,27 @@ def test_pipeline_handles_non_json_response(tmp_path):
     analysis = result["persona_analysis"]
     assert analysis["persona_summary"] == "Analyse non structurée"
     assert analysis["raw_response"] == raw_response
-    assert "format JSON" in analysis["analysis_notes"]
+    assert "format structuré" in analysis["analysis_notes"]
+
+
+def test_pipeline_parses_yaml_string(tmp_path):
+    yaml_response = """
+normalized_trip_request:
+  trip_request_id: tr-yaml
+  user:
+    email: ami@example.com
+    preferred_language: fr
+  travel_party:
+    group_type: friends
+    travelers_count: 4
+"""
+
+    pipeline = _build_pipeline_with_response(yaml_response, tmp_path)
+    result = pipeline.run(questionnaire_data={}, persona_inference={})
+
+    normalized = result["normalized_trip_request"]
+    assert normalized["trip_request_id"] == "tr-yaml"
+    assert normalized["user"]["email"] == "ami@example.com"
 
 
 def test_pipeline_passes_inputs_to_crew(tmp_path):
@@ -204,7 +224,6 @@ def test_pipeline_passes_inputs_to_crew(tmp_path):
     assert dummy.inputs["questionnaire"] == questionnaire
     assert dummy.inputs["persona_context"] == inference
     assert "input_payload" in dummy.inputs
-    assert "normalized_trip_schema" in dummy.inputs
 
 
 def test_pipeline_persists_task_outputs(tmp_path):
