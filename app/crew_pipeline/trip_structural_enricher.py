@@ -12,6 +12,33 @@ _NUMBER_PATTERN = re.compile(r"-?\d+(?:[.,]\d+)?")
 _DATE_PATTERN = re.compile(r"(\d{4}-\d{2}-\d{2})")
 
 
+def _flatten_questionnaire_data(source: Mapping[str, Any]) -> Dict[str, Any]:
+    """Aplati le questionnaire pour exposer toutes les clés utiles."""
+
+    flattened: Dict[str, Any] = {}
+    base = dict(source)
+    flattened.update(base)
+
+    stack: List[Tuple[List[str], Mapping[str, Any]]] = [([], source)]
+    while stack:
+        path, current = stack.pop()
+        for key, value in current.items():
+            if not isinstance(key, str):
+                continue
+            next_path = path + [key]
+            dotted = ".".join(next_path)
+            if isinstance(value, Mapping):
+                flattened.setdefault(key, value)
+                flattened.setdefault(dotted, value)
+                stack.append((next_path, value))
+            else:
+                if dotted:
+                    flattened.setdefault(dotted, value)
+                flattened.setdefault(key, value)
+
+    return flattened
+
+
 @dataclass
 class BudgetSignals:
     """Structure interne conservant les bornes budgétaires détectées."""
@@ -32,9 +59,8 @@ def enrich_trip_structural_data(
     if not isinstance(normalized_trip_request, dict):
         normalized_trip_request = {}
 
-    safe_questionnaire: Dict[str, Any]
     if isinstance(questionnaire_data, Mapping):
-        safe_questionnaire = dict(questionnaire_data)
+        safe_questionnaire = _flatten_questionnaire_data(questionnaire_data)
     else:  # pragma: no cover - garde-fou supplémentaire
         safe_questionnaire = {}
 
@@ -42,6 +68,7 @@ def enrich_trip_structural_data(
 
     travel_party = enriched.setdefault("travel_party", {})
     travellers_count = _ensure_travel_party_size(travel_party, safe_questionnaire)
+    _ensure_travel_group_type(travel_party, safe_questionnaire)
 
     _ensure_origin(enriched, safe_questionnaire)
     _ensure_dates(enriched, safe_questionnaire)
@@ -67,6 +94,11 @@ def _ensure_travel_party_size(
         "travelers_count",
         "nb_people",
         "nb_personnes",
+        "number_of_travelers",
+        "travel_party.travelers_count",
+        "questionnaire.number_of_travelers",
+        "questionnaire.travelers_count",
+        "travelers.total",
     ]
     for key in candidates:
         value = questionnaire.get(key)
@@ -78,6 +110,32 @@ def _ensure_travel_party_size(
     return current
 
 
+def _ensure_travel_group_type(
+    travel_party: Dict[str, Any], questionnaire: Mapping[str, Any]
+) -> None:
+    """Assure que le type de groupe reflète le code interne du questionnaire."""
+
+    existing = str(travel_party.get("group_type") or "").strip()
+    if existing:
+        travel_party["group_type"] = _normalize_group_type(existing) or existing
+        return
+
+    candidates = [
+        "travel_group",
+        "group_type",
+        "profil_voyage",
+        "groupe_voyage",
+        "questionnaire.travel_group",
+        "travel_party.group_type",
+    ]
+    for key in candidates:
+        raw = questionnaire.get(key)
+        normalized = _normalize_group_type(raw)
+        if normalized:
+            travel_party["group_type"] = normalized
+            return
+
+
 def _ensure_origin(enriched: Dict[str, Any], questionnaire: Mapping[str, Any]) -> None:
     """Renseigne systématiquement la ville/pays d'origine."""
 
@@ -87,32 +145,62 @@ def _ensure_origin(enriched: Dict[str, Any], questionnaire: Mapping[str, Any]) -
     city = origin.get("city")
     country = origin.get("country")
 
-    city_candidates = [
-        questionnaire.get("origin_city"),
-        questionnaire.get("ville_depart"),
-        questionnaire.get("depart_city"),
-        questionnaire.get("depart_ville"),
+    combined_candidates = [
+        questionnaire.get("lieu_depart"),
+        questionnaire.get("departure_location"),
+        questionnaire.get("depart"),
+        questionnaire.get("questionnaire.departure_location"),
     ]
-    country_candidates = [
-        questionnaire.get("origin_country"),
-        questionnaire.get("pays_depart"),
-        questionnaire.get("depart_country"),
-        questionnaire.get("depart_pays"),
-    ]
-
-    combined = questionnaire.get("lieu_depart")
-    if combined:
-        extracted_city, extracted_country = _split_city_country(str(combined))
+    for combined in combined_candidates:
+        if not combined or (city and country):
+            continue
+        extracted_city, extracted_country = _extract_city_country(combined)
         if extracted_city and not city:
             city = extracted_city
         if extracted_country and not country:
             country = extracted_country
 
-    for candidate in city_candidates:
-        if candidate and not city:
+    city_candidates = [
+        "origin_city",
+        "origin.city",
+        "questionnaire.origin_city",
+        "questionnaire.origin.city",
+        "ville_depart",
+        "depart_city",
+        "depart_ville",
+        "departure_city",
+        "departure.city",
+        "departure_location.city",
+        "questionnaire.departure_location.city",
+        "travel.origin.city",
+    ]
+    country_candidates = [
+        "origin_country",
+        "origin.country",
+        "questionnaire.origin_country",
+        "questionnaire.origin.country",
+        "pays_depart",
+        "depart_country",
+        "depart_pays",
+        "departure_country",
+        "departure.country",
+        "departure_location.country",
+        "questionnaire.departure_location.country",
+        "travel.origin.country",
+    ]
+
+    for key in city_candidates:
+        if city:
+            break
+        candidate = questionnaire.get(key)
+        if candidate:
             city = str(candidate).strip()
-    for candidate in country_candidates:
-        if candidate and not country:
+
+    for key in country_candidates:
+        if country:
+            break
+        candidate = questionnaire.get(key)
+        if candidate:
             country = str(candidate).strip()
 
     origin["city"] = city or None
@@ -128,10 +216,98 @@ def _ensure_dates(enriched: Dict[str, Any], questionnaire: Mapping[str, Any]) ->
     duration = _extract_duration(dates, questionnaire)
 
     type_hint = str(dates.get("type") or "").lower()
-    questionnaire_type = str(questionnaire.get("type_dates") or "").lower()
-    approx_flag = str(questionnaire.get("a_date_depart_approximative") or "").lower()
-    flex_days = _parse_flex_days(questionnaire.get("flexibilite"))
-    approx_date = _parse_date(questionnaire.get("date_depart_approximative"))
+    questionnaire_type = str(
+        _first_value(
+            questionnaire,
+            "type_dates",
+            "dates_type",
+            "questionnaire.dates_type",
+            "travel_dates.type",
+        )
+        or ""
+    ).lower()
+    approx_flag = str(
+        _first_value(
+            questionnaire,
+            "a_date_depart_approximative",
+            "has_flexible_dates",
+            "questionnaire.has_flexible_dates",
+        )
+        or ""
+    ).lower()
+    flex_days = _parse_flex_days(
+        _first_value(
+            questionnaire,
+            "flexibilite",
+            "flexibility",
+            "flexibility_days",
+            "flex_days",
+            "questionnaire.flexibility_days",
+        )
+    )
+    flex_minus = _parse_flex_days(
+        _first_value(
+            questionnaire,
+            "flexibilite_minus",
+            "flexibility_minus",
+            "flexibility_days_minus",
+            "flex_days_minus",
+        )
+    )
+    flex_plus = _parse_flex_days(
+        _first_value(
+            questionnaire,
+            "flexibilite_plus",
+            "flexibility_plus",
+            "flexibility_days_plus",
+            "flex_days_plus",
+        )
+    )
+    approx_date = _parse_date(
+        _first_value(
+            questionnaire,
+            "date_depart_approximative",
+            "approx_departure_date",
+            "dates.approx_departure",
+            "questionnaire.dates.approx",
+        )
+    )
+
+    range_start, range_end = _extract_range_from_questionnaire(
+        questionnaire,
+        start_keys=[
+            "departure_window.start",
+            "departure_range.start",
+            "date_depart_min",
+            "dates.range.start",
+            "questionnaire.departure_window.start",
+        ],
+        end_keys=[
+            "departure_window.end",
+            "departure_range.end",
+            "date_depart_max",
+            "dates.range.end",
+            "questionnaire.departure_window.end",
+        ],
+        text_keys=["departure_window", "departure_range", "dates.range"],
+    )
+
+    return_start, return_end = _extract_range_from_questionnaire(
+        questionnaire,
+        start_keys=[
+            "return_window.start",
+            "return_range.start",
+            "date_retour_min",
+            "questionnaire.return_window.start",
+        ],
+        end_keys=[
+            "return_window.end",
+            "return_range.end",
+            "date_retour_max",
+            "questionnaire.return_window.end",
+        ],
+        text_keys=["return_window", "return_range"],
+    )
 
     is_flexible = any(
         value in {"flexible", "flex", "yes", "true", "1"}
@@ -139,35 +315,79 @@ def _ensure_dates(enriched: Dict[str, Any], questionnaire: Mapping[str, Any]) ->
     )
     if flex_days is not None and flex_days > 0:
         is_flexible = True
+    if range_start and range_end:
+        is_flexible = True
 
     departure_dates: List[str] = []
     return_dates: List[str] = []
 
-    if is_flexible and approx_date and flex_days is not None:
-        departure_dates = _build_flexible_dates(approx_date, flex_days)
+    if range_start and range_end:
+        departure_dates = _build_date_range(range_start, range_end)
         dates["type"] = "flexible"
-        if duration:
-            return_dates = _shift_dates(departure_dates, duration)
-            dates["duration_nights"] = duration
-        if departure_dates:
-            dates["range"] = {
-                "start": departure_dates[0],
-                "end": departure_dates[-1],
-            }
+        dates["range"] = {
+            "start": _isoformat(range_start),
+            "end": _isoformat(range_end),
+        }
+    elif is_flexible and approx_date and (flex_days or flex_minus or flex_plus):
+        minus = flex_minus if flex_minus is not None else flex_days or 0
+        plus = flex_plus if flex_plus is not None else flex_days or 0
+        span = _build_asymmetric_flex_dates(approx_date, minus, plus)
+        departure_dates = span
+        dates["type"] = "flexible"
+        if span:
+            dates["range"] = {"start": span[0], "end": span[-1]}
     else:
-        departure = _parse_date(questionnaire.get("date_depart"))
+        departure = _parse_date(
+            _first_value(
+                questionnaire,
+                "date_depart",
+                "departure_date",
+                "dates.departure",
+                "travel_dates.departure",
+                "questionnaire.departure_date",
+            )
+        )
         if departure:
             departure_dates = [_isoformat(departure)]
         else:
-            departure_dates = _ensure_str_list(dates.get("departure_dates"))
+            candidate_lists = [
+                questionnaire.get("departure_options"),
+                questionnaire.get("possible_departure_dates"),
+                questionnaire.get("candidate_departure_dates"),
+            ]
+            for candidate in candidate_lists:
+                departure_dates = _ensure_str_list(candidate)
+                if departure_dates:
+                    break
+            if not departure_dates:
+                departure_dates = _ensure_str_list(dates.get("departure_dates"))
 
-        retour = _parse_date(questionnaire.get("date_retour"))
+        retour = _parse_date(
+            _first_value(
+                questionnaire,
+                "date_retour",
+                "return_date",
+                "dates.return",
+                "travel_dates.return",
+                "questionnaire.return_date",
+            )
+        )
         if retour:
             return_dates = [_isoformat(retour)]
         elif departure and duration:
             return_dates = [_isoformat(departure + timedelta(days=duration))]
         else:
-            return_dates = _ensure_str_list(dates.get("return_dates"))
+            candidate_lists = [
+                questionnaire.get("return_options"),
+                questionnaire.get("possible_return_dates"),
+                questionnaire.get("candidate_return_dates"),
+            ]
+            for candidate in candidate_lists:
+                return_dates = _ensure_str_list(candidate)
+                if return_dates:
+                    break
+            if not return_dates:
+                return_dates = _ensure_str_list(dates.get("return_dates"))
 
         if not dates.get("type"):
             dates["type"] = "fixed"
@@ -175,8 +395,23 @@ def _ensure_dates(enriched: Dict[str, Any], questionnaire: Mapping[str, Any]) ->
             dates["duration_nights"] = duration
         dates.pop("range", None)
 
+    if duration:
+        dates["duration_nights"] = duration
+
     if not return_dates and duration and departure_dates:
         return_dates = _shift_dates(departure_dates, duration)
+
+    if not return_dates and return_start and return_end:
+        return_dates = _build_date_range(return_start, return_end)
+        dates["return_range"] = {
+            "start": _isoformat(return_start),
+            "end": _isoformat(return_end),
+        }
+    elif return_start and return_end:
+        dates["return_range"] = {
+            "start": _isoformat(return_start),
+            "end": _isoformat(return_end),
+        }
 
     if departure_dates:
         dates["departure_dates"] = departure_dates
@@ -289,6 +524,9 @@ def _collect_budget_signals(
         questionnaire.get("devise_budget"),
         questionnaire.get("currency"),
         questionnaire.get("currency_budget"),
+        questionnaire.get("budget_currency"),
+        questionnaire.get("budget.currency"),
+        questionnaire.get("questionnaire.budget.currency"),
     ]
     for candidate in currency_candidates:
         if candidate:
@@ -380,6 +618,15 @@ def _build_flexible_dates(base_date: date, flex_days: int) -> List[str]:
     return span
 
 
+def _build_asymmetric_flex_dates(
+    base_date: date, minus_days: int, plus_days: int
+) -> List[str]:
+    span = []
+    for delta in range(-abs(minus_days), abs(plus_days) + 1):
+        span.append(_isoformat(base_date + timedelta(days=delta)))
+    return span
+
+
 def _shift_dates(dates: List[str], duration: int) -> List[str]:
     """Décale une liste de dates de `duration` jours."""
 
@@ -398,7 +645,7 @@ def _parse_flex_days(value: Any) -> Optional[int]:
     numbers = _extract_numbers(value)
     if not numbers:
         return None
-    return int(numbers[0])
+    return abs(int(numbers[0]))
 
 
 def _parse_date(value: Any) -> Optional[date]:
@@ -506,5 +753,104 @@ def _normalize_amount(value: Optional[float]) -> Optional[float | int]:
         return int(round(rounded))
     return rounded
 
+
+
+
+def _first_value(questionnaire: Mapping[str, Any], *keys: str) -> Any:
+    for key in keys:
+        if key is None:
+            continue
+        value = questionnaire.get(key)
+        if value not in (None, "", []):
+            return value
+    return None
+
+
+def _extract_city_country(value: Any) -> Tuple[Optional[str], Optional[str]]:
+    if isinstance(value, Mapping):
+        city = value.get("city") or value.get("ville")
+        country = value.get("country") or value.get("pays")
+        return _normalize_text(city), _normalize_text(country)
+    if isinstance(value, str):
+        return _split_city_country(value)
+    return None, None
+
+
+def _normalize_text(value: Any) -> Optional[str]:
+    if value is None:
+        return None
+    text = str(value).strip()
+    return text or None
+
+
+def _normalize_group_type(value: Any) -> Optional[str]:
+    if value is None:
+        return None
+    normalized = str(value).strip().lower()
+    if not normalized:
+        return None
+
+    canonical = {
+        "solo": {"solo", "seul"},
+        "duo": {"duo", "couple"},
+        "group35": {"groupe 3-5", "group35", "group 3-5", "groupe", "groupe35"},
+        "family": {"famille", "family"},
+    }
+    for code, variants in canonical.items():
+        if normalized in variants:
+            return code
+    return normalized
+
+
+def _extract_range_from_questionnaire(
+    questionnaire: Mapping[str, Any],
+    *,
+    start_keys: List[str],
+    end_keys: List[str],
+    text_keys: List[str],
+) -> Tuple[Optional[date], Optional[date]]:
+    start = _parse_date(_first_value(questionnaire, *start_keys))
+    end = _parse_date(_first_value(questionnaire, *end_keys))
+
+    window_candidates = [questionnaire.get(key) for key in text_keys]
+    for candidate in window_candidates:
+        if isinstance(candidate, Mapping):
+            if not start:
+                start = _parse_date(candidate.get("start"))
+            if not end:
+                end = _parse_date(candidate.get("end"))
+        elif isinstance(candidate, str):
+            parsed_start, parsed_end = _parse_range_from_text(candidate)
+            if parsed_start and not start:
+                start = parsed_start
+            if parsed_end and not end:
+                end = parsed_end
+
+    if start and end and end < start:
+        start, end = end, start
+
+    return start, end
+
+
+def _parse_range_from_text(value: str) -> Tuple[Optional[date], Optional[date]]:
+    matches = _DATE_PATTERN.findall(value or "")
+    if len(matches) >= 2:
+        first = _parse_date(matches[0])
+        second = _parse_date(matches[1])
+        return first, second
+    return None, None
+
+
+def _build_date_range(start: date, end: date) -> List[str]:
+    if not start or not end:
+        return []
+    if end < start:
+        start, end = end, start
+    span: List[str] = []
+    current = start
+    while current <= end:
+        span.append(_isoformat(current))
+        current += timedelta(days=1)
+    return span
 
 __all__ = ["enrich_trip_structural_data"]

@@ -282,6 +282,57 @@ normalized_trip_request:
     assert travel_party["travelers_count"] == 2
 
 
+def test_structural_enricher_uses_nested_questionnaire_payload(tmp_path):
+    yaml_response = """
+normalized_trip_request:
+  trip_frame:
+    dates:
+      type: ""
+  budget: {}
+"""
+
+    questionnaire = {
+        "questionnaire": {
+            "travel_group": "Famille",
+            "number_of_travelers": "4",
+            "departure_location": {"city": "Bruxelles", "country": "Belgique"},
+            "dates_type": "flexible",
+            "departure_window": {"start": "2026-02-01", "end": "2026-02-04"},
+            "return_window": {"start": "2026-02-10", "end": "2026-02-14"},
+            "budget": {
+                "amount_per_person": "2 000 €",
+                "amount_per_person_max": "2 500 €",
+                "currency": "EUR",
+            },
+        }
+    }
+
+    pipeline = _build_pipeline_with_response(yaml_response, tmp_path)
+    result = pipeline.run(questionnaire_data=questionnaire, persona_inference={})
+
+    normalized = result["normalized_trip_request"]
+    travel_party = normalized["travel_party"]
+    assert travel_party["group_type"] == "family"
+    assert travel_party["travelers_count"] == 4
+
+    origin = normalized["trip_frame"]["origin"]
+    assert origin["city"] == "Bruxelles"
+    assert origin["country"] == "Belgique"
+
+    dates = normalized["trip_frame"]["dates"]
+    assert dates["type"] == "flexible"
+    assert dates["range"] == {"start": "2026-02-01", "end": "2026-02-04"}
+    assert dates["return_range"] == {"start": "2026-02-10", "end": "2026-02-14"}
+    assert dates["departure_dates"][0] == "2026-02-01"
+    assert dates["departure_dates"][-1] == "2026-02-04"
+    assert dates["return_dates"][0] == "2026-02-10"
+    assert dates["return_dates"][-1] == "2026-02-14"
+
+    budget = normalized["budget"]
+    assert budget["currency"] == "EUR"
+    assert budget["per_person_range"] == {"min": 2000, "max": 2500}
+    assert budget["group_range"] == {"min": 8000, "max": 10000}
+
 def test_pipeline_passes_inputs_to_crew(tmp_path):
     dummy = DummyCrew({})
     pipeline = CrewPipeline(crew_builder=lambda **_: dummy, output_dir=tmp_path)
