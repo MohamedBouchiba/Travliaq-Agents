@@ -70,7 +70,8 @@ class Settings(BaseSettings):
             f"user={self.pg_user} "
             f"password={self.pg_password} "
             f"port={self.pg_port} "
-            f"sslmode={self.pg_sslmode}"
+            f"sslmode={self.pg_sslmode} "
+            f"target_session_attrs=read-write"
         )
 
 
