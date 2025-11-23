@@ -15,14 +15,14 @@ class Settings(BaseSettings):
     )
 
     # Supabase
-    supabase_url: str
-    supabase_service_role_key: str
+    supabase_url: Optional[str] = None
+    supabase_service_role_key: Optional[str] = None
 
     # PostgreSQL Direct
-    pg_host: str
-    pg_database: str
-    pg_user: str
-    pg_password: str
+    pg_host: Optional[str] = None
+    pg_database: Optional[str] = None
+    pg_user: Optional[str] = None
+    pg_password: Optional[str] = None
     pg_port: int = 5432
     pg_sslmode: str = "require"
 
@@ -62,6 +62,8 @@ class Settings(BaseSettings):
     @property
     def pg_connection_string(self) -> str:
         """Génère la chaîne de connexion PostgreSQL."""
+        if not all([self.pg_host, self.pg_database, self.pg_user, self.pg_password]):
+            return ""
         return (
             f"host={self.pg_host} "
             f"dbname={self.pg_database} "
