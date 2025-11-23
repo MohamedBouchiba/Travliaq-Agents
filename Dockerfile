@@ -1,11 +1,27 @@
+# Build stage
+FROM python:3.10-slim as builder
 
+WORKDIR /app
+
+# Install system dependencies and Chrome deps for build if needed (mostly for python deps)
+RUN apt-get update && apt-get install -y \
+    gcc \
+    wget \
+    gnupg \
+    unzip \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY requirements.txt .
+RUN pip install --no-cache-dir --prefix=/install -r requirements.txt
+
+# Final stage
 FROM python:3.10-slim
 
 WORKDIR /app
 
-# Install system dependencies and Chrome
+# Install Chrome in final image
 RUN apt-get update && apt-get install -y \
-    gcc \
     wget \
     gnupg \
     unzip \
@@ -16,16 +32,9 @@ RUN apt-get update && apt-get install -y \
     && apt-get install -y google-chrome-stable \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy requirements first for caching
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
-
-# Copy application code
+COPY --from=builder /install /usr/local
 COPY . .
 
-# Expose port
 EXPOSE 8001
 
-# Command to run the application
-# Assuming run.py is the entry point or app.api.main:app via uvicorn directly if run.py is just a wrapper
 CMD ["uvicorn", "app.api.main:app", "--host", "0.0.0.0", "--port", "8001"]
