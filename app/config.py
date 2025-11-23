@@ -7,8 +7,11 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 class Settings(BaseSettings):
     """Configuration de l'application."""
 
+    # Environment
+    environment: str = "development"
+
     model_config = SettingsConfigDict(
-        env_file=".env",
+        env_file=(".env", ".env.prod", ".env.dev"),  # Load .env first, then specific env files if present
         env_file_encoding="utf-8",
         case_sensitive=False,
         extra="ignore"
@@ -25,6 +28,7 @@ class Settings(BaseSettings):
     pg_password: Optional[str] = None
     pg_port: int = 5432
     pg_sslmode: str = "require"
+    pg_pool_mode: str = "transaction"
 
     # API
     api_host: str = "0.0.0.0"

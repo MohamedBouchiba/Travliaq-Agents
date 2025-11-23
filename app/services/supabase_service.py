@@ -22,41 +22,7 @@ class SupabaseService:
     def _get_connection(self):
         """Crée une connexion PostgreSQL."""
         try:
-            # Force IPv4 resolution for Railway compatibility
-            import socket
-            conn_params = {}
-            
-            if settings.pg_host and '.' in settings.pg_host:  # Not empty and looks like a hostname
-                try:
-                    # Resolve hostname to IPv4 address only
-                    ipv4_addr = socket.getaddrinfo(
-                        settings.pg_host, 
-                        settings.pg_port, 
-                        socket.AF_INET,  # Force IPv4
-                        socket.SOCK_STREAM
-                    )[0][4][0]
-                    
-                    # Use resolved IPv4 address
-                    conn_params = {
-                        'hostaddr': ipv4_addr,
-                        'host': settings.pg_host,  # Keep for SSL verification
-                        'dbname': settings.pg_database,
-                        'user': settings.pg_user,
-                        'password': settings.pg_password,
-                        'port': settings.pg_port,
-                        'sslmode': settings.pg_sslmode,
-                    }
-                    logger.info(f"Resolved {settings.pg_host} to IPv4: {ipv4_addr}")
-                except socket.gaierror as dns_err:
-                    logger.warning(f"DNS resolution failed: {dns_err}, using connection string")
-                    conn_params = None
-            
-            # Use connection params dict if we have it, otherwise use conn_string
-            if conn_params:
-                conn = psycopg2.connect(**conn_params)
-            else:
-                conn = psycopg2.connect(self.conn_string)
-                
+            conn = psycopg2.connect(self.conn_string)
             logger.info("✅ Connexion PostgreSQL établie")
             return conn
         except Exception as e:
