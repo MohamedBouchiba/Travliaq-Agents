@@ -14,7 +14,7 @@ def _ensure_project_root_on_path() -> None:
 
 _ensure_project_root_on_path()
 
-from app.crew_pipeline.__main__ import main  # noqa: E402  (import après ajustement du PATH)
+from app.crew_pipeline.__main__ import main
 
 
 if __name__ == "__main__":
