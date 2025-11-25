@@ -63,6 +63,9 @@ class Settings(BaseSettings):
     # Logging
     log_level: str = "INFO"
 
+    # MCP
+    mcp_server_url: Optional[str] = "http://localhost:8000/sse"
+
     @property
     def pg_connection_string(self) -> str:
         """Génère la chaîne de connexion PostgreSQL."""

@@ -262,6 +262,19 @@ def _create_agent(
     # Force l'utilisation du LLM calculé dynamiquement.
     agent_kwargs["llm"] = llm_instance
 
+    # Injection du serveur MCP si configuré
+    if settings.mcp_server_url:
+        # On s'assure que mcps est une liste
+        current_mcps = agent_kwargs.get("mcps", [])
+        if isinstance(current_mcps, str):
+            current_mcps = [current_mcps]
+        
+        # On évite les doublons
+        if settings.mcp_server_url not in current_mcps:
+            current_mcps.append(settings.mcp_server_url)
+        
+        agent_kwargs["mcps"] = current_mcps
+
     try:
         return Agent(**agent_kwargs)
     except TypeError as exc:  # pragma: no cover - garde-fou sur configuration
