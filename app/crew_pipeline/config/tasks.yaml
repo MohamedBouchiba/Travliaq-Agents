@@ -19,18 +19,9 @@ tasks:
       paragraphe narratif immersif qui décrit la personne comme si tu la
       présentais à un travel designer.
     expected_output: |-
-      Réponds STRICTEMENT en JSON suivant la structure ci-dessous. Utilise des
-      phrases complètes et précises.
-      {
-        "persona_summary": "Résumé synthétique du profil",
-        "pros": ["Liste des points favorables"],
-        "cons": ["Liste des risques ou points d'attention"],
-        "critical_needs": ["Besoins indispensables"],
-        "non_critical_preferences": ["Envies confort mais non bloquantes"],
-        "user_goals": ["Objectifs explicites ou implicites"],
-        "narrative": "Paragraphe narratif en français",
-        "analysis_notes": "Synthèse de ta réflexion"
-      }
+      Une analyse complète et structurée du profil voyageur, incluant un narratif immersif
+      et une liste argumentée de points forts, faibles et besoins critiques.
+      L'output final sera automatiquement formaté en JSON par le système.
     async_execution: false
   persona_challenge_review:
     agent: persona_quality_challenger
@@ -52,18 +43,9 @@ tasks:
       La restitution finale DOIT respecter le même schéma JSON que la première
       tâche en y ajoutant un bloc dédié à ton challenge.
     expected_output: |-
-      {
-        "persona_summary": "Résumé mis à jour après challenge",
-        "pros": ["Liste consolidée"],
-        "cons": ["Liste consolidée"],
-        "critical_needs": ["Besoins confirmés"],
-        "non_critical_preferences": ["Préférences"],
-        "user_goals": ["Objectifs"],
-        "narrative": "Récit affiné",
-        "analysis_notes": "Synthèse complète",
-        "challenge_summary": "Ce que ton challenge a apporté",
-        "challenge_actions": ["Actions concrètes à transmettre"]
-      }
+      Une revue critique de l'analyse précédente, validant ou corrigeant les hypothèses,
+      avec des recommandations concrètes pour les designers.
+      L'output final sera automatiquement formaté en JSON par le système.
     async_execution: false
   trip_specifications_design:
     agent: trip_specifications_architect

@@ -30,7 +30,7 @@ from app.crew_pipeline.observability import (
 logger = logging.getLogger(__name__)
 
 # MCP Server URL - SSE endpoint is at /sse
-MCP_SERVER_URL = "https://travliaq-mcp-production.up.railway.app/sse"
+MCP_SERVER_URL = "https://travliaq-mcp-production.up.railway.app/mcp"
 
 
 @dataclass
