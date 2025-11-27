@@ -14,6 +14,9 @@ agents:
     max_reasoning_attempts: 3
     inject_date: true
     date_format: "%d/%m/%Y"
+    output_pydantic: app.crew_pipeline.models.PersonaAnalysisOutput
+    memory: true
+    max_iter: 15
   persona_quality_challenger:
     role: "Persona Quality Challenger"
     goal: >-
@@ -27,6 +30,9 @@ agents:
     allow_delegation: false
     reasoning: true
     max_reasoning_attempts: 2
+    output_pydantic: app.crew_pipeline.models.PersonaChallengeOutput
+    memory: true
+    max_iter: 12
   trip_specifications_architect:
     role: "Trip Specifications Architect"
     goal: >-
@@ -42,4 +48,7 @@ agents:
     allow_delegation: false
     reasoning: true
     max_reasoning_attempts: 2
+    output_pydantic: app.crew_pipeline.models.TripSpecificationsOutput
+    memory: false
+    max_iter: 10
     inject_date: false

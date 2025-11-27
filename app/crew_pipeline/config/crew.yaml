@@ -2,11 +2,9 @@ crew:
   agents:
     - traveller_insights_analyst
     - persona_quality_challenger
-    - trip_signal_synthesizer
-    - trip_signal_challenger
+    - trip_specifications_architect
   tasks:
     - traveller_profile_brief
     - persona_challenge_review
-    - trip_signal_synthesis
-    - trip_signal_quality_challenge
+    - trip_specifications_design
   process: sequential

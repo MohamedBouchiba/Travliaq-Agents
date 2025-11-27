@@ -20,10 +20,17 @@ import yaml
 from app.config import settings
 from app.crew_pipeline.trip_structural_enricher import enrich_trip_structural_data
 from app.crew_pipeline.mcp_tools import get_mcp_tools
+from app.crew_pipeline.observability import (
+    PipelineMetrics,
+    QualityScorer,
+    log_structured_input,
+    log_structured_output,
+)
 
 logger = logging.getLogger(__name__)
 
-MCP_SERVER_URL = "https://travliaq-mcp-production.up.railway.app/mcp"
+# MCP Server URL - SSE endpoint is at /sse
+MCP_SERVER_URL = "https://travliaq-mcp-production.up.railway.app/sse"
 
 
 @dataclass
@@ -323,7 +330,7 @@ def build_travliaq_crew(
         else:
             logger.warning(f"⚠️ Aucun outil MCP trouvé sur {MCP_SERVER_URL}")
     except Exception as e:
-        logger.warning(f"⚠️ Impossible de charger les outils MCP: {e}")
+        logger.warning(f"⚠️ Impossible de charger les outils MCP depuis {MCP_SERVER_URL}: {e}")
 
     agents: Dict[str, Agent] = {}
     for agent_name, agent_definition in agents_config.items():
@@ -464,6 +471,13 @@ class CrewPipeline:
                 if key in {"questionnaire_data", "persona_inference"}:
                     continue
                 base_payload[key] = deepcopy(value)
+        
+        # Génération du run_id avant l'exécution
+        run_id = self._generate_run_id(base_payload)
+        
+        # Initialisation des métriques d'observabilité
+        metrics = PipelineMetrics(run_id=run_id)
+        log_structured_input(run_id, questionnaire_data, safe_persona_inference)
 
         try:
             output = crew.kickoff(
@@ -474,6 +488,9 @@ class CrewPipeline:
                 }
             )
         except Exception as exc:
+            metrics.complete_pipeline()
+            metrics.add_warning(f"Échec de la pipeline: {str(exc)}")
+            metrics.save_to_file(self._output_dir)
             logger.exception("Échec lors de l'exécution de CrewAI: %s", exc)
             raise
 
@@ -483,15 +500,40 @@ class CrewPipeline:
             result.normalized_trip_request,
             questionnaire_source,
         )
-        run_id = self._generate_run_id(base_payload)
+        
         enriched = self._compose_enriched_payload(
             run_id=run_id,
             base_payload=base_payload,
             analysis=result,
         )
+        
+        # Évaluation de la qualité des outputs
+        quality_scores = None
+        if hasattr(result, 'to_dict'):
+            persona_data = result.to_dict()
+            quality_scores = QualityScorer.evaluate_persona_analysis(persona_data)
+            enriched["quality_scores"] = quality_scores
+            logger.info(
+                f"📊 Scores de qualité: overall={quality_scores.get('overall', 0):.2f}",
+                extra={"scores": quality_scores}
+            )
+        
+        # Finalisation des métriques
+        metrics.complete_pipeline()
+        log_structured_output(run_id, enriched, quality_scores)
+        
+        # Sauvegarde des outputs et métriques
         self._persist_run_outputs(run_id, output, enriched)
+        metrics.save_to_file(self._output_dir)
 
-        logger.info("✅ Analyse CrewAI générée avec succès", extra={"run_id": run_id})
+        logger.info(
+            "✅ Analyse CrewAI générée avec succès",
+            extra={
+                "run_id": run_id,
+                "duration": metrics.duration_seconds,
+                "total_tokens": metrics.total_tokens,
+            }
+        )
         return enriched
 
     def _parse_output(self, output: Any) -> CrewPipelineResult:

@@ -1,6 +1,7 @@
 import asyncio
 import logging
 from typing import Any, List, Dict, Type, Optional
+import time
 
 from crewai.tools import BaseTool
 from pydantic import BaseModel, Field, create_model
@@ -15,38 +16,86 @@ except ImportError:
 
 logger = logging.getLogger(__name__)
 
+# Configuration pour les retries et timeouts
+MCP_TIMEOUT_SECONDS = 30
+MCP_MAX_RETRIES = 3
+MCP_RETRY_DELAY_SECONDS = 1
+
 class MCPToolWrapper(BaseTool):
     """
     A generic wrapper for MCP tools to be used in CrewAI.
+    
+    Inclut retry logic, timeout et gestion d'erreurs robuste.
     """
     server_url: str = Field(..., description="URL of the MCP server")
     tool_name: str = Field(..., description="Name of the tool on the MCP server")
+    timeout: int = Field(default=MCP_TIMEOUT_SECONDS, description="Timeout en secondes")
+    max_retries: int = Field(default=MCP_MAX_RETRIES, description="Nombre maximum de tentatives")
     
     def _run(self, **kwargs: Any) -> Any:
         return asyncio.run(self._async_run(**kwargs))
 
     async def _async_run(self, **kwargs: Any) -> Any:
         if not sse_client:
+            logger.error("MCP library not installed")
             return "MCP library not installed."
+        
+        last_error = None
+        
+        for attempt in range(1, self.max_retries + 1):
+            try:
+                logger.debug(
+                    f"Tentative {attempt}/{self.max_retries} pour {self.tool_name}",
+                    extra={"tool": self.tool_name, "attempt": attempt}
+                )
+                
+                # Timeout pour la connexion et l'exécution
+                async with asyncio.timeout(self.timeout):
+                    async with sse_client(self.server_url) as (read, write):
+                        async with ClientSession(read, write) as session:
+                            await session.initialize()
+                            result = await session.call_tool(self.tool_name, arguments=kwargs)
+                            
+                            # Format the result
+                            output = []
+                            if result.content:
+                                for item in result.content:
+                                    if hasattr(item, "text"):
+                                        output.append(item.text)
+                                    else:
+                                        output.append(str(item))
+                            
+                            success_output = "\n".join(output)
+                            logger.info(
+                                f"✅ MCP tool {self.tool_name} exécuté avec succès",
+                                extra={"tool": self.tool_name, "output_size": len(success_output)}
+                            )
+                            return success_output
+                            
+            except asyncio.TimeoutError as e:
+                last_error = f"Timeout après {self.timeout}s"
+                logger.warning(
+                    f"⏱️ Timeout pour {self.tool_name} (tentative {attempt}/{self.max_retries})",
+                    extra={"tool": self.tool_name, "timeout": self.timeout}
+                )
+            except Exception as e:
+                last_error = str(e)
+                logger.warning(
+                    f"⚠️ Erreur pour {self.tool_name} (tentative {attempt}/{self.max_retries}): {e}",
+                    extra={"tool": self.tool_name, "error": str(e)}
+                )
             
-        try:
-            async with sse_client(self.server_url) as (read, write):
-                async with ClientSession(read, write) as session:
-                    await session.initialize()
-                    result = await session.call_tool(self.tool_name, arguments=kwargs)
-                    
-                    # Format the result
-                    output = []
-                    if result.content:
-                        for item in result.content:
-                            if hasattr(item, "text"):
-                                output.append(item.text)
-                            else:
-                                output.append(str(item))
-                    return "\n".join(output)
-        except Exception as e:
-            logger.error(f"Error calling MCP tool {self.tool_name}: {e}")
-            return f"Error executing tool: {str(e)}"
+            # Attendre avant de réessayer (sauf pour la dernière tentative)
+            if attempt < self.max_retries:
+                await asyncio.sleep(MCP_RETRY_DELAY_SECONDS * attempt)
+        
+        # Toutes les tentatives ont échoué
+        error_msg = f"Échec après {self.max_retries} tentatives: {last_error}"
+        logger.error(
+            f"❌ MCP tool {self.tool_name} a échoué définitivement",
+            extra={"tool": self.tool_name, "error": last_error}
+        )
+        return f"Error executing tool {self.tool_name}: {error_msg}"
 
 def _create_pydantic_model_from_schema(name: str, schema: Dict[str, Any]) -> Type[BaseModel]:
     """
