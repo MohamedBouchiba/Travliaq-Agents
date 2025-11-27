@@ -19,8 +19,11 @@ import yaml
 
 from app.config import settings
 from app.crew_pipeline.trip_structural_enricher import enrich_trip_structural_data
+from app.crew_pipeline.mcp_tools import get_mcp_tools
 
 logger = logging.getLogger(__name__)
+
+MCP_SERVER_URL = "https://travliaq-mcp-production.up.railway.app/mcp"
 
 
 @dataclass
@@ -311,14 +314,34 @@ def build_travliaq_crew(
     if not tasks_config:
         raise ValueError("Aucune tâche définie dans la configuration CrewAI")
 
+    # Fetch MCP tools once
+    mcp_tools = []
+    try:
+        mcp_tools = get_mcp_tools(MCP_SERVER_URL)
+        if mcp_tools:
+            logger.info(f"✅ {len(mcp_tools)} outils MCP chargés depuis {MCP_SERVER_URL}")
+        else:
+            logger.warning(f"⚠️ Aucun outil MCP trouvé sur {MCP_SERVER_URL}")
+    except Exception as e:
+        logger.warning(f"⚠️ Impossible de charger les outils MCP: {e}")
+
     agents: Dict[str, Agent] = {}
     for agent_name, agent_definition in agents_config.items():
-        agents[agent_name] = _create_agent(
+        agent_instance = _create_agent(
             name=agent_name,
             config=agent_definition,
             llm_instance=llm_instance,
             agent_verbose=agent_verbose,
         )
+        
+        # Injection spécifique pour l'analyste narratif
+        if agent_name == "traveller_insights_analyst" and mcp_tools:
+            logger.info(f"🔧 Injection des outils MCP pour l'agent {agent_name}")
+            # On ajoute les outils MCP à la liste existante (s'il y en a)
+            current_tools = agent_instance.tools or []
+            agent_instance.tools = current_tools + mcp_tools
+
+        agents[agent_name] = agent_instance
 
     tasks: Dict[str, Task] = {}
     for task_name, task_definition in tasks_config.items():
@@ -422,9 +445,19 @@ class CrewPipeline:
         crew = self._ensure_crew()
         logger.info("🚀 Lancement de la pipeline CrewAI pour l'analyse voyage")
 
+        # Robustesse: Fallback si l'inférence persona est vide
+        safe_persona_inference = deepcopy(persona_inference)
+        if not safe_persona_inference:
+            logger.warning("⚠️ Persona Inference manquante: utilisation d'un profil par défaut.")
+            safe_persona_inference = {
+                "id": "unknown",
+                "summary": "Profil non déterminé (fallback)",
+                "confidence_score": 0.0
+            }
+
         base_payload: Dict[str, Any] = {
             "questionnaire_data": deepcopy(questionnaire_data),
-            "persona_inference": deepcopy(persona_inference),
+            "persona_inference": safe_persona_inference,
         }
         if payload_metadata:
             for key, value in payload_metadata.items():
@@ -436,7 +469,7 @@ class CrewPipeline:
             output = crew.kickoff(
                 inputs={
                     "questionnaire": questionnaire_data,
-                    "persona_context": persona_inference,
+                    "persona_context": safe_persona_inference,
                     "input_payload": base_payload,
                 }
             )

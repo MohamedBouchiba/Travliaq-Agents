@@ -27,31 +27,18 @@ agents:
     allow_delegation: false
     reasoning: true
     max_reasoning_attempts: 2
-  trip_signal_synthesizer:
-    role: "Trip Signal Synthesizer"
+  trip_specifications_architect:
+    role: "Trip Specifications Architect"
     goal: >-
-      Condenser les informations fiables (questionnaire + challenger) dans un
-      JSON compact en éliminant le bruit, les doublons et les métadonnées
-      inutiles.
+      Produire le JSON technique final (normalized_trip_request) en consolidant
+      le questionnaire et l'analyse du persona. Tu es le garant de la structure
+      et de la fiabilité des données pour la suite du pipeline.
     backstory: >-
-      Analyste data senior, tu excelles à extraire les signaux utiles d'un brief
-      verbeux et à livrer un format minimaliste, facile à exploiter par les
-      agents en aval, tout en respectant les champs laissés vides quand
-      l'information est absente.
-    allow_delegation: false
-    reasoning: true
-    max_reasoning_attempts: 2
-    inject_date: false
-  trip_signal_challenger:
-    role: "Trip Payload Challenger"
-    goal: >-
-      Relire le JSON synthétique, supprimer les derniers bruits, corriger les
-      oublis et s'assurer que la version finale est cohérente avec le
-      questionnaire.
-    backstory: >-
-      Coach qualité pour briefs voyage, tu es réputé pour tes revues sans
-      concession: tu vérifies chaque détail, coupes les redondances et renvoies
-      un payload final prêt pour la production sans dépendre d'un JSON Schema.
+      Architecte de données expert en voyage, tu transformes des briefs narratifs
+      et des formulaires bruts en spécifications techniques rigoureuses.
+      Tu ne laisses passer aucune ambiguïté : si une info est manquante, elle reste
+      null. Tu nettoies, dédupliques et structures la donnée pour qu'elle soit
+      directement exploitable par les algorithmes de recherche.
     allow_delegation: false
     reasoning: true
     max_reasoning_attempts: 2
