@@ -29,8 +29,7 @@ from app.crew_pipeline.observability import (
 
 logger = logging.getLogger(__name__)
 
-# MCP Server URL - SSE endpoint is at /sse
-MCP_SERVER_URL = "https://travliaq-mcp-production.up.railway.app/mcp"
+
 
 
 @dataclass
@@ -323,14 +322,17 @@ def build_travliaq_crew(
 
     # Fetch MCP tools once
     mcp_tools = []
-    try:
-        mcp_tools = get_mcp_tools(MCP_SERVER_URL)
-        if mcp_tools:
-            logger.info(f"✅ {len(mcp_tools)} outils MCP chargés depuis {MCP_SERVER_URL}")
-        else:
-            logger.warning(f"⚠️ Aucun outil MCP trouvé sur {MCP_SERVER_URL}")
-    except Exception as e:
-        logger.warning(f"⚠️ Impossible de charger les outils MCP depuis {MCP_SERVER_URL}: {e}")
+    if settings.mcp_server_url:
+        try:
+            mcp_tools = get_mcp_tools(settings.mcp_server_url)
+            if mcp_tools:
+                logger.info(f"✅ {len(mcp_tools)} outils MCP chargés depuis {settings.mcp_server_url}")
+            else:
+                logger.warning(f"⚠️ Aucun outil MCP trouvé sur {settings.mcp_server_url}")
+        except Exception as e:
+            logger.warning(f"⚠️ Impossible de charger les outils MCP depuis {settings.mcp_server_url}: {e}")
+    else:
+        logger.info("ℹ️ MCP Server URL non configurée, passage du chargement des outils.")
 
     agents: Dict[str, Agent] = {}
     for agent_name, agent_definition in agents_config.items():

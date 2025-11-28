@@ -64,7 +64,7 @@ class Settings(BaseSettings):
     log_level: str = "INFO"
 
     # MCP (set to None to disable temporarily while debugging MCP server)
-    mcp_server_url: Optional[str] = None  # "https://travliaq-mcp-production.up.railway.app/mcp"
+    mcp_server_url: Optional[str] = "https://travliaq-mcp-production.up.railway.app/mcp"
 
     @property
     def pg_connection_string(self) -> str:

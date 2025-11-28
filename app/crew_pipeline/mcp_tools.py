@@ -14,12 +14,47 @@ except ImportError:
     ClientSession = None
     sse_client = None
 
+import httpx
+
 logger = logging.getLogger(__name__)
 
 # Configuration pour les retries et timeouts
 MCP_TIMEOUT_SECONDS = 30
 MCP_MAX_RETRIES = 3
 MCP_RETRY_DELAY_SECONDS = 1
+
+# Cache pour les headers de session (pour éviter de refaire le probe à chaque appel)
+_session_headers_cache: Dict[str, Dict[str, str]] = {}
+
+async def _get_session_headers(server_url: str) -> Dict[str, str]:
+    """
+    Récupère les headers de session nécessaires pour le serveur MCP.
+    Gère le cas où le serveur nécessite un Mcp-Session-Id spécifique.
+    """
+    if server_url in _session_headers_cache:
+        return _session_headers_cache[server_url]
+    
+    headers = {}
+    try:
+        # Probe initial pour voir si on a besoin d'un session ID
+        # On ignore les erreurs de certificat pour simplifier en dev/test
+        async with httpx.AsyncClient(verify=False) as client:
+            resp = await client.get(server_url, headers={"Accept": "text/event-stream"})
+            
+            # Si le serveur renvoie 400 avec un session ID, c'est qu'il faut l'utiliser
+            if resp.status_code == 400 and "Mcp-Session-Id" in resp.headers:
+                session_id = resp.headers["Mcp-Session-Id"]
+                logger.info(f"🔄 Session MCP récupérée: {session_id}")
+                headers["Mcp-Session-Id"] = session_id
+                _session_headers_cache[server_url] = headers
+            elif resp.status_code == 200:
+                # Connexion directe OK
+                _session_headers_cache[server_url] = {}
+                
+    except Exception as e:
+        logger.warning(f"⚠️ Échec du probe de session MCP: {e}")
+    
+    return headers
 
 class MCPToolWrapper(BaseTool):
     """
@@ -51,7 +86,10 @@ class MCPToolWrapper(BaseTool):
                 
                 # Timeout pour la connexion et l'exécution
                 async with asyncio.timeout(self.timeout):
-                    async with sse_client(self.server_url) as (read, write):
+                    # Récupération des headers de session
+                    headers = await _get_session_headers(self.server_url)
+                    
+                    async with sse_client(self.server_url, headers=headers) as (read, write):
                         async with ClientSession(read, write) as session:
                             await session.initialize()
                             result = await session.call_tool(self.tool_name, arguments=kwargs)
@@ -136,10 +174,19 @@ def get_mcp_tools(server_url: str) -> List[BaseTool]:
         return []
 
     async def _fetch_tools():
-        async with sse_client(server_url) as (read, write):
+        # Récupération des headers de session
+        headers = await _get_session_headers(server_url)
+        logger.info(f"Connecting to SSE with headers: {headers}")
+        
+        async with sse_client(server_url, headers=headers) as (read, write):
+            logger.info("SSE connection established")
             async with ClientSession(read, write) as session:
+                logger.info("Initializing session...")
                 await session.initialize()
-                return await session.list_tools()
+                logger.info("Session initialized. Listing tools...")
+                tools = await session.list_tools()
+                logger.info(f"Tools listed: {len(tools.tools)} found")
+                return tools
 
     try:
         logger.info(f"Fetching MCP tools from {server_url}...")
