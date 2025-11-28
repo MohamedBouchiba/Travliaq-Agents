@@ -177,20 +177,31 @@ def get_mcp_tools(server_url: str) -> List[BaseTool]:
         # Récupération des headers de session
         headers = await _get_session_headers(server_url)
         logger.info(f"Connecting to SSE with headers: {headers}")
-        
-        async with sse_client(server_url, headers=headers) as (read, write):
-            logger.info("SSE connection established")
-            async with ClientSession(read, write) as session:
-                logger.info("Initializing session...")
-                await session.initialize()
-                logger.info("Session initialized. Listing tools...")
-                tools = await session.list_tools()
-                logger.info(f"Tools listed: {len(tools.tools)} found")
-                return tools
+
+        try:
+            async with asyncio.timeout(MCP_TIMEOUT_SECONDS):
+                async with sse_client(server_url, headers=headers) as (read, write):
+                    logger.info("SSE connection established")
+                    async with ClientSession(read, write) as session:
+                        logger.info("Initializing session...")
+                        await session.initialize()
+                        logger.info("Session initialized. Listing tools...")
+                        tools = await session.list_tools()
+                        logger.info(f"Tools listed: {len(tools.tools)} found")
+                        return tools
+        except asyncio.TimeoutError:
+            logger.warning(
+                f"⏱️ Timeout trying to connect to MCP SSE at {server_url} "
+                f"after {MCP_TIMEOUT_SECONDS}s"
+            )
+            return None
 
     try:
         logger.info(f"Fetching MCP tools from {server_url}...")
         tools_list = asyncio.run(_fetch_tools())
+
+        if tools_list is None:
+            return []
         
         crew_tools = []
         for tool in tools_list.tools:
