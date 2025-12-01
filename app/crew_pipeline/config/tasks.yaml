@@ -103,6 +103,8 @@ tasks:
     description: |-
       Propose 4-5 options de destination compatibles avec le budget, les dates et le style.
       Inclue un score de faisabilité (0-100), les risques météo/sécurité et les coûts approximatifs.
+
+      **Action MCP** : Pour valider une ville, utilise `geo.text_to_place` avec le paramètre `query` (ex: "Paris"). Ne jamais passer de dictionnaire ou d'objet complexe.
     expected_output: |-
       ```yaml
       destination_slate:
@@ -119,6 +121,8 @@ tasks:
     description: |-
       Estime les vols principaux pour les options retenues (prix, durée, bagages, escales).
       Priorité : ne pas halluciner. Si info absente -> null.
+
+      **Action MCP** : Utilise `flights.prices` et `airports.nearest` avec des valeurs STRING simples (ex: origin="BRU", destination="DPS", city="Bali"). Ne jamais passer de dictionnaire.
     expected_output: |-
       ```yaml
       flight_quotes:
@@ -134,6 +138,8 @@ tasks:
     description: |-
       Estime les hébergements (type, confort, quartier) avec un slot de prix et les équipements clés.
       Mentionne la faisabilité budgétaire et les compromis éventuels.
+
+      **Action MCP** : Pour chercher des hôtels, utilise `booking.search` avec des valeurs simples (ex: city="Bali", pas de dictionnaire). Pour valider une ville, utilise `places.overview` avec query="Bali" (string simple, pas d'objet).
     expected_output: |-
       ```yaml
       lodging_quotes:

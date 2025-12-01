@@ -155,6 +155,7 @@ class CrewPipeline:
         }
 
         output_phase1 = crew_phase1.kickoff(inputs=inputs_phase1)
+        # ✅ Sauvegarde de TOUS les steps en mode development
         should_save = settings.environment.lower() == "development"
         run_dir = self._output_dir / run_id
         if should_save:

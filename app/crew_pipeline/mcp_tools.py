@@ -34,6 +34,7 @@ logger = logging.getLogger(__name__)
 
 # Configuration pour les retries et timeouts
 MCP_TIMEOUT_SECONDS = 30
+MCP_TIMEOUT_BOOKING_FLIGHTS = 180  # Timeout étendu pour booking et flights (scraping)
 MCP_MAX_RETRIES = 3
 MCP_RETRY_DELAY_SECONDS = 1
 
@@ -227,7 +228,7 @@ async def custom_sse_client(
     url: str,
     headers: Dict[str, Any] | None = None,
     timeout: float = 5,
-    sse_read_timeout: float = 60 * 5,
+    sse_read_timeout: float = 30,  # Réduit de 5min à 30s pour éviter les hangs
     httpx_client_factory: Any = create_mcp_http_client,
     auth: Any | None = None,
     override_endpoint_url: str | None = None,
@@ -379,30 +380,45 @@ async def custom_sse_client(
 def _create_pydantic_model_from_schema(name: str, schema: Dict[str, Any]) -> Type[BaseModel]:
     """
     Creates a Pydantic model from a JSON schema for tool arguments.
+    Ensures clear descriptions to prevent LLM confusion.
     """
     fields = {}
     if "properties" in schema:
         for field_name, field_info in schema["properties"].items():
             # Basic type mapping
             field_type = Any
+            type_name = "any"
+            
             if field_info.get("type") == "string":
                 field_type = str
+                type_name = "string"
             elif field_info.get("type") == "integer":
                 field_type = int
+                type_name = "integer"
             elif field_info.get("type") == "number":
                 field_type = float
+                type_name = "number"
             elif field_info.get("type") == "boolean":
                 field_type = bool
+                type_name = "boolean"
             elif field_info.get("type") == "array":
                 field_type = List[Any]
+                type_name = "array"
             
-            description = field_info.get("description", "")
+            # Get original description and enhance it
+            original_desc = field_info.get("description", "")
+            
+            # Create a CLEAR description that prevents confusion
             is_required = field_name in schema.get("required", [])
             
             if is_required:
-                fields[field_name] = (field_type, Field(..., description=description))
+                # For required fields, emphasize passing the actual value
+                enhanced_desc = f"{original_desc}. Pass a {type_name} value directly (not a dict/object)." if original_desc else f"Pass a {type_name} value directly (not a dict/object)."
+                fields[field_name] = (field_type, Field(..., description=enhanced_desc))
             else:
-                fields[field_name] = (Optional[field_type], Field(None, description=description))
+                # For optional fields, allow None or actual value
+                enhanced_desc = f"{original_desc}. Optional {type_name} value or omit." if original_desc else f"Optional {type_name} value or omit."
+                fields[field_name] = (Optional[field_type], Field(None, description=enhanced_desc))
     
     return create_model(f"{name}Args", **fields)
 
@@ -465,6 +481,12 @@ def get_mcp_tools(server_url: str) -> List[BaseTool]:
             # Create dynamic args schema
             args_schema = _create_pydantic_model_from_schema(tool.name, tool.inputSchema)
             
+            # Déterminer le timeout en fonction du type d'outil
+            tool_timeout = MCP_TIMEOUT_SECONDS
+            if tool.name.startswith("booking.") or tool.name.startswith("flights."):
+                tool_timeout = MCP_TIMEOUT_BOOKING_FLIGHTS
+                logger.info(f"⏱️ Using extended timeout ({tool_timeout}s) for {tool.name}")
+            
             # Instantiate the tool directly with all parameters
             # Don't set class attributes as they conflict with BaseTool's Pydantic fields
             instance = MCPToolWrapper(
@@ -472,7 +494,8 @@ def get_mcp_tools(server_url: str) -> List[BaseTool]:
                 description=tool.description or f"Tool {tool.name} from MCP",
                 args_schema=args_schema,
                 server_url=server_url,
-                tool_name=tool.name
+                tool_name=tool.name,
+                timeout=tool_timeout
             )
             crew_tools.append(instance)
         
