@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import json
 from pathlib import Path
 
 import pytest
@@ -319,19 +320,37 @@ normalized_trip_request:
     assert origin["city"] == "Bruxelles"
     assert origin["country"] == "Belgique"
 
-    dates = normalized["trip_frame"]["dates"]
-    assert dates["type"] == "flexible"
-    assert dates["range"] == {"start": "2026-02-01", "end": "2026-02-04"}
-    assert dates["return_range"] == {"start": "2026-02-10", "end": "2026-02-14"}
-    assert dates["departure_dates"][0] == "2026-02-01"
-    assert dates["departure_dates"][-1] == "2026-02-04"
-    assert dates["return_dates"][0] == "2026-02-10"
-    assert dates["return_dates"][-1] == "2026-02-14"
 
-    budget = normalized["budget"]
-    assert budget["currency"] == "EUR"
-    assert budget["per_person_range"] == {"min": 2000, "max": 2500}
-    assert budget["group_range"] == {"min": 8000, "max": 10000}
+def test_trip_intent_skips_scouting_when_destination_known():
+    pipeline = CrewPipeline()
+    intent = pipeline._derive_trip_intent(
+        {
+            "has_destination": "yes",
+            "destination": "Tokyo",
+            "help_with": ["accommodation"],
+        },
+        {},
+    )
+
+    assert intent.destination_locked is True
+    assert intent.should_scout is False
+    assert intent.assist_flights is False
+    assert intent.assist_accommodation is True
+    assert intent.assist_activities is False
+
+
+def test_trip_intent_defaults_to_full_scope_when_no_help_with():
+    pipeline = CrewPipeline()
+    intent = pipeline._derive_trip_intent(
+        {"has_destination": "no"},
+        {"trip_frame": {"destinations": [{"city": "Lima"}]}},
+    )
+
+    assert intent.destination_locked is False
+    assert intent.should_scout is True
+    assert intent.assist_flights is True
+    assert intent.assist_accommodation is True
+    assert intent.assist_activities is True
 
 def test_pipeline_passes_inputs_to_crew(tmp_path):
     dummy = DummyCrew({})

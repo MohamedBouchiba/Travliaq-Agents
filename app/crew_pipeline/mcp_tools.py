@@ -1,3 +1,4 @@
+import os
 import asyncio
 import logging
 from typing import Any, List, Dict, Type, Optional
@@ -33,11 +34,16 @@ from urllib.parse import urljoin, urlparse
 logger = logging.getLogger(__name__)
 
 # Configuration pour les retries et timeouts
-MCP_TIMEOUT_SECONDS = 30
-MCP_TIMEOUT_GEO_PLACES = 90  # Timeout étendu pour geo/places qui peuvent être lents
-MCP_TIMEOUT_BOOKING_FLIGHTS = 180  # Timeout étendu pour booking et flights (scraping)
-MCP_MAX_RETRIES = 3
-MCP_RETRY_DELAY_SECONDS = 1
+_FAST_TEST_MODE = os.getenv("FAST_TEST_MODE", "").lower() in {"1", "true", "yes", "on"}
+
+# Timeouts réduits en mode test rapide afin d'éviter les longues attentes pendant les tests
+MCP_TIMEOUT_SECONDS = 15 if _FAST_TEST_MODE else 30
+MCP_TIMEOUT_GEO_PLACES = 45 if _FAST_TEST_MODE else 90  # Timeout étendu pour geo/places qui peuvent être lents
+MCP_TIMEOUT_BOOKING_FLIGHTS = 90 if _FAST_TEST_MODE else 180  # Timeout étendu pour booking et flights (scraping)
+
+# Moins de retries pour accélérer les tests en mode rapide
+MCP_MAX_RETRIES = 1 if _FAST_TEST_MODE else 3
+MCP_RETRY_DELAY_SECONDS = 0.5 if _FAST_TEST_MODE else 1
 
 # Cache pour les headers de session (pour éviter de refaire le probe à chaque appel)
 _session_headers_cache: Dict[str, Dict[str, str]] = {}
@@ -72,6 +78,17 @@ async def _get_session_headers(server_url: str) -> Dict[str, str]:
     
     return headers
 
+
+def _sanitize_tool_arguments(arguments: Dict[str, Any]) -> Dict[str, Any]:
+    """Supprime les paramètres None pour éviter les erreurs de validation Pydantic."""
+
+    cleaned: Dict[str, Any] = {}
+    for key, value in (arguments or {}).items():
+        if value is None:
+            continue
+        cleaned[key] = value
+    return cleaned
+
 class MCPToolWrapper(BaseTool):
     """
     A generic wrapper for MCP tools to be used in CrewAI.
@@ -93,7 +110,7 @@ class MCPToolWrapper(BaseTool):
 
         last_error = None
 
-        normalized_kwargs = dict(kwargs)
+        normalized_kwargs = _sanitize_tool_arguments(dict(kwargs))
         if self.tool_name.startswith("flights.") and "force_refresh" not in normalized_kwargs:
             # Certains outils flights exigent un booléen explicite, sinon Pydantic échoue
             normalized_kwargs["force_refresh"] = False

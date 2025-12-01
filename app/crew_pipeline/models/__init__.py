@@ -98,3 +98,117 @@ class SystemContract(BaseModel):
                 }
             }
         }
+
+
+# --- Outputs structurés des agents CrewAI (Phase 1) ---
+
+
+class PersonaAnalysisOutput(BaseModel):
+    """Analyse structurée du voyageur produite par l'analyste."""
+
+    persona_summary: str = Field(
+        ...,
+        description="Résumé synthétique du profil voyageur",
+        min_length=10,
+    )
+
+    pros: List[str] = Field(default_factory=list, description="Points favorables")
+    cons: List[str] = Field(default_factory=list, description="Points de vigilance")
+    critical_needs: List[str] = Field(default_factory=list, description="Besoins indispensables")
+    non_critical_preferences: List[str] = Field(default_factory=list, description="Préférences non bloquantes")
+    user_goals: List[str] = Field(default_factory=list, description="Objectifs explicites ou implicites")
+
+    narrative: str = Field(
+        ...,
+        description="Paragraphe narratif immersif décrivant le voyageur",
+        min_length=50,
+    )
+
+    analysis_notes: str = Field(default="", description="Notes de raisonnement")
+
+
+class PersonaChallengeOutput(BaseModel):
+    """Version challengée de l'analyse persona."""
+
+    persona_summary: str = Field(
+        ...,
+        description="Résumé du profil après challenge",
+        min_length=10,
+    )
+
+    pros: List[str] = Field(default_factory=list, description="Points favorables consolidés")
+    cons: List[str] = Field(default_factory=list, description="Points de vigilance consolidés")
+    critical_needs: List[str] = Field(default_factory=list, description="Besoins confirmés")
+    non_critical_preferences: List[str] = Field(default_factory=list, description="Préférences validées")
+    user_goals: List[str] = Field(default_factory=list, description="Objectifs affinés")
+
+    narrative: str = Field(
+        ...,
+        description="Récit affiné après challenge",
+        min_length=50,
+    )
+
+    analysis_notes: str = Field(default="", description="Notes de synthèse")
+    challenge_summary: str = Field(
+        ...,
+        description="Résumé des apports du challenge",
+        min_length=20,
+    )
+    challenge_actions: List[str] = Field(default_factory=list, description="Actions concrètes proposées")
+
+
+class DestinationInfo(BaseModel):
+    """Information sur une destination du voyage."""
+
+    label: str = Field(..., description="Type de destination: primary, secondary, etc.")
+    city: Optional[str] = Field(None, description="Ville de destination")
+    country: Optional[str] = Field(None, description="Pays de destination")
+    stay_nights: Optional[int] = Field(None, ge=0, description="Nombre de nuits prévues")
+
+
+class DateInfo(BaseModel):
+    """Information sur les dates du voyage."""
+
+    type: str = Field(..., description="Type de dates: fixed ou flexible", pattern="^(fixed|flexible)$")
+    departure_dates: List[str] = Field(default_factory=list, description="Dates de départ possibles (YYYY-MM-DD)")
+    return_dates: List[str] = Field(default_factory=list, description="Dates de retour possibles (YYYY-MM-DD)")
+    duration_nights: Optional[int] = Field(None, ge=1, description="Durée en nuits")
+
+
+class TripSpecificationsOutput(BaseModel):
+    """Spécifications normalisées du voyage produites par l'architecte."""
+
+    normalized_trip_request: dict = Field(..., description="Payload normalisé complet")
+    synthesis_notes: str = Field(default="", description="Notes sur la qualité des données")
+
+
+class PipelineMetrics(BaseModel):
+    """Métriques d'exécution de la pipeline pour l'observabilité."""
+
+    run_id: str = Field(..., description="Identifiant unique de l'exécution")
+    total_duration_seconds: float = Field(..., ge=0, description="Durée totale en secondes")
+    agent_executions: List[dict] = Field(default_factory=list, description="Métriques par agent")
+    total_tokens_used: Optional[int] = Field(None, ge=0, description="Tokens utilisés")
+    estimated_cost_usd: Optional[float] = Field(None, ge=0, description="Coût estimé")
+    errors_count: int = Field(default=0, ge=0, description="Nombre d'erreurs")
+    warnings_count: int = Field(default=0, ge=0, description="Nombre d'avertissements")
+
+
+__all__ = [
+    "AccommodationSpecs",
+    "DateInfo",
+    "DestinationInfo",
+    "ExperienceSpecs",
+    "Financials",
+    "FlightSpecs",
+    "Geography",
+    "Meta",
+    "PersonaAnalysisOutput",
+    "PersonaChallengeOutput",
+    "PipelineMetrics",
+    "Specifications",
+    "SystemContract",
+    "TimingGrid",
+    "TripSpecificationsOutput",
+    "UserIntelligence",
+]
