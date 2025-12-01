@@ -9,15 +9,11 @@ tasks:
       INFÉRENCE PERSONA (YAML):
       {persona_context}
 
-      Ton objectif est de comprendre les motivations, priorités et contraintes du voyageur.
-
-
       Produis un raisonnement explicite: identifie les éléments positifs, les points de vigilance, les besoins critiques.
       Termine par un paragraphe narratif immersif.
     expected_output: |-
       Une analyse structurée au format YAML STRICT.
 
-      Format attendu :
       ```yaml
       persona_analysis:
         macro_persona_identified: "Nom du persona MCP"
@@ -34,15 +30,13 @@ tasks:
     description: |-
       Tu es le relecteur critique de l'analyse précédente.
 
-      **Action MCP OBLIGATOIRE** : Tu DOIS vérifier la faisabilité (budget, destination, saison) en consultant les guides et études via MCP (`read_guide_tourisme...`, `read_le_secteur_touristique...`).
-
+      **Action MCP OBLIGATOIRE** : vérifie la faisabilité (budget, destination, saison) en consultant les guides et études via MCP.
       1. Challenge l'argumentation.
       2. Vérifie la cohérence avec le questionnaire.
       3. Cite tes sources MCP.
     expected_output: |-
       Une revue critique au format YAML STRICT.
 
-      Format attendu :
       ```yaml
       challenge_report:
         feasibility_check:
@@ -69,21 +63,13 @@ tasks:
     expected_output: |-
       Un fichier YAML STRICT contenant uniquement la clé `normalized_trip_request`.
 
-      Format attendu :
       ```yaml
       normalized_trip_request:
-        user:
-          email: "..."
-        travel_party:
-          travelers_count: 0
-          group_type: "..."
-        trip_frame:
-          origin: {city: null, country: null}
-          destinations: [{city: null, country: null}]
-          dates: {type: "flexible", departure_dates: [], return_dates: []}
-        budget:
-          estimated_total_group: 0
-        # ... (autres champs standards)
+        email: "..."
+        voyageurs: 0
+        destination: "..."
+        nuits_exactes: 0
+        contraintes: []
       ```
       **NE JAMAIS PRODUIRE DE JSON.**
     async_execution: false
@@ -95,61 +81,120 @@ tasks:
       {system_contract_draft}
 
       Ton rôle CRITIQUE :
-      1. **Vérifier la cohérence** : Les dates calculées sont-elles logiques ? Le budget est-il réaliste ?
-      2. **Compléter les spécifications** : Enrichis les sections `flights`, `accommodation`, `experience` avec les préférences du voyageur.
-      3. **Ajouter les tags manquants** : Utilise les analyses précédentes pour compléter les `interest_vectors`, `constraints`, etc.
-
-      Tu as accès aux analyses précédentes (narratif, challenge, trip_spec) dans le contexte.
-
-      **IMPORTANT** : Ne modifie PAS les calculs du script (dates, budgets). Complète uniquement les champs qualitatifs.
+      1. Vérifier la cohérence : Les dates calculées sont-elles logiques ? Le budget est-il réaliste ?
+      2. Compléter les spécifications : Enrichis les sections flights/accommodation/experience avec les préférences du voyageur.
+      3. Ajouter les tags manquants : Utilise les analyses précédentes pour compléter interest_vectors, constraints, etc.
     expected_output: |-
       Le System Contract COMPLET et VALIDÉ au format YAML STRICT.
 
-      Format attendu (COMPLET) :
       ```yaml
-      meta:
-        request_id: "..."
-        user_id: "..."
-        timestamp: "..."
-        source_version: "production_v5"
-      user_intelligence:
-        email: "..."
-        narrative_summary: "..."
-        feasibility_status: "VALID|WARNING|CRITICAL"
-        feasibility_alerts: []
-      timing:
-        request_type: "FIXED|FLEXIBLE_RANGE|FLEXIBLE_MONTH"
-        duration_min_nights: 0
-        duration_max_nights: 0
-        departure_dates_whitelist: []
-        return_dates_whitelist: []
-      geography:
-        origin_iata: "XXX"
-        origin_city: "..."
-        destination_is_defined: true
-        destination_city: "..."
-        destination_country: "..."
-        discovery_climate_zones: []
-        discovery_regions: []
-        excluded_tags: []
-      financials:
-        currency: "EUR"
-        total_hard_cap: 0
-        total_soft_cap: 0
-      specifications:
-        flights:
-          cabin_class: "ECONOMY|BUSINESS|FIRST"
-          luggage_policy: "CARRY_ON|CHECKED"
-          stopover_tolerance: "0|1|2+"
-        accommodation:
-          types_allowed: []
-          min_rating_10: 0.0
-          required_amenities: []
-          location_vibe: "..."
-        experience:
-          pace: "RELAXED|BALANCED|INTENSE"
-          interest_vectors: []
-          constraints: []
+      system_contract:
+        meta: {...}
+        user_intelligence: {...}
+        timing: {...}
+        geography: {...}
+        financials: {...}
+        specifications: {...}
       ```
       **NE JAMAIS PRODUIRE DE JSON.**
+    async_execution: false
+
+  destination_scouting:
+    description: |-
+      Propose 4-5 options de destination compatibles avec le budget, les dates et le style.
+      Inclue un score de faisabilité (0-100), les risques météo/sécurité et les coûts approximatifs.
+    expected_output: |-
+      ```yaml
+      destination_slate:
+        options:
+          - city: "..."
+            country: "..."
+            score: 78
+            risks: ["..."]
+            indicative_budget: "..."
+      ```
+    async_execution: false
+
+  flight_pricing:
+    description: |-
+      Estime les vols principaux pour les options retenues (prix, durée, bagages, escales).
+      Priorité : ne pas halluciner. Si info absente -> null.
+    expected_output: |-
+      ```yaml
+      flight_quotes:
+        from: "Bruxelles (BRU)"
+        to: "Destination"
+        duration: "6h30"
+        type: "1 escale"
+        price: "850€"
+      ```
+    async_execution: false
+
+  lodging_pricing:
+    description: |-
+      Estime les hébergements (type, confort, quartier) avec un slot de prix et les équipements clés.
+      Mentionne la faisabilité budgétaire et les compromis éventuels.
+    expected_output: |-
+      ```yaml
+      lodging_quotes:
+        hotel_name: "..."
+        hotel_rating: 4.5
+        price: "620€"
+        neighborhood: "Central"
+      ```
+    async_execution: false
+
+  activities_geo_design:
+    description: |-
+      Conçois les steps géolocalisés (1-3/jour) en tenant compte du rythme demandé.
+      Chaque step doit contenir main_image, lat/lon si connu, why/tips et une estimation de durée/prix.
+    expected_output: |-
+      ```yaml
+      activities_plan:
+        steps:
+          - step_number: 1
+            day_number: 1
+            title: "Arrivée"
+            main_image: "https://..."
+            duration: "2h"
+            price: 0
+      ```
+    async_execution: false
+
+  budget_consistency:
+    description: |-
+      Vérifie l'alignement budget total vs vols/hôtels/activités. Si dépassement >15%, propose des arbitrages explicites.
+    expected_output: |-
+      ```yaml
+      budget_alignment_report:
+        status: "OK|WARN|BLOCK"
+        delta_percent: 12
+        recommendations: ["..."]
+      ```
+    async_execution: false
+
+  destination_decision:
+    description: |-
+      Choisis l'option finale en fixant total_budget/total_price, travel_style et les summary_stats (4-8 stats).
+      Documente les hypothèses et les risques résiduels.
+    expected_output: |-
+      ```yaml
+      final_destination_choice:
+        code: "DEST2026"
+        destination: "Doha, Qatar"
+        total_days: 21
+        total_budget: "900-1 200€"
+        summary_stats: []
+      ```
+    async_execution: false
+
+  feasibility_safety_gate:
+    description: |-
+      Applique un filtre final visa/météo/sécurité. Si risque critique, statut=CRITICAL.
+    expected_output: |-
+      ```yaml
+      feasibility_gate:
+        status: "OK|WARN|CRITICAL"
+        alerts: ["visa obligatoire"]
+      ```
     async_execution: false
