@@ -84,18 +84,44 @@ class CrewPipeline:
         run_id = self._generate_run_id(questionnaire_data)
         logger.info(f"🚀 Lancement Pipeline CrewAI (Run ID: {run_id})")
 
+        # ✅ Création anticipée du dossier de run en mode développement
+        should_save = settings.environment.lower() == "development"
+        run_dir = self._output_dir / run_id
+        if should_save:
+            run_dir.mkdir(parents=True, exist_ok=True)
+            # Sauvegarde des entrées brutes pour faciliter le debug
+            self._write_yaml(
+                run_dir / "_INPUT_payload.yaml",
+                {
+                    "questionnaire": questionnaire_data,
+                    "persona_inference": persona_inference,
+                    "metadata": payload_metadata or {},
+                },
+            )
+
         # 0. Normalisation déterministe (script)
         try:
             normalization = normalize_questionnaire(questionnaire_data)
         except NormalizationError as exc:
-            return {
+            failed_payload = {
                 "run_id": run_id,
                 "status": "failed_normalization",
                 "error": str(exc),
                 "metadata": {"questionnaire_id": self._extract_id(questionnaire_data)},
             }
+            if should_save:
+                self._write_yaml(run_dir / "_FAILED_normalization.yaml", failed_payload)
+            return failed_payload
 
         normalized_questionnaire = normalization.get("questionnaire", {})
+
+        if should_save:
+            phase0_dir = run_dir / "PHASE0_NORMALIZATION"
+            phase0_dir.mkdir(parents=True, exist_ok=True)
+            self._write_yaml(
+                phase0_dir / "normalized_questionnaire.yaml",
+                normalization,
+            )
 
         # Conversion YAML pour les prompts agents
         questionnaire_yaml = yaml.dump(normalized_questionnaire, allow_unicode=True, sort_keys=False)
@@ -155,12 +181,6 @@ class CrewPipeline:
         }
 
         output_phase1 = crew_phase1.kickoff(inputs=inputs_phase1)
-        # ✅ Sauvegarde de TOUS les steps en mode development
-        should_save = settings.environment.lower() == "development"
-        run_dir = self._output_dir / run_id
-        if should_save:
-            run_dir.mkdir(parents=True, exist_ok=True)
-
         tasks_phase1, parsed_phase1 = self._collect_tasks_output(output_phase1, should_save, run_dir, phase_label="PHASE1_ANALYSIS")
         normalized_trip_request = parsed_phase1.get("trip_specifications_design", {}).get("normalized_trip_request")
         if not normalized_trip_request:
@@ -173,6 +193,11 @@ class CrewPipeline:
             persona_context=persona_inference,
         )
         system_contract_yaml = yaml.dump(system_contract_draft, allow_unicode=True, sort_keys=False)
+
+        if should_save:
+            contract_dir = run_dir / "PHASE2_PREP"
+            contract_dir.mkdir(parents=True, exist_ok=True)
+            self._write_yaml(contract_dir / "system_contract_draft.yaml", system_contract_draft)
 
         # 6. Phase 2 - Validation, scouting, pricing, activités, budget, décision
         task4 = Task(name="system_contract_validation", agent=contract_validator, context=[task1, task2, task3], **tasks_config["system_contract_validation"])
@@ -221,15 +246,32 @@ class CrewPipeline:
 
         is_valid, schema_error = validate_trip_schema(trip_payload.get("trip", {}))
 
+        if should_save:
+            validation_dir = run_dir / "PHASE3_VALIDATION"
+            validation_dir.mkdir(parents=True, exist_ok=True)
+            self._write_yaml(validation_dir / "system_contract_final.yaml", final_system_contract)
+            self._write_yaml(validation_dir / "trip_payload.yaml", trip_payload)
+            self._write_yaml(
+                validation_dir / "schema_validation.yaml",
+                {"schema_valid": is_valid, "schema_error": schema_error},
+            )
+
         persistence = {
             "saved": False,
             "table": settings.trip_recommendations_table,
             "schema_valid": is_valid,
+            "inserted_via_function": False,
+            "supabase_trip_id": None,
         }
 
         trip_core = trip_payload.get("trip")
         if trip_core:
             try:
+                if is_valid:
+                    trip_id = supabase_service.insert_trip_from_json(trip_core)
+                    persistence["inserted_via_function"] = bool(trip_id)
+                    persistence["supabase_trip_id"] = trip_id
+
                 persistence["saved"] = supabase_service.save_trip_recommendation(
                     run_id=run_id,
                     questionnaire_id=self._extract_id(normalized_questionnaire),

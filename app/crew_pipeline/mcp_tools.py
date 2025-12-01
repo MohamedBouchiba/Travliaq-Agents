@@ -34,6 +34,7 @@ logger = logging.getLogger(__name__)
 
 # Configuration pour les retries et timeouts
 MCP_TIMEOUT_SECONDS = 30
+MCP_TIMEOUT_GEO_PLACES = 90  # Timeout étendu pour geo/places qui peuvent être lents
 MCP_TIMEOUT_BOOKING_FLIGHTS = 180  # Timeout étendu pour booking et flights (scraping)
 MCP_MAX_RETRIES = 3
 MCP_RETRY_DELAY_SECONDS = 1
@@ -89,8 +90,13 @@ class MCPToolWrapper(BaseTool):
         if not sse_client:
             logger.error("MCP library not installed")
             return "MCP library not installed."
-        
+
         last_error = None
+
+        normalized_kwargs = dict(kwargs)
+        if self.tool_name.startswith("flights.") and "force_refresh" not in normalized_kwargs:
+            # Certains outils flights exigent un booléen explicite, sinon Pydantic échoue
+            normalized_kwargs["force_refresh"] = False
         
         for attempt in range(1, self.max_retries + 1):
             try:
@@ -118,7 +124,7 @@ class MCPToolWrapper(BaseTool):
                     async with custom_sse_client(self.server_url, headers=headers, override_endpoint_url=post_url) as (read, write):
                         async with ClientSession(read, write) as session:
                             await session.initialize()
-                            result = await session.call_tool(self.tool_name, arguments=kwargs)
+                            result = await session.call_tool(self.tool_name, arguments=normalized_kwargs)
                             
                             # Format the result
                             output = []
@@ -411,14 +417,24 @@ def _create_pydantic_model_from_schema(name: str, schema: Dict[str, Any]) -> Typ
             # Create a CLEAR description that prevents confusion
             is_required = field_name in schema.get("required", [])
             
+            default_value = None
+            if field_type is bool:
+                # ✅ Evite les erreurs pydantic "Input should be a valid boolean" en forçant un défaut explicite
+                default_value = False
+            elif field_info.get("type") == "array":
+                default_value = []
+
             if is_required:
                 # For required fields, emphasize passing the actual value
                 enhanced_desc = f"{original_desc}. Pass a {type_name} value directly (not a dict/object)." if original_desc else f"Pass a {type_name} value directly (not a dict/object)."
-                fields[field_name] = (field_type, Field(..., description=enhanced_desc))
+                if default_value is not None:
+                    fields[field_name] = (field_type, Field(default_value, description=enhanced_desc))
+                else:
+                    fields[field_name] = (field_type, Field(..., description=enhanced_desc))
             else:
                 # For optional fields, allow None or actual value
                 enhanced_desc = f"{original_desc}. Optional {type_name} value or omit." if original_desc else f"Optional {type_name} value or omit."
-                fields[field_name] = (Optional[field_type], Field(None, description=enhanced_desc))
+                fields[field_name] = (Optional[field_type], Field(default_value, description=enhanced_desc))
     
     return create_model(f"{name}Args", **fields)
 
@@ -485,6 +501,9 @@ def get_mcp_tools(server_url: str) -> List[BaseTool]:
             tool_timeout = MCP_TIMEOUT_SECONDS
             if tool.name.startswith("booking.") or tool.name.startswith("flights."):
                 tool_timeout = MCP_TIMEOUT_BOOKING_FLIGHTS
+                logger.info(f"⏱️ Using extended timeout ({tool_timeout}s) for {tool.name}")
+            elif tool.name.startswith("geo.") or tool.name.startswith("places."):
+                tool_timeout = MCP_TIMEOUT_GEO_PLACES
                 logger.info(f"⏱️ Using extended timeout ({tool_timeout}s) for {tool.name}")
             
             # Instantiate the tool directly with all parameters
