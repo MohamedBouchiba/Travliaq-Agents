@@ -1,0 +1,126 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://travliaq.dev/schemas/trip.schema.json",
+  "title": "Travliaq Trip",
+  "description": "Schéma complet pour définir un voyage avec toutes ses étapes",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["code", "destination", "total_days", "steps"],
+  "properties": {
+    "code": {
+      "type": "string",
+      "pattern": "^[A-Z][A-Z0-9-]{2,19}$"
+    },
+    "destination": {
+      "type": "string",
+      "minLength": 1
+    },
+    "destination_en": {
+      "type": ["string", "null"]
+    },
+    "total_days": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 365
+    },
+    "main_image": {
+      "type": ["string", "null"],
+      "format": "uri"
+    },
+    "flight_from": { "type": ["string", "null"] },
+    "flight_to": { "type": ["string", "null"] },
+    "flight_duration": { "type": ["string", "null"] },
+    "flight_type": { "type": ["string", "null"] },
+    "hotel_name": { "type": ["string", "null"] },
+    "hotel_rating": { "type": ["number", "null"], "minimum": 0, "maximum": 5 },
+    "total_price": { "type": ["string", "null"] },
+    "total_budget": { "type": ["string", "null"] },
+    "average_weather": { "type": ["string", "null"] },
+    "travel_style": { "type": ["string", "null"] },
+    "travel_style_en": { "type": ["string", "null"] },
+    "start_date": { "type": ["string", "null"], "format": "date" },
+    "travelers": { "type": ["integer", "null"], "minimum": 1 },
+    "price_flights": { "type": ["string", "null"] },
+    "price_hotels": { "type": ["string", "null"] },
+    "price_transport": { "type": ["string", "null"] },
+    "price_activities": { "type": ["string", "null"] },
+    "steps": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/definitions/step" }
+    }
+  },
+  "definitions": {
+    "step": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["step_number", "day_number", "title", "main_image"],
+      "properties": {
+        "step_number": { "type": "integer", "minimum": 1 },
+        "day_number": { "type": "integer", "minimum": 1 },
+        "title": { "type": "string", "minLength": 1 },
+        "title_en": { "type": ["string", "null"] },
+        "subtitle": { "type": ["string", "null"] },
+        "subtitle_en": { "type": ["string", "null"] },
+        "main_image": { "type": "string", "format": "uri", "minLength": 1 },
+        "is_summary": { "type": "boolean", "default": false },
+        "step_type": { "type": ["string", "null"] },
+        "latitude": { "type": ["number", "null"], "minimum": -90, "maximum": 90 },
+        "longitude": { "type": ["number", "null"], "minimum": -180, "maximum": 180 },
+        "why": { "type": ["string", "null"] },
+        "why_en": { "type": ["string", "null"] },
+        "tips": { "type": ["string", "null"] },
+        "tips_en": { "type": ["string", "null"] },
+        "transfer": { "type": ["string", "null"] },
+        "transfer_en": { "type": ["string", "null"] },
+        "suggestion": { "type": ["string", "null"] },
+        "suggestion_en": { "type": ["string", "null"] },
+        "weather_icon": { "type": ["string", "null"], "minLength": 1, "maxLength": 8 },
+        "weather_temp": { "type": ["string", "null"] },
+        "weather_description": { "type": ["string", "null"] },
+        "weather_description_en": { "type": ["string", "null"] },
+        "price": { "type": ["number", "null"], "minimum": 0 },
+        "duration": { "type": ["string", "null"] },
+        "images": { "type": "array", "items": { "type": "string", "format": "uri" }, "default": [] },
+        "summary_stats": {
+          "type": "array",
+          "minItems": 4,
+          "maxItems": 8,
+          "items": { "$ref": "#/definitions/summary_stat" }
+        }
+      },
+      "if": {
+        "properties": { "is_summary": { "const": true } },
+        "required": ["is_summary"]
+      },
+      "then": {
+        "required": ["summary_stats"]
+      }
+    },
+    "summary_stat": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["type", "value"],
+          "properties": {
+            "type": { "type": "string", "enum": ["days", "budget", "weather", "style", "cities", "people", "activities"] },
+            "value": { "type": ["string", "number"] }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["type", "value", "icon", "label", "color"],
+          "properties": {
+            "type": { "const": "custom" },
+            "value": { "type": ["string", "number"] },
+            "icon": { "type": "string" },
+            "label": { "type": "string" },
+            "color": { "type": "string", "enum": ["turquoise", "golden"] }
+          }
+        }
+      ]
+    }
+  }
+}

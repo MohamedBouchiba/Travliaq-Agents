@@ -5,6 +5,7 @@ import logging
 from typing import Dict, Any, Optional
 from uuid import UUID
 import psycopg2
+from psycopg2 import sql
 from psycopg2.extras import RealDictCursor
 
 from app.config import settings
@@ -108,6 +109,67 @@ class SupabaseService:
             if conn:
                 conn.close()
                 logger.debug("Connexion PostgreSQL fermée")
+
+    def save_trip_recommendation(
+        self,
+        *,
+        run_id: str,
+        questionnaire_id: Optional[str],
+        trip_json: Dict[str, Any],
+        status: str,
+        schema_valid: bool,
+        metadata: Optional[Dict[str, Any]] = None,
+    ) -> bool:
+        """Persiste le JSON final du trip dans Supabase."""
+
+        if not self.conn_string:
+            logger.warning("⚠️  Chaîne de connexion PostgreSQL absente, persistence ignorée")
+            return False
+
+        conn = None
+        try:
+            conn = self._get_connection()
+            cursor = conn.cursor()
+
+            table_ident = sql.Identifier(settings.trip_recommendations_table)
+            query = sql.SQL(
+                """
+                INSERT INTO {table} (run_id, questionnaire_id, trip_json, status, schema_valid, metadata)
+                VALUES (%s, %s, %s::jsonb, %s, %s, %s::jsonb)
+                ON CONFLICT (run_id) DO UPDATE SET
+                    trip_json = EXCLUDED.trip_json,
+                    status = EXCLUDED.status,
+                    schema_valid = EXCLUDED.schema_valid,
+                    metadata = EXCLUDED.metadata,
+                    updated_at = timezone('utc', now())
+                RETURNING run_id
+                """
+            ).format(table=table_ident)
+
+            cursor.execute(
+                query,
+                (
+                    run_id,
+                    questionnaire_id,
+                    json.dumps(trip_json),
+                    status,
+                    schema_valid,
+                    json.dumps(metadata or {}),
+                ),
+            )
+            cursor.fetchone()
+            conn.commit()
+            logger.info("💾 Trip JSON persisté dans Supabase", extra={"run_id": run_id})
+            return True
+        except Exception as e:
+            if conn:
+                conn.rollback()
+            logger.error(f"❌ Échec de persistence du trip: {e}")
+            raise
+        finally:
+            if conn:
+                conn.close()
+                logger.debug("Connexion PostgreSQL fermée après persistence")
 
     def check_connection(self) -> bool:
         """Vérifie que la connexion PostgreSQL fonctionne."""

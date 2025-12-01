@@ -1,16 +1,13 @@
-"""Pipeline CrewAI refactorisée pour la Phase 1 : Analyse & Spécifications (YAML Only)."""
+"""Pipeline CrewAI complète (scripts + agents) pour générer le YAML/JSON Trip."""
 
 from __future__ import annotations
 
-import json
 import logging
-import os
 import re
-from copy import deepcopy
 from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 from uuid import uuid4
 
 import yaml
@@ -19,18 +16,21 @@ from crewai import LLM
 
 from app.config import settings
 from app.crew_pipeline.mcp_tools import get_mcp_tools
-from app.crew_pipeline.observability import (
-    PipelineMetrics,
-    log_structured_input,
-    log_structured_output,
+from app.crew_pipeline.scripts import (
+    assemble_trip,
+    build_system_contract,
+    NormalizationError,
+    normalize_questionnaire,
+    validate_trip_schema,
 )
+from app.services.supabase_service import supabase_service
 
 logger = logging.getLogger(__name__)
 
 
 @dataclass
 class CrewPipelineResult:
-    """Résultat structuré de la pipeline (Phase 1)."""
+    """Résultat structuré de la pipeline complète."""
     run_id: str
     status: str
     normalized_trip_request: Dict[str, Any] = field(default_factory=dict)
@@ -49,14 +49,15 @@ class CrewPipelineResult:
 
 class CrewPipeline:
     """
-    Orchestrateur de la Phase 1 : Analyse & Spécifications.
-    
-    Flux :
-    1. Traveller Insights Analyst (avec MCP)
-    2. Persona Quality Challenger (avec MCP)
-    3. Trip Specifications Architect
-    
-    Format : YAML strict.
+    Orchestrateur complet (scripts + CrewAI) pour construire un trip Travliaq.
+
+    Etapes clés :
+    - T0 script : normalisation questionnaire
+    - T1 script + agent : persona inference (orchestrée)
+    - T2-T4 : analyse persona & trip spec (agents)
+    - T5 script : system contract draft
+    - T6-T10 : scouting, pricing, activités, budget, décision, gate (agents)
+    - T11 scripts : assemblage + validation JSON Schema
     """
 
     def __init__(
@@ -78,27 +79,43 @@ class CrewPipeline:
         persona_inference: Dict[str, Any],
         payload_metadata: Optional[Dict[str, Any]] = None,
     ) -> Dict[str, Any]:
-        """Exécute la pipeline Phase 1."""
-        
-        # 1. Préparation des données (Conversion YAML pour le contexte)
+        """Exécute la pipeline complète (scripts + agents)."""
+
         run_id = self._generate_run_id(questionnaire_data)
-        logger.info(f"🚀 Lancement Pipeline Phase 1 (Run ID: {run_id})")
+        logger.info(f"🚀 Lancement Pipeline CrewAI (Run ID: {run_id})")
 
-        # On convertit les inputs en YAML string pour que les agents les lisent facilement
-        questionnaire_yaml = yaml.dump(questionnaire_data, allow_unicode=True, sort_keys=False)
+        # 0. Normalisation déterministe (script)
+        try:
+            normalization = normalize_questionnaire(questionnaire_data)
+        except NormalizationError as exc:
+            return {
+                "run_id": run_id,
+                "status": "failed_normalization",
+                "error": str(exc),
+                "metadata": {"questionnaire_id": self._extract_id(questionnaire_data)},
+            }
+
+        normalized_questionnaire = normalization.get("questionnaire", {})
+
+        # Conversion YAML pour les prompts agents
+        questionnaire_yaml = yaml.dump(normalized_questionnaire, allow_unicode=True, sort_keys=False)
         persona_yaml = yaml.dump(persona_inference, allow_unicode=True, sort_keys=False)
+        input_payload_yaml = yaml.dump(
+            {"questionnaire": normalized_questionnaire, "persona": persona_inference},
+            allow_unicode=True,
+            sort_keys=False,
+        )
 
-        # 2. Chargement de la configuration
+        # 1. Chargement de la configuration
         agents_config = self._load_yaml_config("agents.yaml")
         if "agents" in agents_config:
             agents_config = agents_config["agents"]
-            
         tasks_config = self._load_yaml_config("tasks.yaml")
         if "tasks" in tasks_config:
             tasks_config = tasks_config["tasks"]
 
-        # 3. Chargement des outils MCP
-        mcp_tools = []
+        # 2. Outils MCP
+        mcp_tools: List[Any] = []
         if settings.mcp_server_url:
             try:
                 mcp_tools = get_mcp_tools(settings.mcp_server_url)
@@ -106,178 +123,157 @@ class CrewPipeline:
             except Exception as e:
                 logger.warning(f"⚠️ Erreur chargement MCP: {e}")
 
-        # 4. Création des Agents
-        # Agent 1: Analyst
-        analyst = self._create_agent(
-            "traveller_insights_analyst", 
-            agents_config["traveller_insights_analyst"], 
-            tools=mcp_tools # MCP Obligatoire
-        )
-        
-        # Agent 2: Challenger
-        challenger = self._create_agent(
-            "persona_quality_challenger", 
-            agents_config["persona_quality_challenger"], 
-            tools=mcp_tools # MCP Obligatoire
-        )
-        
-        # Agent 3: Architect
-        architect = self._create_agent(
-            "trip_specifications_architect", 
-            agents_config["trip_specifications_architect"],
-            tools=[] # Pas d'outils MCP nécessaires pour la structure
-        )
+        # 3. Agents nécessaires
+        analyst = self._create_agent("traveller_insights_analyst", agents_config["traveller_insights_analyst"], tools=mcp_tools)
+        challenger = self._create_agent("persona_quality_challenger", agents_config["persona_quality_challenger"], tools=mcp_tools)
+        architect = self._create_agent("trip_specifications_architect", agents_config["trip_specifications_architect"], tools=[])
+        contract_validator = self._create_agent("system_contract_validator", agents_config["system_contract_validator"], tools=[])
+        scout = self._create_agent("destination_scout", agents_config["destination_scout"], tools=mcp_tools)
+        flight_agent = self._create_agent("flight_pricing_analyst", agents_config["flight_pricing_analyst"], tools=mcp_tools)
+        lodging_agent = self._create_agent("lodging_pricing_analyst", agents_config["lodging_pricing_analyst"], tools=mcp_tools)
+        activities_agent = self._create_agent("activities_geo_designer", agents_config["activities_geo_designer"], tools=mcp_tools)
+        budget_agent = self._create_agent("budget_consistency_controller", agents_config["budget_consistency_controller"], tools=[])
+        decision_maker = self._create_agent("destination_decision_maker", agents_config["destination_decision_maker"], tools=[])
+        safety_gate = self._create_agent("feasibility_safety_expert", agents_config["feasibility_safety_expert"], tools=mcp_tools)
 
-        # 5. Création des Tâches
-        task1 = Task(
-            name="traveller_profile_brief",
-            agent=analyst,
-            **tasks_config["traveller_profile_brief"]
-        )
-        
-        task2 = Task(
-            name="persona_challenge_review",
-            agent=challenger,
-            context=[task1],
-            **tasks_config["persona_challenge_review"]
-        )
-        
-        task3 = Task(
-            name="trip_specifications_design",
-            agent=architect,
-            context=[task2],
-            **tasks_config["trip_specifications_design"]
-        )
-        
-        # ✅ NOUVEAU : Agent 4 - System Contract Validator
-        validator = self._create_agent(
-            "system_contract_validator",
-            agents_config["system_contract_validator"],
-            tools=[]  # Pas d'outils MCP nécessaires
-        )
-        
-        task4 = Task(
-            name="system_contract_validation",
-            agent=validator,
-            context=[task1, task2, task3],
-            **tasks_config["system_contract_validation"]
-        )
+        # 4. Phase 1 - Analyse & Spécifications
+        task1 = Task(name="traveller_profile_brief", agent=analyst, **tasks_config["traveller_profile_brief"])
+        task2 = Task(name="persona_challenge_review", agent=challenger, context=[task1], **tasks_config["persona_challenge_review"])
+        task3 = Task(name="trip_specifications_design", agent=architect, context=[task2], **tasks_config["trip_specifications_design"])
 
-        # 6. Création des Crews
-        # Crew 1 : Analyse & Design (Tasks 1, 2, 3)
         crew_phase1 = Crew(
             agents=[analyst, challenger, architect],
             tasks=[task1, task2, task3],
             verbose=self._verbose,
-            process=Process.sequential
+            process=Process.sequential,
         )
 
-        # Crew 2 : Validation (Task 4)
-        crew_validation = Crew(
-            agents=[validator],
-            tasks=[task4],
-            verbose=self._verbose,
-            process=Process.sequential
-        )
-        
-        # Affichage du lien de monitoring CrewAI (si dispo)
-        if hasattr(crew_phase1, 'id') and crew_phase1.id:
-            monitoring_url = f"https://app.crewai.com/crews/{crew_phase1.id}"
-            logger.info(f"🔗 Monitoring CrewAI Phase 1: {monitoring_url}")
-
-        # Inputs initiaux
         inputs_phase1 = {
             "questionnaire": questionnaire_yaml,
             "persona_context": persona_yaml,
-            "input_payload": yaml.dump({
-                "questionnaire": questionnaire_data, 
-                "persona": persona_inference
-            }, allow_unicode=True),
+            "input_payload": input_payload_yaml,
         }
 
-        try:
-            # =================================================================
-            # PHASE 1: ANALYSE & DESIGN (Agents 1, 2, 3)
-            # =================================================================
-            logger.info("🚀 Démarrage Phase 1 (Analyst, Challenger, Architect)...")
-            output_phase1 = crew_phase1.kickoff(inputs=inputs_phase1)
-            
-            # =================================================================
-            # TRANSITION: SYSTEM CONTRACT MERGER (Script Python)
-            # =================================================================
-            logger.info("🔧 Transition: Fusion du System Contract (Merger V7.0)...")
-            from app.crew_pipeline.system_contract_merger import SystemContractMerger
-            
-            # Récupération de l'output de la Task 3 (Trip Specifications)
-            task3_output_raw = output_phase1.tasks_output[2].raw
-            task3_output = self._parse_yaml_content(task3_output_raw)
-            if not isinstance(task3_output, dict): task3_output = {}
-            
-            # Exécution du Merger
-            system_contract_draft = SystemContractMerger.generate_contract(
-                questionnaire=questionnaire_data,
-                step_3_trip_specifications_design=task3_output
-            )
-            
-            draft_yaml = yaml.dump(system_contract_draft, allow_unicode=True, sort_keys=False)
-            logger.info("✅ System Contract Draft généré avec succès.")
+        output_phase1 = crew_phase1.kickoff(inputs=inputs_phase1)
+        should_save = settings.environment.lower() == "development"
+        run_dir = self._output_dir / run_id
+        if should_save:
+            run_dir.mkdir(parents=True, exist_ok=True)
 
-            # =================================================================
-            # PHASE 2: VALIDATION (Agent 4)
-            # =================================================================
-            logger.info("🤖 Démarrage Phase 2 (Validation Agent)...")
-            
-            # On injecte le draft dans les inputs de la 2ème crew
-            inputs_validation = {
-                "system_contract_draft": draft_yaml
-            }
-            
-            # On passe aussi le contexte des tâches précédentes manuellement si besoin,
-            # mais ici Task 4 a déjà `context=[task1, task2, task3]` défini dans sa création.
-            # CrewAI gère le contexte entre tâches d'une même crew, mais ici ce sont deux crews différentes.
-            # ASTUCE : Pour que l'agent 4 ait accès au contexte des agents 1-3, on peut
-            # concaténer leurs outputs dans le prompt ou utiliser la mémoire partagée (si configurée).
-            # Ici, on va simplifier en injectant les résumés dans l'input si le context linking natif échoue.
-            
-            # Pour assurer le coup, on enrichit l'input avec le contexte textuel
-            context_summary = "\n\n".join([
-                f"--- OUTPUT TASK 1 (Analyst) ---\n{output_phase1.tasks_output[0].raw}",
-                f"--- OUTPUT TASK 2 (Challenger) ---\n{output_phase1.tasks_output[1].raw}",
-                f"--- OUTPUT TASK 3 (Architect) ---\n{output_phase1.tasks_output[2].raw}"
-            ])
-            # On pourrait l'ajouter à inputs_validation si le prompt l'attendait, 
-            # mais task4 attend juste {system_contract_draft}.
-            # L'agent a accès à 'memory=True', espérons qu'il retrouve ses petits.
-            # Sinon, on modifie la description de task4 pour inclure {previous_context}.
-            
-            output_validation = crew_validation.kickoff(inputs=inputs_validation)
-            
-            # =================================================================
-            # CONSOLIDATION DES OUTPUTS
-            # =================================================================
-            # On fusionne pour avoir un objet CrewOutput unique (ou similaire) pour la suite
-            final_output = output_phase1
-            # On ajoute l'output de la validation à la liste
-            # Note: CrewOutput.tasks_output est une liste de TaskOutput
-            final_output.tasks_output.extend(output_validation.tasks_output)
-            
-            logger.info("✅ Pipeline terminée : Contrat validé.")
-            
-        except Exception as exc:
-            logger.exception("❌ Échec critique de la pipeline")
-            raise exc
+        tasks_phase1, parsed_phase1 = self._collect_tasks_output(output_phase1, should_save, run_dir, phase_label="PHASE1_ANALYSIS")
+        normalized_trip_request = parsed_phase1.get("trip_specifications_design", {}).get("normalized_trip_request")
+        if not normalized_trip_request:
+            normalized_trip_request = parsed_phase1.get("trip_specifications_design", {})
 
-        # 7. Traitement des Outputs (Parsing & Sauvegarde)
-        # Passer le system_contract_draft pour sauvegarde
-        final_result = self._process_outputs(
-            run_id, 
-            final_output, 
-            questionnaire_data, 
-            persona_inference,
-            system_contract=system_contract_draft
+        # 5. System Contract Draft (script)
+        system_contract_draft = build_system_contract(
+            questionnaire=normalized_questionnaire,
+            normalized_trip_request=normalized_trip_request or {},
+            persona_context=persona_inference,
         )
-        
-        return final_result
+        system_contract_yaml = yaml.dump(system_contract_draft, allow_unicode=True, sort_keys=False)
+
+        # 6. Phase 2 - Validation, scouting, pricing, activités, budget, décision
+        task4 = Task(name="system_contract_validation", agent=contract_validator, context=[task1, task2, task3], **tasks_config["system_contract_validation"])
+        task5 = Task(name="destination_scouting", agent=scout, context=[task4], **tasks_config["destination_scouting"])
+        task6 = Task(name="flight_pricing", agent=flight_agent, context=[task5], **tasks_config["flight_pricing"])
+        task7 = Task(name="lodging_pricing", agent=lodging_agent, context=[task5], **tasks_config["lodging_pricing"])
+        task8 = Task(name="activities_geo_design", agent=activities_agent, context=[task5], **tasks_config["activities_geo_design"])
+        task9 = Task(name="budget_consistency", agent=budget_agent, context=[task6, task7, task8], **tasks_config["budget_consistency"])
+        task10 = Task(name="destination_decision", agent=decision_maker, context=[task9], **tasks_config["destination_decision"])
+        task11 = Task(name="feasibility_safety_gate", agent=safety_gate, context=[task10], **tasks_config["feasibility_safety_gate"])
+
+        crew_phase2 = Crew(
+            agents=[contract_validator, scout, flight_agent, lodging_agent, activities_agent, budget_agent, decision_maker, safety_gate],
+            tasks=[task4, task5, task6, task7, task8, task9, task10, task11],
+            verbose=self._verbose,
+            process=Process.sequential,
+        )
+
+        inputs_phase2 = {
+            "questionnaire": questionnaire_yaml,
+            "persona_context": persona_yaml,
+            "normalized_trip_request": yaml.dump(normalized_trip_request, allow_unicode=True, sort_keys=False),
+            "system_contract_draft": system_contract_yaml,
+        }
+
+        output_phase2 = crew_phase2.kickoff(inputs=inputs_phase2)
+        tasks_phase2, parsed_phase2 = self._collect_tasks_output(output_phase2, should_save, run_dir, phase_label="PHASE2_BUILD")
+
+        # 7. Assemblage final
+        agent_outputs: Dict[str, Any] = {}
+        agent_outputs.update(parsed_phase1)
+        agent_outputs.update(parsed_phase2)
+
+        final_system_contract = parsed_phase2.get("system_contract_validation", {}).get("system_contract") or parsed_phase2.get("system_contract_validation", {}) or system_contract_draft
+
+        trip_payload = assemble_trip(
+            questionnaire=normalized_questionnaire,
+            normalized_trip_request=normalized_trip_request or {},
+            agent_outputs={
+                "destination_decision": parsed_phase2.get("destination_decision", {}),
+                "flight_pricing": parsed_phase2.get("flight_pricing", {}),
+                "lodging_pricing": parsed_phase2.get("lodging_pricing", {}),
+                "activities_geo_design": parsed_phase2.get("activities_geo_design", {}),
+            },
+        )
+
+        is_valid, schema_error = validate_trip_schema(trip_payload.get("trip", {}))
+
+        persistence = {
+            "saved": False,
+            "table": settings.trip_recommendations_table,
+            "schema_valid": is_valid,
+        }
+
+        trip_core = trip_payload.get("trip")
+        if trip_core:
+            try:
+                persistence["saved"] = supabase_service.save_trip_recommendation(
+                    run_id=run_id,
+                    questionnaire_id=self._extract_id(normalized_questionnaire),
+                    trip_json=trip_core,
+                    status="success" if is_valid else "failed_validation",
+                    schema_valid=is_valid,
+                    metadata={
+                        "system_contract_id": final_system_contract.get("id")
+                        if isinstance(final_system_contract, dict)
+                        else None,
+                        "task_count": len(tasks_phase1) + len(tasks_phase2),
+                    },
+                )
+            except Exception as exc:
+                persistence["error"] = str(exc)
+        else:
+            persistence["error"] = "missing trip payload"
+
+        final_payload = {
+            "run_id": run_id,
+            "status": "success" if is_valid else "failed_validation",
+            "metadata": {
+                "questionnaire_id": self._extract_id(normalized_questionnaire),
+                "timestamp": datetime.utcnow().isoformat() + "Z",
+            },
+            "normalization": normalization.get("metadata", {}),
+            "input_context": {"questionnaire": normalized_questionnaire, "persona_inference": persona_inference},
+            "pipeline_output": {
+                "normalized_trip_request": normalized_trip_request,
+                "system_contract": final_system_contract,
+                "tasks_details": tasks_phase1 + tasks_phase2,
+            },
+            "assembly": {
+                "trip": trip_payload,
+                "schema_valid": is_valid,
+                "schema_error": schema_error,
+            },
+            "persistence": persistence,
+        }
+
+        if should_save:
+            self._write_yaml(run_dir / "_SUMMARY_run_output.yaml", final_payload)
+            logger.info(f"💾 Résumé complet sauvegardé dans {run_dir}/_SUMMARY_run_output.yaml")
+
+        return final_payload
 
     def _create_agent(self, name: str, config: Dict[str, Any], tools: List[Any]) -> Agent:
         """Crée un agent avec sa configuration complète."""
@@ -308,102 +304,42 @@ class CrewPipeline:
         
         return Agent(**agent_params)
 
-    def _process_outputs(
-        self, 
-        run_id: str, 
-        crew_output: Any, 
-        questionnaire: Dict[str, Any],
-        persona: Dict[str, Any],
-        system_contract: Optional[Dict[str, Any]] = None
-    ) -> Dict[str, Any]:
-        """Parse les outputs, sauvegarde en YAML et retourne le résultat final."""
-        
-        run_dir = self._output_dir / run_id
-        
-        # Sauvegarde seulement en DEV
-        should_save = settings.environment.lower() == "development"
-        if should_save:
-            run_dir.mkdir(parents=True, exist_ok=True)
+    def _collect_tasks_output(
+        self,
+        crew_output: Any,
+        should_save: bool,
+        run_dir: Path,
+        phase_label: str,
+    ) -> Tuple[List[Dict[str, Any]], Dict[str, Any]]:
+        """Parse les tasks outputs CrewAI et retourne (liste détaillée, mapping par nom)."""
 
-        tasks_data = []
-        normalized_trip = {}
-        final_system_contract = {}
+        tasks_data: List[Dict[str, Any]] = []
+        parsed_by_name: Dict[str, Any] = {}
 
-        # Mapping des tâches vers les phases
-        task_phase_mapping = {
-            "traveller_profile_brief": ("PHASE1_ANALYSIS", 1),
-            "persona_challenge_review": ("PHASE1_ANALYSIS", 2),
-            "trip_specifications_design": ("PHASE1_ANALYSIS", 3),
-            "system_contract_validation": ("PHASE1_TO_PHASE2_TRANSITION", 4)
-        }
-
-        # Traitement des tâches individuelles avec numérotation et phases
         if hasattr(crew_output, "tasks_output"):
-            for task_out in crew_output.tasks_output:
-                task_name = getattr(task_out, "name", "unknown_task")
+            for idx, task_out in enumerate(crew_output.tasks_output, start=1):
+                task_name = getattr(task_out, "name", f"task_{idx}")
                 raw_content = getattr(task_out, "raw", "")
-                
-                # Parsing YAML du contenu
                 structured_content = self._parse_yaml_content(raw_content)
-                
-                task_record = {
+
+                record = {
                     "task_name": str(task_name),
                     "agent": getattr(task_out, "agent", ""),
                     "structured_output": structured_content,
-                    "raw_output": raw_content
+                    "raw_output": raw_content,
+                    "phase": phase_label,
+                    "order": idx,
                 }
-                tasks_data.append(task_record)
+                tasks_data.append(record)
+                parsed_by_name[task_name] = structured_content if isinstance(structured_content, dict) else {"raw": structured_content}
 
-                # Extraction du normalized_trip_request
-                if task_name == "trip_specifications_design":
-                    if isinstance(structured_content, dict) and "normalized_trip_request" in structured_content:
-                        normalized_trip = structured_content["normalized_trip_request"]
-                    else:
-                        normalized_trip = structured_content
-                
-                # ✅ Extraction du System Contract (dernière tâche)
-                if task_name == "system_contract_validation":
-                    final_system_contract = structured_content
-
-                # ✅ Sauvegarde avec phase et numérotation
                 if should_save:
-                    phase_name, step_num = task_phase_mapping.get(task_name, ("UNKNOWN_PHASE", 0))
-                    step_dir = run_dir / f"{phase_name}" / f"step_{step_num}_{task_name}"
-                    step_dir.mkdir(parents=True, exist_ok=True)
-                    self._write_yaml(step_dir / "output.yaml", task_record)
-                    logger.info(f"📁 {phase_name} - Step {step_num}: {task_name} → {step_dir}")
+                    phase_dir = run_dir / phase_label / f"step_{idx}_{task_name}"
+                    phase_dir.mkdir(parents=True, exist_ok=True)
+                    self._write_yaml(phase_dir / "output.yaml", record)
+                    logger.info(f"📁 {phase_label} - Step {idx}: {task_name} → {phase_dir}")
 
-        # ✅ Sauvegarde du System Contract final (Transition Phase 1 → Phase 2)
-        if should_save and final_system_contract:
-            contract_dir = run_dir / "PHASE1_TO_PHASE2_TRANSITION" / "FINAL_SYSTEM_CONTRACT"
-            contract_dir.mkdir(parents=True, exist_ok=True)
-            self._write_yaml(contract_dir / "system_contract.yaml", final_system_contract)
-            logger.info(f"🎯 SYSTEM CONTRACT FINAL → {contract_dir}/system_contract.yaml")
-
-        # Construction du résultat final
-        final_payload = {
-            "run_id": run_id,
-            "status": "success",
-            "metadata": {
-                "questionnaire_id": self._extract_id(questionnaire),
-                "timestamp": datetime.utcnow().isoformat() + "Z"
-            },
-            "input_context": {
-                "questionnaire": questionnaire,
-                "persona_inference": persona
-            },
-            "pipeline_output": {
-                "normalized_trip_request": normalized_trip,
-                "system_contract": final_system_contract,
-                "tasks_details": tasks_data
-            }
-        }
-
-        if should_save:
-            self._write_yaml(run_dir / "_SUMMARY_run_output.yaml", final_payload)
-            logger.info(f"💾 Résumé complet sauvegardé dans {run_dir}/_SUMMARY_run_output.yaml")
-
-        return final_payload
+        return tasks_data, parsed_by_name
 
     def _parse_yaml_content(self, content: str) -> Any:
         """Nettoie et parse une chaîne contenant potentiellement du YAML."""
