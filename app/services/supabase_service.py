@@ -171,6 +171,38 @@ class SupabaseService:
                 conn.close()
                 logger.debug("Connexion PostgreSQL fermée après persistence")
 
+    def insert_trip_from_json(self, trip_json: Dict[str, Any]) -> Optional[str]:
+        """Insère un voyage complet via la fonction SQL `insert_trip_from_json`.
+
+        La fonction Supabase doit accepter un JSONB et retourner l'identifiant du trip créé.
+        """
+
+        if not self.conn_string:
+            logger.warning("⚠️ Chaîne de connexion PostgreSQL absente, insertion ignorée")
+            return None
+
+        conn = None
+        try:
+            conn = self._get_connection()
+            cursor = conn.cursor()
+
+            cursor.execute("SELECT insert_trip_from_json(%s::jsonb) AS trip_id", (json.dumps(trip_json),))
+            result = cursor.fetchone()
+            conn.commit()
+
+            trip_id = result[0] if result else None
+            logger.info("💾 Trip enregistré via insert_trip_from_json", extra={"trip_id": trip_id})
+            return trip_id
+        except Exception as exc:
+            if conn:
+                conn.rollback()
+            logger.error(f"❌ Échec insert_trip_from_json: {exc}")
+            raise
+        finally:
+            if conn:
+                conn.close()
+                logger.debug("Connexion PostgreSQL fermée après insert_trip_from_json")
+
     def check_connection(self) -> bool:
         """Vérifie que la connexion PostgreSQL fonctionne."""
         conn = None
