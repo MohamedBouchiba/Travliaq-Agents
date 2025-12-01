@@ -1,4 +1,4 @@
-"""Pipeline CrewAI pour l'enrichissement des questionnaires voyage."""
+"""Pipeline CrewAI refactorisée pour la Phase 1 : Analyse & Spécifications (YAML Only)."""
 
 from __future__ import annotations
 
@@ -8,21 +8,19 @@ import os
 import re
 from copy import deepcopy
 from dataclasses import dataclass, field
+from datetime import datetime
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional
 from uuid import uuid4
 
+import yaml
 from crewai import Agent, Crew, Process, Task
 from crewai import LLM
 
-import yaml
-
 from app.config import settings
-from app.crew_pipeline.trip_structural_enricher import enrich_trip_structural_data
 from app.crew_pipeline.mcp_tools import get_mcp_tools
 from app.crew_pipeline.observability import (
     PipelineMetrics,
-    QualityScorer,
     log_structured_input,
     log_structured_output,
 )
@@ -30,417 +28,48 @@ from app.crew_pipeline.observability import (
 logger = logging.getLogger(__name__)
 
 
-
-
 @dataclass
 class CrewPipelineResult:
-    """Résultat structuré renvoyé par l'orchestration CrewAI."""
-
-    persona_summary: str = ""
-    pros: List[str] = field(default_factory=list)
-    cons: List[str] = field(default_factory=list)
-    critical_needs: List[str] = field(default_factory=list)
-    non_critical_preferences: List[str] = field(default_factory=list)
-    user_goals: List[str] = field(default_factory=list)
-    narrative: str = ""
-    analysis_notes: str = ""
-    challenge_summary: str = ""
-    challenge_actions: List[str] = field(default_factory=list)
-    raw_response: str = ""
+    """Résultat structuré de la pipeline (Phase 1)."""
+    run_id: str
+    status: str
     normalized_trip_request: Dict[str, Any] = field(default_factory=dict)
+    tasks_output: List[Dict[str, Any]] = field(default_factory=list)
+    raw_output: str = ""
 
     def to_dict(self) -> Dict[str, Any]:
-        """Transforme le résultat en dictionnaire JSON sérialisable."""
-
         return {
-            "persona_summary": self.persona_summary,
-            "pros": self.pros,
-            "cons": self.cons,
-            "critical_needs": self.critical_needs,
-            "non_critical_preferences": self.non_critical_preferences,
-            "user_goals": self.user_goals,
-            "narrative": self.narrative,
-            "analysis_notes": self.analysis_notes,
-            "challenge_summary": self.challenge_summary,
-            "challenge_actions": self.challenge_actions,
-            "raw_response": self.raw_response,
+            "run_id": self.run_id,
+            "status": self.status,
             "normalized_trip_request": self.normalized_trip_request,
+            "tasks_output": self.tasks_output,
+            "raw_output": self.raw_output,
         }
 
 
-def _default_result_from_raw(raw: str, note: str) -> CrewPipelineResult:
-    """Crée un résultat par défaut lorsqu'on ne peut pas parser le JSON."""
-
-    cleaned = raw.strip()
-    return CrewPipelineResult(
-        persona_summary="Analyse non structurée",
-        narrative=cleaned,
-        analysis_notes=note,
-        raw_response=raw,
-    )
-
-
-_PLACEHOLDER_TOKENS = {
-    "your_key_here",
-    "your-api-key",
-    "your_api_key",
-    "changeme",
-    "replace_me",
-    "todo",
-    "set_me",
-}
-
-
-def _is_placeholder_secret(value: Optional[str]) -> bool:
-    """Indique si une valeur ressemble à un secret de substitution."""
-
-    if value is None:
-        return True
-
-    normalized = value.strip().lower()
-    if not normalized:
-        return True
-
-    if normalized in _PLACEHOLDER_TOKENS:
-        return True
-
-    # Les exemples classiques dans les fichiers `.env` contiennent souvent
-    # "your" + "key" + "here" avec diverses ponctuations.
-    if "your" in normalized and "key" in normalized and "here" in normalized:
-        return True
-
-    return False
-
-
-def _pick_first_secret(*candidates: Optional[str]) -> Optional[str]:
-    """Retourne le premier secret non vide qui n'est pas un placeholder."""
-
-    for candidate in candidates:
-        if _is_placeholder_secret(candidate):
-            continue
-        return candidate
-    return None
-
-
-def _detect_llm_provider() -> str:
-    """Détermine le provider LLM à utiliser en priorité."""
-
-    provider = os.getenv("LLM_PROVIDER", settings.model_provider or "openai")
-    return provider.lower()
-
-
-def _slugify_filename(value: str) -> str:
-    """Génère un nom de fichier sûr à partir d'un libellé de tâche."""
-
-    slug = re.sub(r"[^0-9a-zA-Z]+", "_", value.strip().lower())
-    slug = slug.strip("_")
-    return slug or "task"
-
-
-def _write_json_file(path: Path, data: Any) -> None:
-    """Persist a JSON payload to disk, logging any failure."""
-
-    try:
-        path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text(
-            json.dumps(data, ensure_ascii=False, indent=2),
-            encoding="utf-8",
-        )
-    except OSError as exc:  # pragma: no cover - dépend du FS
-        logger.warning(
-            "Impossible d'enregistrer un fichier de sortie CrewAI",
-            extra={"path": str(path), "error": str(exc)},
-        )
-
-
-_CONFIG_DIR = Path(__file__).resolve().parent / "config"
-_CONFIG_CACHE: Dict[str, Dict[str, Any]] = {}
-
-_CONFIG_FILENAMES = {
-    "agents": "agents.yaml",
-    "tasks": "tasks.yaml",
-    "crew": "crew.yaml",
-}
-
-def _load_yaml_file(path: Path) -> Dict[str, Any]:
-    if not path.exists():
-        raise FileNotFoundError(f"Configuration CrewAI manquante: {path}")
-
-    with path.open("r", encoding="utf-8") as handle:
-        data = yaml.safe_load(handle) or {}
-
-    if not isinstance(data, dict):
-        raise ValueError(f"Configuration YAML invalide pour {path}")
-
-    return data
-
-
-def _load_pipeline_blueprint() -> Dict[str, Dict[str, Any]]:
-    cache_key = "travliaq"
-    if cache_key not in _CONFIG_CACHE:
-        blueprint: Dict[str, Dict[str, Any]] = {}
-        for section, filename in _CONFIG_FILENAMES.items():
-            data = _load_yaml_file(_CONFIG_DIR / filename)
-            # Autorise un format avec ou sans clé racine.
-            blueprint[section] = data.get(section, data)
-        _CONFIG_CACHE[cache_key] = blueprint
-    return _CONFIG_CACHE[cache_key]
-
-
-def _build_default_llm() -> LLM:
-    """Construit une instance LLM compatible CrewAI selon la configuration."""
-
-    provider = _detect_llm_provider()
-    model_name = (
-        os.getenv("MODEL")
-        or settings.model_name
-        or os.getenv("OPENAI_MODEL")
-        or "gpt-4o-mini"
-    )
-    base_kwargs: Dict[str, Any] = {
-        "model": model_name,
-        "temperature": settings.temperature,
-    }
-
-    if provider in {"openai", "default"}:
-        api_key = _pick_first_secret(
-            getattr(settings, "openai_api_key", None),
-            os.getenv("OPENAI_API_KEY"),
-        )
-        if not api_key:
-            raise RuntimeError(
-                "OPENAI_API_KEY requis pour exécuter la pipeline CrewAI"
-            )
-        base_kwargs["api_key"] = api_key
-    elif provider == "groq":
-        api_key = _pick_first_secret(
-            getattr(settings, "groq_api_key", None),
-            os.getenv("GROQ_API_KEY"),
-        )
-        if not api_key:
-            raise RuntimeError("GROQ_API_KEY requis pour le provider Groq")
-        base_kwargs["api_key"] = api_key
-    elif provider in {"azure", "azure_openai"}:
-        api_key = _pick_first_secret(
-            getattr(settings, "azure_openai_api_key", None),
-            os.getenv("AZURE_OPENAI_API_KEY"),
-        )
-        endpoint = settings.azure_openai_endpoint or os.getenv("AZURE_OPENAI_ENDPOINT")
-        deployment = (
-            settings.azure_openai_deployment or os.getenv("AZURE_OPENAI_DEPLOYMENT")
-        )
-        api_version = (
-            settings.azure_openai_api_version or os.getenv("AZURE_OPENAI_API_VERSION")
-        )
-        if not all([api_key, endpoint, deployment]):
-            raise RuntimeError(
-                "Configuration Azure OpenAI incomplète (clé, endpoint, deployment)"
-            )
-        base_kwargs.update(
-            {
-                "api_key": api_key,
-                "base_url": endpoint.rstrip("/"),
-                "model": deployment,
-            }
-        )
-        if api_version:
-            base_kwargs["api_version"] = api_version
-    else:
-        raise RuntimeError(f"Provider LLM non supporté: {provider}")
-
-    logger.debug(
-        "Initialisation LLM CrewAI", extra={"provider": provider, "model": model_name}
-    )
-    return LLM(**base_kwargs)
-
-
-def _create_agent(
-    *,
-    name: str,
-    config: Dict[str, Any],
-    llm_instance: LLM,
-    agent_verbose: bool,
-) -> Agent:
-    agent_kwargs = dict(config)
-    agent_kwargs.setdefault("verbose", agent_verbose)
-    if settings.max_iter is not None and "max_iter" not in agent_kwargs:
-        agent_kwargs["max_iter"] = settings.max_iter
-    if settings.max_rpm is not None and "max_rpm" not in agent_kwargs:
-        agent_kwargs["max_rpm"] = settings.max_rpm
-
-    # Force l'utilisation du LLM calculé dynamiquement.
-    agent_kwargs["llm"] = llm_instance
-
-    # Injection du serveur MCP si configuré
-    if settings.mcp_server_url:
-        # On s'assure que mcps est une liste
-        current_mcps = agent_kwargs.get("mcps", [])
-        if isinstance(current_mcps, str):
-            current_mcps = [current_mcps]
-        
-        # On évite les doublons
-        if settings.mcp_server_url not in current_mcps:
-            current_mcps.append(settings.mcp_server_url)
-        
-        agent_kwargs["mcps"] = current_mcps
-
-    try:
-        return Agent(**agent_kwargs)
-    except TypeError as exc:  # pragma: no cover - garde-fou sur configuration
-        raise TypeError(f"Configuration agent invalide pour '{name}': {exc}")
-
-
-def _resolve_process(value: Any) -> Process:
-    if isinstance(value, Process):
-        return value
-    if isinstance(value, str):
-        normalized = value.strip().lower()
-        if hasattr(Process, normalized):
-            return getattr(Process, normalized)
-    if value is None:
-        return Process.sequential
-    raise ValueError(f"Process CrewAI inconnu: {value}")
-
-
-def build_travliaq_crew(
-    *, llm: Optional[LLM] = None, verbose: Optional[bool] = None
-) -> Crew:
-    """Construit la Crew utilisée pour enrichir un questionnaire."""
-
-    llm_instance = llm or _build_default_llm()
-    agent_verbose = verbose if verbose is not None else settings.verbose
-
-    blueprint = _load_pipeline_blueprint()
-    agents_config = blueprint.get("agents", {})
-    tasks_config = blueprint.get("tasks", {})
-    crew_config = blueprint.get("crew", {})
-
-    if not agents_config:
-        raise ValueError("Aucun agent défini dans la configuration CrewAI")
-    if not tasks_config:
-        raise ValueError("Aucune tâche définie dans la configuration CrewAI")
-
-    # Fetch MCP tools once
-    mcp_tools = []
-    if settings.mcp_server_url:
-        try:
-            mcp_tools = get_mcp_tools(settings.mcp_server_url)
-            if mcp_tools:
-                logger.info(f"✅ {len(mcp_tools)} outils MCP chargés depuis {settings.mcp_server_url}")
-            else:
-                logger.warning(f"⚠️ Aucun outil MCP trouvé sur {settings.mcp_server_url}")
-        except Exception as e:
-            logger.warning(f"⚠️ Impossible de charger les outils MCP depuis {settings.mcp_server_url}: {e}")
-    else:
-        logger.info("ℹ️ MCP Server URL non configurée, passage du chargement des outils.")
-
-    agents: Dict[str, Agent] = {}
-    for agent_name, agent_definition in agents_config.items():
-        agent_instance = _create_agent(
-            name=agent_name,
-            config=agent_definition,
-            llm_instance=llm_instance,
-            agent_verbose=agent_verbose,
-        )
-        
-        # Injection spécifique pour l'analyste narratif
-        if agent_name == "traveller_insights_analyst" and mcp_tools:
-            logger.info(f"🔧 Injection des outils MCP pour l'agent {agent_name}")
-            # On ajoute les outils MCP à la liste existante (s'il y en a)
-            current_tools = agent_instance.tools or []
-            agent_instance.tools = current_tools + mcp_tools
-
-        agents[agent_name] = agent_instance
-
-    tasks: Dict[str, Task] = {}
-    for task_name, task_definition in tasks_config.items():
-        task_kwargs = dict(task_definition)
-        agent_key = task_kwargs.pop("agent", None)
-        if agent_key is None:
-            raise ValueError(f"Tâche '{task_name}' sans agent associé")
-        if agent_key not in agents:
-            raise ValueError(
-                f"Tâche '{task_name}' fait référence à l'agent inconnu '{agent_key}'"
-            )
-
-        # Les contextes peuvent référencer d'autres tâches. On résout plus tard.
-        context_refs = task_kwargs.pop("context", None)
-
-        try:
-            task = Task(agent=agents[agent_key], **task_kwargs)
-        except TypeError as exc:  # pragma: no cover - configuration invalide
-            raise TypeError(f"Configuration tâche invalide pour '{task_name}': {exc}")
-
-        if context_refs:
-            # Résout les contextes en objets Task existants.
-            resolved_context = []
-            for ref in context_refs:
-                if ref not in tasks:
-                    raise ValueError(
-                        f"La tâche '{task_name}' référence un contexte inconnu '{ref}'"
-                    )
-                resolved_context.append(tasks[ref])
-            task.context = resolved_context
-
-        tasks[task_name] = task
-
-    crew_kwargs = dict(crew_config)
-    agent_refs = crew_kwargs.pop("agents", list(agents.keys()))
-    task_refs = crew_kwargs.pop("tasks", list(tasks.keys()))
-
-    crew_agents = []
-    for ref in agent_refs:
-        if ref not in agents:
-            raise ValueError(f"Agent '{ref}' absent de la configuration")
-        crew_agents.append(agents[ref])
-
-    crew_tasks = []
-    for ref in task_refs:
-        if ref not in tasks:
-            raise ValueError(f"Tâche '{ref}' absente de la configuration")
-        crew_tasks.append(tasks[ref])
-
-    process_value = crew_kwargs.pop("process", Process.sequential)
-    crew_kwargs["process"] = _resolve_process(process_value)
-
-    crew_kwargs.setdefault("verbose", agent_verbose)
-
-    return Crew(agents=crew_agents, tasks=crew_tasks, **crew_kwargs)
-
-
 class CrewPipeline:
-    """Pipeline orchestrant l'appel à CrewAI pour enrichir les données voyage."""
+    """
+    Orchestrateur de la Phase 1 : Analyse & Spécifications.
+    
+    Flux :
+    1. Traveller Insights Analyst (avec MCP)
+    2. Persona Quality Challenger (avec MCP)
+    3. Trip Specifications Architect
+    
+    Format : YAML strict.
+    """
 
     def __init__(
         self,
-        crew_builder: Callable[..., Crew] = build_travliaq_crew,
         *,
         llm: Optional[LLM] = None,
         verbose: Optional[bool] = None,
         output_dir: Optional[Path] = None,
     ) -> None:
-        self._crew_builder = crew_builder
-        self._crew: Optional[Crew] = None
-        self._llm = llm
-        self._verbose = verbose
-        self._output_dir = Path(output_dir) if output_dir is not None else Path(
-            settings.crew_output_dir
-        )
-
-    def _ensure_crew(self) -> Crew:
-        if self._crew is None:
-            builder_kwargs: Dict[str, Any] = {}
-            if self._llm is not None:
-                builder_kwargs["llm"] = self._llm
-            if self._verbose is not None:
-                builder_kwargs["verbose"] = self._verbose
-
-            try:
-                self._crew = self._crew_builder(**builder_kwargs)
-            except TypeError:
-                # Certains builders de tests n'acceptent pas de kwargs.
-                self._crew = self._crew_builder()
-        return self._crew
+        self._llm = llm or self._build_default_llm()
+        self._verbose = verbose if verbose is not None else settings.verbose
+        self._output_dir = Path(output_dir) if output_dir is not None else Path(settings.crew_output_dir)
+        self._config_dir = Path(__file__).resolve().parent / "config"
 
     def run(
         self,
@@ -449,332 +78,409 @@ class CrewPipeline:
         persona_inference: Dict[str, Any],
         payload_metadata: Optional[Dict[str, Any]] = None,
     ) -> Dict[str, Any]:
-        """Exécute la pipeline CrewAI et retourne un dictionnaire prêt pour l'API."""
+        """Exécute la pipeline Phase 1."""
+        
+        # 1. Préparation des données (Conversion YAML pour le contexte)
+        run_id = self._generate_run_id(questionnaire_data)
+        logger.info(f"🚀 Lancement Pipeline Phase 1 (Run ID: {run_id})")
 
-        crew = self._ensure_crew()
-        logger.info("🚀 Lancement de la pipeline CrewAI pour l'analyse voyage")
+        # On convertit les inputs en YAML string pour que les agents les lisent facilement
+        questionnaire_yaml = yaml.dump(questionnaire_data, allow_unicode=True, sort_keys=False)
+        persona_yaml = yaml.dump(persona_inference, allow_unicode=True, sort_keys=False)
 
-        # Robustesse: Fallback si l'inférence persona est vide
-        safe_persona_inference = deepcopy(persona_inference)
-        if not safe_persona_inference:
-            logger.warning("⚠️ Persona Inference manquante: utilisation d'un profil par défaut.")
-            safe_persona_inference = {
-                "id": "unknown",
-                "summary": "Profil non déterminé (fallback)",
-                "confidence_score": 0.0
-            }
+        # 2. Chargement de la configuration
+        agents_config = self._load_yaml_config("agents.yaml")
+        if "agents" in agents_config:
+            agents_config = agents_config["agents"]
+            
+        tasks_config = self._load_yaml_config("tasks.yaml")
+        if "tasks" in tasks_config:
+            tasks_config = tasks_config["tasks"]
 
-        base_payload: Dict[str, Any] = {
-            "questionnaire_data": deepcopy(questionnaire_data),
-            "persona_inference": safe_persona_inference,
+        # 3. Chargement des outils MCP
+        mcp_tools = []
+        if settings.mcp_server_url:
+            try:
+                mcp_tools = get_mcp_tools(settings.mcp_server_url)
+                logger.info(f"✅ {len(mcp_tools)} outils MCP chargés.")
+            except Exception as e:
+                logger.warning(f"⚠️ Erreur chargement MCP: {e}")
+
+        # 4. Création des Agents
+        # Agent 1: Analyst
+        analyst = self._create_agent(
+            "traveller_insights_analyst", 
+            agents_config["traveller_insights_analyst"], 
+            tools=mcp_tools # MCP Obligatoire
+        )
+        
+        # Agent 2: Challenger
+        challenger = self._create_agent(
+            "persona_quality_challenger", 
+            agents_config["persona_quality_challenger"], 
+            tools=mcp_tools # MCP Obligatoire
+        )
+        
+        # Agent 3: Architect
+        architect = self._create_agent(
+            "trip_specifications_architect", 
+            agents_config["trip_specifications_architect"],
+            tools=[] # Pas d'outils MCP nécessaires pour la structure
+        )
+
+        # 5. Création des Tâches
+        task1 = Task(
+            name="traveller_profile_brief",
+            agent=analyst,
+            **tasks_config["traveller_profile_brief"]
+        )
+        
+        task2 = Task(
+            name="persona_challenge_review",
+            agent=challenger,
+            context=[task1],
+            **tasks_config["persona_challenge_review"]
+        )
+        
+        task3 = Task(
+            name="trip_specifications_design",
+            agent=architect,
+            context=[task2],
+            **tasks_config["trip_specifications_design"]
+        )
+        
+        # ✅ NOUVEAU : Agent 4 - System Contract Validator
+        validator = self._create_agent(
+            "system_contract_validator",
+            agents_config["system_contract_validator"],
+            tools=[]  # Pas d'outils MCP nécessaires
+        )
+        
+        task4 = Task(
+            name="system_contract_validation",
+            agent=validator,
+            context=[task1, task2, task3],
+            **tasks_config["system_contract_validation"]
+        )
+
+        # 6. Création des Crews
+        # Crew 1 : Analyse & Design (Tasks 1, 2, 3)
+        crew_phase1 = Crew(
+            agents=[analyst, challenger, architect],
+            tasks=[task1, task2, task3],
+            verbose=self._verbose,
+            process=Process.sequential
+        )
+
+        # Crew 2 : Validation (Task 4)
+        crew_validation = Crew(
+            agents=[validator],
+            tasks=[task4],
+            verbose=self._verbose,
+            process=Process.sequential
+        )
+        
+        # Affichage du lien de monitoring CrewAI (si dispo)
+        if hasattr(crew_phase1, 'id') and crew_phase1.id:
+            monitoring_url = f"https://app.crewai.com/crews/{crew_phase1.id}"
+            logger.info(f"🔗 Monitoring CrewAI Phase 1: {monitoring_url}")
+
+        # Inputs initiaux
+        inputs_phase1 = {
+            "questionnaire": questionnaire_yaml,
+            "persona_context": persona_yaml,
+            "input_payload": yaml.dump({
+                "questionnaire": questionnaire_data, 
+                "persona": persona_inference
+            }, allow_unicode=True),
         }
-        if payload_metadata:
-            for key, value in payload_metadata.items():
-                if key in {"questionnaire_data", "persona_inference"}:
-                    continue
-                base_payload[key] = deepcopy(value)
-        
-        # Génération du run_id avant l'exécution
-        run_id = self._generate_run_id(base_payload)
-        
-        # Initialisation des métriques d'observabilité
-        metrics = PipelineMetrics(run_id=run_id)
-        log_structured_input(run_id, questionnaire_data, safe_persona_inference)
 
         try:
-            output = crew.kickoff(
-                inputs={
-                    "questionnaire": questionnaire_data,
-                    "persona_context": safe_persona_inference,
-                    "input_payload": base_payload,
-                }
+            # =================================================================
+            # PHASE 1: ANALYSE & DESIGN (Agents 1, 2, 3)
+            # =================================================================
+            logger.info("🚀 Démarrage Phase 1 (Analyst, Challenger, Architect)...")
+            output_phase1 = crew_phase1.kickoff(inputs=inputs_phase1)
+            
+            # =================================================================
+            # TRANSITION: SYSTEM CONTRACT MERGER (Script Python)
+            # =================================================================
+            logger.info("🔧 Transition: Fusion du System Contract (Merger V7.0)...")
+            from app.crew_pipeline.system_contract_merger import SystemContractMerger
+            
+            # Récupération de l'output de la Task 3 (Trip Specifications)
+            task3_output_raw = output_phase1.tasks_output[2].raw
+            task3_output = self._parse_yaml_content(task3_output_raw)
+            if not isinstance(task3_output, dict): task3_output = {}
+            
+            # Exécution du Merger
+            system_contract_draft = SystemContractMerger.generate_contract(
+                questionnaire=questionnaire_data,
+                step_3_trip_specifications_design=task3_output
             )
+            
+            draft_yaml = yaml.dump(system_contract_draft, allow_unicode=True, sort_keys=False)
+            logger.info("✅ System Contract Draft généré avec succès.")
+
+            # =================================================================
+            # PHASE 2: VALIDATION (Agent 4)
+            # =================================================================
+            logger.info("🤖 Démarrage Phase 2 (Validation Agent)...")
+            
+            # On injecte le draft dans les inputs de la 2ème crew
+            inputs_validation = {
+                "system_contract_draft": draft_yaml
+            }
+            
+            # On passe aussi le contexte des tâches précédentes manuellement si besoin,
+            # mais ici Task 4 a déjà `context=[task1, task2, task3]` défini dans sa création.
+            # CrewAI gère le contexte entre tâches d'une même crew, mais ici ce sont deux crews différentes.
+            # ASTUCE : Pour que l'agent 4 ait accès au contexte des agents 1-3, on peut
+            # concaténer leurs outputs dans le prompt ou utiliser la mémoire partagée (si configurée).
+            # Ici, on va simplifier en injectant les résumés dans l'input si le context linking natif échoue.
+            
+            # Pour assurer le coup, on enrichit l'input avec le contexte textuel
+            context_summary = "\n\n".join([
+                f"--- OUTPUT TASK 1 (Analyst) ---\n{output_phase1.tasks_output[0].raw}",
+                f"--- OUTPUT TASK 2 (Challenger) ---\n{output_phase1.tasks_output[1].raw}",
+                f"--- OUTPUT TASK 3 (Architect) ---\n{output_phase1.tasks_output[2].raw}"
+            ])
+            # On pourrait l'ajouter à inputs_validation si le prompt l'attendait, 
+            # mais task4 attend juste {system_contract_draft}.
+            # L'agent a accès à 'memory=True', espérons qu'il retrouve ses petits.
+            # Sinon, on modifie la description de task4 pour inclure {previous_context}.
+            
+            output_validation = crew_validation.kickoff(inputs=inputs_validation)
+            
+            # =================================================================
+            # CONSOLIDATION DES OUTPUTS
+            # =================================================================
+            # On fusionne pour avoir un objet CrewOutput unique (ou similaire) pour la suite
+            final_output = output_phase1
+            # On ajoute l'output de la validation à la liste
+            # Note: CrewOutput.tasks_output est une liste de TaskOutput
+            final_output.tasks_output.extend(output_validation.tasks_output)
+            
+            logger.info("✅ Pipeline terminée : Contrat validé.")
+            
         except Exception as exc:
-            metrics.complete_pipeline()
-            metrics.add_warning(f"Échec de la pipeline: {str(exc)}")
-            metrics.save_to_file(self._output_dir)
-            logger.exception("Échec lors de l'exécution de CrewAI: %s", exc)
-            raise
+            logger.exception("❌ Échec critique de la pipeline")
+            raise exc
 
-        result = self._parse_output(output)
-        questionnaire_source = base_payload.get("questionnaire_data") or {}
-        result.normalized_trip_request = enrich_trip_structural_data(
-            result.normalized_trip_request,
-            questionnaire_source,
+        # 7. Traitement des Outputs (Parsing & Sauvegarde)
+        # Passer le system_contract_draft pour sauvegarde
+        final_result = self._process_outputs(
+            run_id, 
+            final_output, 
+            questionnaire_data, 
+            persona_inference,
+            system_contract=system_contract_draft
         )
         
-        enriched = self._compose_enriched_payload(
-            run_id=run_id,
-            base_payload=base_payload,
-            analysis=result,
-        )
+        return final_result
+
+    def _create_agent(self, name: str, config: Dict[str, Any], tools: List[Any]) -> Agent:
+        """Crée un agent avec sa configuration complète."""
+        agent_params = {
+            "role": config["role"],
+            "goal": config["goal"],
+            "backstory": config["backstory"],
+            "allow_delegation": False,  # Strictement interdit
+            "verbose": self._verbose,
+            "tools": tools,
+            "llm": self._llm,
+            "max_iter": config.get("max_iter", 15),
+        }
         
-        # Évaluation de la qualité des outputs
-        quality_scores = None
-        if hasattr(result, 'to_dict'):
-            persona_data = result.to_dict()
-            quality_scores = QualityScorer.evaluate_persona_analysis(persona_data)
-            enriched["quality_scores"] = quality_scores
-            logger.info(
-                f"📊 Scores de qualité: overall={quality_scores.get('overall', 0):.2f}",
-                extra={"scores": quality_scores}
-            )
+        # ✅ NOUVEAU : Activer reasoning si configuré
+        if config.get("reasoning", False):
+            agent_params["reasoning"] = True
+            if "max_reasoning_attempts" in config:
+                agent_params["max_reasoning_attempts"] = config["max_reasoning_attempts"]
         
-        # Finalisation des métriques
-        metrics.complete_pipeline()
-        log_structured_output(run_id, enriched, quality_scores)
+        # ✅ NOUVEAU : Activer memory si configuré
+        if config.get("memory", False):
+            agent_params["memory"] = True
         
-        # Sauvegarde des outputs et métriques
-        self._persist_run_outputs(run_id, output, enriched)
-        metrics.save_to_file(self._output_dir)
+        # ✅ NOUVEAU : Injecter date si configuré
+        # CrewAI gère automatiquement inject_date via le paramètre
+        # Pas besoin de code supplémentaire si le paramètre existe dans la config
+        
+        return Agent(**agent_params)
 
-        logger.info(
-            "✅ Analyse CrewAI générée avec succès",
-            extra={
-                "run_id": run_id,
-                "duration": metrics.duration_seconds,
-                "total_tokens": metrics.total_tokens,
-            }
-        )
-        return enriched
-
-    def _parse_output(self, output: Any) -> CrewPipelineResult:
-        """Normalise le résultat renvoyé par CrewAI en CrewPipelineResult."""
-
-        if output is None:
-            return _default_result_from_raw(
-                "",
-                "La sortie de CrewAI est vide.",
-            )
-
-        raw_candidate: Any = None
-
-        # Crew 0.70 renvoie un objet CrewOutput avec .raw et .json_dict
-        if hasattr(output, "json_dict") and getattr(output, "json_dict"):
-            json_candidate = getattr(output, "json_dict")
-            if isinstance(json_candidate, dict):
-                return self._result_from_dict(json_candidate, raw=str(getattr(output, "raw", "")))
-
-        if hasattr(output, "raw"):
-            raw_candidate = getattr(output, "raw")
-
-        if isinstance(output, dict):
-            return self._result_from_dict(output, raw=json.dumps(output, ensure_ascii=False))
-
-        if isinstance(output, str):
-            raw_candidate = output
-
-        if raw_candidate is None:
-            raw_candidate = str(output)
-
-        try:
-            parsed_payload = self._extract_structured_payload(raw_candidate)
-            return self._result_from_dict(parsed_payload, raw=raw_candidate)
-        except ValueError:
-            note = (
-                "La sortie de l'agent ne respecte pas le format structuré (JSON ou YAML) attendu. "
-                "Voir raw_response pour l'analyse brute."
-            )
-            return _default_result_from_raw(str(raw_candidate), note)
-
-    @staticmethod
-    def _extract_structured_payload(raw: str) -> Dict[str, Any]:
-        """Tente d'extraire un dictionnaire JSON ou YAML depuis la sortie."""
-
-        text = raw.strip()
-        if not text:
-            raise ValueError("empty")
-
-        try:
-            return json.loads(text)
-        except json.JSONDecodeError:
-            start = text.find("{")
-            end = text.rfind("}")
-            if start != -1 and end != -1 and end > start:
-                snippet = text[start : end + 1]
-                try:
-                    return json.loads(snippet)
-                except json.JSONDecodeError:
-                    pass
-
-        try:
-            yaml_data = yaml.safe_load(text)
-        except yaml.YAMLError as exc:  # pragma: no cover - dépend du contenu
-            raise ValueError("invalid structured payload") from exc
-
-        if isinstance(yaml_data, dict):
-            return yaml_data
-
-        raise ValueError("invalid structured payload")
-
-    def _result_from_dict(
-        self, data: Dict[str, Any], *, raw: Optional[str] = None
-    ) -> CrewPipelineResult:
-        """Normalise un dictionnaire issu de CrewAI."""
-
-        def _as_list(value: Any) -> List[str]:
-            if isinstance(value, list):
-                return [str(item) for item in value]
-            if value is None:
-                return []
-            return [str(value)]
-
-        result = CrewPipelineResult(
-            persona_summary=str(data.get("persona_summary", "")).strip(),
-            pros=_as_list(data.get("pros")),
-            cons=_as_list(data.get("cons")),
-            critical_needs=_as_list(data.get("critical_needs")),
-            non_critical_preferences=_as_list(data.get("non_critical_preferences")),
-            user_goals=_as_list(data.get("user_goals")),
-            narrative=str(data.get("narrative", "")).strip(),
-            analysis_notes=str(data.get("analysis_notes", "")).strip(),
-            challenge_summary=str(data.get("challenge_summary", "")).strip(),
-            challenge_actions=_as_list(data.get("challenge_actions")),
-            raw_response=raw or json.dumps(data, ensure_ascii=False),
-        )
-
-        normalized_trip = data.get("normalized_trip_request")
-        if isinstance(normalized_trip, dict):
-            result.normalized_trip_request = normalized_trip
-
-        return result
-
-
-    @staticmethod
-    def _extract_questionnaire_id(payload: Dict[str, Any]) -> str:
-        """Tente de retrouver l'identifiant du questionnaire dans les données."""
-
-        candidate = payload.get("questionnaire_id")
-        if candidate:
-            return str(candidate)
-
-        questionnaire = payload.get("questionnaire_data") or {}
-        if isinstance(questionnaire, dict):
-            for key in ("id", "questionnaire_id"):
-                value = questionnaire.get(key)
-                if value:
-                    return str(value)
-
-        persona = payload.get("persona_inference") or {}
-        if isinstance(persona, dict):
-            for key in ("questionnaire_id", "id"):
-                value = persona.get(key)
-                if value:
-                    return str(value)
-
-        return ""
-
-    def _generate_run_id(self, payload: Dict[str, Any]) -> str:
-        """Crée un identifiant de run unique et lisible."""
-
-        questionnaire_id = self._extract_questionnaire_id(payload)
-        suffix = uuid4().hex[:8]
-        if questionnaire_id:
-            return f"{_slugify_filename(questionnaire_id)}-{suffix}"
-        return f"run-{suffix}"
-
-    def _compose_enriched_payload(
-        self,
-        *,
-        run_id: str,
-        base_payload: Dict[str, Any],
-        analysis: CrewPipelineResult,
+    def _process_outputs(
+        self, 
+        run_id: str, 
+        crew_output: Any, 
+        questionnaire: Dict[str, Any],
+        persona: Dict[str, Any],
+        system_contract: Optional[Dict[str, Any]] = None
     ) -> Dict[str, Any]:
-        """Assemble le JSON final mêlant input et analyse."""
-
-        enriched = deepcopy(base_payload)
-        enriched.setdefault("status", "ok")
-        enriched["run_id"] = run_id
-        persona_analysis = analysis.to_dict()
-        enriched["persona_analysis"] = persona_analysis
-
-        if analysis.normalized_trip_request:
-            enriched["normalized_trip_request"] = analysis.normalized_trip_request
-
-        questionnaire_id = self._extract_questionnaire_id(enriched)
-        if questionnaire_id:
-            enriched["questionnaire_id"] = questionnaire_id
-
-        return enriched
-
-    def _persist_run_outputs(
-        self,
-        run_id: str,
-        output: Any,
-        final_payload: Dict[str, Any],
-    ) -> None:
-        """Enregistre les sorties de la run (finale + par tâche)."""
-
+        """Parse les outputs, sauvegarde en YAML et retourne le résultat final."""
+        
         run_dir = self._output_dir / run_id
-        _write_json_file(run_dir / "run_output.json", final_payload)
+        
+        # Sauvegarde seulement en DEV
+        should_save = settings.environment.lower() == "development"
+        if should_save:
+            run_dir.mkdir(parents=True, exist_ok=True)
 
-        task_outputs = getattr(output, "tasks_output", None)
-        if not task_outputs:
-            return
+        tasks_data = []
+        normalized_trip = {}
+        final_system_contract = {}
 
-        tasks_dir = run_dir / "tasks"
-        for index, task_output in enumerate(task_outputs, start=1):
-            task_name = getattr(task_output, "name", None) or f"task_{index}"
-            file_name = f"{_slugify_filename(str(task_name)) or f'task_{index}'}" + ".json"
+        # Mapping des tâches vers les phases
+        task_phase_mapping = {
+            "traveller_profile_brief": ("PHASE1_ANALYSIS", 1),
+            "persona_challenge_review": ("PHASE1_ANALYSIS", 2),
+            "trip_specifications_design": ("PHASE1_ANALYSIS", 3),
+            "system_contract_validation": ("PHASE1_TO_PHASE2_TRANSITION", 4)
+        }
 
-            task_payload: Dict[str, Any] = {
-                "task_name": str(task_name),
-                "agent": getattr(task_output, "agent", ""),
-                "description": getattr(task_output, "description", ""),
-                "raw_output": getattr(task_output, "raw", ""),
+        # Traitement des tâches individuelles avec numérotation et phases
+        if hasattr(crew_output, "tasks_output"):
+            for task_out in crew_output.tasks_output:
+                task_name = getattr(task_out, "name", "unknown_task")
+                raw_content = getattr(task_out, "raw", "")
+                
+                # Parsing YAML du contenu
+                structured_content = self._parse_yaml_content(raw_content)
+                
+                task_record = {
+                    "task_name": str(task_name),
+                    "agent": getattr(task_out, "agent", ""),
+                    "structured_output": structured_content,
+                    "raw_output": raw_content
+                }
+                tasks_data.append(task_record)
+
+                # Extraction du normalized_trip_request
+                if task_name == "trip_specifications_design":
+                    if isinstance(structured_content, dict) and "normalized_trip_request" in structured_content:
+                        normalized_trip = structured_content["normalized_trip_request"]
+                    else:
+                        normalized_trip = structured_content
+                
+                # ✅ Extraction du System Contract (dernière tâche)
+                if task_name == "system_contract_validation":
+                    final_system_contract = structured_content
+
+                # ✅ Sauvegarde avec phase et numérotation
+                if should_save:
+                    phase_name, step_num = task_phase_mapping.get(task_name, ("UNKNOWN_PHASE", 0))
+                    step_dir = run_dir / f"{phase_name}" / f"step_{step_num}_{task_name}"
+                    step_dir.mkdir(parents=True, exist_ok=True)
+                    self._write_yaml(step_dir / "output.yaml", task_record)
+                    logger.info(f"📁 {phase_name} - Step {step_num}: {task_name} → {step_dir}")
+
+        # ✅ Sauvegarde du System Contract final (Transition Phase 1 → Phase 2)
+        if should_save and final_system_contract:
+            contract_dir = run_dir / "PHASE1_TO_PHASE2_TRANSITION" / "FINAL_SYSTEM_CONTRACT"
+            contract_dir.mkdir(parents=True, exist_ok=True)
+            self._write_yaml(contract_dir / "system_contract.yaml", final_system_contract)
+            logger.info(f"🎯 SYSTEM CONTRACT FINAL → {contract_dir}/system_contract.yaml")
+
+        # Construction du résultat final
+        final_payload = {
+            "run_id": run_id,
+            "status": "success",
+            "metadata": {
+                "questionnaire_id": self._extract_id(questionnaire),
+                "timestamp": datetime.utcnow().isoformat() + "Z"
+            },
+            "input_context": {
+                "questionnaire": questionnaire,
+                "persona_inference": persona
+            },
+            "pipeline_output": {
+                "normalized_trip_request": normalized_trip,
+                "system_contract": final_system_contract,
+                "tasks_details": tasks_data
             }
+        }
 
-            expected = getattr(task_output, "expected_output", None)
-            if expected:
-                task_payload["expected_output"] = expected
+        if should_save:
+            self._write_yaml(run_dir / "_SUMMARY_run_output.yaml", final_payload)
+            logger.info(f"💾 Résumé complet sauvegardé dans {run_dir}/_SUMMARY_run_output.yaml")
 
-            json_dict = getattr(task_output, "json_dict", None)
-            if json_dict:
-                task_payload["json_output"] = json_dict
+        return final_payload
 
-            _write_json_file(tasks_dir / file_name, task_payload)
+    def _parse_yaml_content(self, content: str) -> Any:
+        """Nettoie et parse une chaîne contenant potentiellement du YAML."""
+        if not content:
+            return None
+            
+        # Nettoyage des balises markdown ```yaml ... ```
+        cleaned = re.sub(r"^```yaml\s*", "", content.strip())
+        cleaned = re.sub(r"^```\s*", "", cleaned)
+        cleaned = re.sub(r"\s*```$", "", cleaned)
+        
+        try:
+            return yaml.safe_load(cleaned)
+        except yaml.YAMLError:
+            logger.warning("⚠️ Impossible de parser le YAML, retour du contenu brut.")
+            return content
 
-# Instance globale réutilisée par l'API et les scripts CLI
+    def _write_yaml(self, path: Path, data: Any) -> None:
+        """Écrit un fichier YAML proprement."""
+        try:
+            with path.open("w", encoding="utf-8") as f:
+                yaml.dump(data, f, allow_unicode=True, sort_keys=False, indent=2)
+        except Exception as e:
+            logger.error(f"Erreur écriture fichier {path}: {e}")
+
+    def _load_yaml_config(self, filename: str) -> Dict[str, Any]:
+        path = self._config_dir / filename
+        if not path.exists():
+            raise FileNotFoundError(f"Config manquante: {path}")
+        with path.open("r", encoding="utf-8") as f:
+            return yaml.safe_load(f) or {}
+
+    def _generate_run_id(self, data: Dict[str, Any]) -> str:
+        qid = self._extract_id(data)
+        suffix = uuid4().hex[:8]
+        return f"{qid}-{suffix}" if qid else f"run-{suffix}"
+
+    def _extract_id(self, data: Dict[str, Any]) -> str:
+        return str(data.get("id") or data.get("questionnaire_id") or "")
+
+    def _build_default_llm(self) -> LLM:
+        """Construit le LLM en fonction de la configuration (OpenAI, Groq, Azure)."""
+        model = settings.model_name.lower()
+        
+        # Configuration Azure
+        if model.startswith("azure/"):
+            return LLM(
+                model=settings.model_name,
+                api_key=settings.azure_openai_api_key,
+                base_url=settings.azure_openai_endpoint,
+                api_version=settings.azure_openai_api_version,
+                temperature=settings.temperature,
+                timeout=120,  # 2 minutes max par appel
+                max_retries=3  # 3 tentatives en cas d'échec
+            )
+            
+        # Configuration Groq
+        if model.startswith("groq/"):
+            return LLM(
+                model=settings.model_name,
+                api_key=settings.groq_api_key,
+                temperature=settings.temperature,
+                timeout=120,
+                max_retries=3
+            )
+            
+        # Par défaut : OpenAI (ou compatible)
+        return LLM(
+            model=settings.model_name,
+            api_key=settings.openai_api_key,
+            temperature=settings.temperature,
+            timeout=120,  # 2 minutes max par appel
+            max_retries=3  # 3 tentatives automatiques
+        )
+
+# Instance globale
 travliaq_crew_pipeline = CrewPipeline()
 
-
-def run_pipeline_with_inputs(
-    *,
-    questionnaire_data: Dict[str, Any],
-    persona_inference: Dict[str, Any],
-    pipeline: Optional[CrewPipeline] = None,
-    payload_metadata: Optional[Dict[str, Any]] = None,
-) -> Dict[str, Any]:
-    """Exécute la pipeline à partir de données déjà préparées."""
-
-    runner = pipeline or travliaq_crew_pipeline
-    return runner.run(
-        questionnaire_data=questionnaire_data,
-        persona_inference=persona_inference,
-        payload_metadata=payload_metadata,
-    )
-
-
-def run_pipeline_from_payload(
-    payload: Dict[str, Any], *, pipeline: Optional[CrewPipeline] = None
-) -> Dict[str, Any]:
-    """Exécute la pipeline à partir d'un payload complet (questionnaire + persona)."""
-
-    if "questionnaire_data" not in payload:
-        raise ValueError("Payload incomplet: 'questionnaire_data' manquant")
-    if "persona_inference" not in payload:
-        raise ValueError("Payload incomplet: 'persona_inference' manquant")
-
-    metadata = {
-        key: value
-        for key, value in payload.items()
-        if key not in {"questionnaire_data", "persona_inference"}
-    }
-
-    return run_pipeline_with_inputs(
-        questionnaire_data=payload["questionnaire_data"],
-        persona_inference=payload["persona_inference"],
-        pipeline=pipeline,
-        payload_metadata=metadata,
-    )
-
+def run_pipeline_with_inputs(**kwargs):
+    return travliaq_crew_pipeline.run(**kwargs)

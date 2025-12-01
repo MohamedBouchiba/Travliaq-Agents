@@ -1,144 +1,155 @@
 tasks:
   traveller_profile_brief:
-    agent: traveller_insights_analyst
     description: |-
-      Analyse attentivement le questionnaire client et l'inférence persona existante
-      (déjà calculée par un service amont — ne la recalculer pas, utilise-la comme
-      contexte fiable).
+      Analyse attentivement le questionnaire client et l'inférence persona existante.
 
-      QUESTIONNAIRE BRUT:
+      QUESTIONNAIRE (YAML):
       {questionnaire}
 
-      INFÉRENCE PERSONA FOURNIE:
+      INFÉRENCE PERSONA (YAML):
       {persona_context}
 
-      Ton objectif est de comprendre les motivations, priorités et contraintes
-      du voyageur. Produit un raisonnement explicite: identifie les éléments
-      positifs (pour), les points de vigilance (contre), les besoins critiques,
-      les préférences non critiques et les objectifs implicites. Termine par un
-      paragraphe narratif immersif qui décrit la personne comme si tu la
-      présentais à un travel designer.
+      Ton objectif est de comprendre les motivations, priorités et contraintes du voyageur.
+
+
+      Produis un raisonnement explicite: identifie les éléments positifs, les points de vigilance, les besoins critiques.
+      Termine par un paragraphe narratif immersif.
     expected_output: |-
-      Une analyse complète et structurée du profil voyageur, incluant un narratif immersif
-      et une liste argumentée de points forts, faibles et besoins critiques.
-      L'output final sera automatiquement formaté en JSON par le système.
+      Une analyse structurée au format YAML STRICT.
+
+      Format attendu :
+      ```yaml
+      persona_analysis:
+        macro_persona_identified: "Nom du persona MCP"
+        narrative: "Texte immersif..."
+        pros: ["point 1", "point 2"]
+        cons: ["point 1", "point 2"]
+        critical_needs: ["besoin 1"]
+        implicit_goals: ["objectif 1"]
+      ```
+      **NE JAMAIS PRODUIRE DE JSON.**
     async_execution: false
+
   persona_challenge_review:
-    agent: persona_quality_challenger
-    context:
-      - traveller_profile_brief
     description: |-
-      Tu es le relecteur critique de l'analyse précédente. Exploite le contexte
-      pour évaluer la solidité du raisonnement, détecter les contradictions avec
-      le questionnaire et ajouter les recommandations qui manquent pour
-      opérationnaliser la proposition.
+      Tu es le relecteur critique de l'analyse précédente.
 
-      1. Challenge l'argumentation: signale les hypothèses fragiles ou les biais
-         et propose des correctifs précis.
-      2. Vérifie que les pros/cons/besoins/goals sont complets et aligne-les avec
-         les signaux forts du questionnaire.
-      3. Termine par une synthèse actionnable expliquant quoi transmettre à un
-         travel designer.
+      **Action MCP OBLIGATOIRE** : Tu DOIS vérifier la faisabilité (budget, destination, saison) en consultant les guides et études via MCP (`read_guide_tourisme...`, `read_le_secteur_touristique...`).
 
-      La restitution finale DOIT respecter le même schéma JSON que la première
-      tâche en y ajoutant un bloc dédié à ton challenge.
+      1. Challenge l'argumentation.
+      2. Vérifie la cohérence avec le questionnaire.
+      3. Cite tes sources MCP.
     expected_output: |-
-      Une revue critique de l'analyse précédente, validant ou corrigeant les hypothèses,
-      avec des recommandations concrètes pour les designers.
-      L'output final sera automatiquement formaté en JSON par le système.
+      Une revue critique au format YAML STRICT.
+
+      Format attendu :
+      ```yaml
+      challenge_report:
+        feasibility_check:
+          budget_valid: true/false
+          season_valid: true/false
+          notes: "Explication basée sur le guide X..."
+        biases_detected: ["biais 1"]
+        recommendations: ["action 1"]
+      ```
+      **NE JAMAIS PRODUIRE DE JSON.**
     async_execution: false
+
   trip_specifications_design:
-    agent: trip_specifications_architect
-    context:
-      - persona_challenge_review
     description: |-
-      Tu es responsable de la création du fichier de spécifications final (normalized_trip_request).
-      Tu dois fusionner les faits bruts du questionnaire (input_payload) avec l'analyse validée
-      du challenger (persona_challenge_review).
+      Tu es responsable de la création du fichier de spécifications final.
+      Fusionne les faits bruts du questionnaire (input_payload) avec l'analyse validée.
 
-      Tes directives absolues :
-      1. **Fidélité Totale** : Ne jamais inventer une donnée. Si le questionnaire dit "Paris", c'est Paris.
-         Si une info est absente, le champ doit rester null.
-      2. **Nettoyage** : Supprime toutes les métadonnées techniques (ids, timestamps, user_id).
-         Ne garde que ce qui sert à construire le voyage.
-      3. **Dates & Budget** :
-         - Si dates flexibles : liste toutes les dates possibles (departure_dates/return_dates).
-         - Si budget inconnu : laisse null, ne devine pas.
-      4. **Structure** : Produis un YAML propre respectant strictement la structure cible
-         (user, travel_party, trip_frame, budget, preferences, constraints, assist_needed, personas).
-      5. **Confiance** : Exclus tout élément dont la confiance est faible (< 70) ou qui contredit
-         le questionnaire.
+      INPUT PAYLOAD (YAML):
+      {input_payload}
 
-      Ton output est la source de vérité pour tout le reste du système.
+      Directives :
+      1. Fidélité Totale : Si info absente -> null.
+      2. Structure : Produis un YAML propre respectant strictement la structure cible.
     expected_output: |-
-      Retourne uniquement un YAML structuré comme suit:
+      Un fichier YAML STRICT contenant uniquement la clé `normalized_trip_request`.
+
+      Format attendu :
+      ```yaml
       normalized_trip_request:
         user:
-          email: ""
-          preferred_language: ""
+          email: "..."
         travel_party:
-          group_type: ""
           travelers_count: 0
-          has_children: false
-          children: []
+          group_type: "..."
         trip_frame:
-          origin:
-            city: null
-            country: null
-            airport_hint: null
-          destinations:
-            - label: primary
-              city: null
-              country: null
-              stay_nights: null
-          dates:
-            type: fixed|flexible
-            departure_dates:
-              - "YYYY-MM-DD"
-            return_dates:
-              - "YYYY-MM-DD"
-            duration_nights: null
+          origin: {city: null, country: null}
+          destinations: [{city: null, country: null}]
+          dates: {type: "flexible", departure_dates: [], return_dates: []}
         budget:
-          is_known: false
-          currency: null
-          estimated_total_per_person: null
-          estimated_total_group: null
-          notes: null
-        preferences:
-          climate: []
-          vibe: null
-          rhythm: null
-          activities: []
-          accommodation:
-            types: []
-            comfort_min_rating: null
-          transport:
-            flight_preference: null
-            allowed_modes_local: []
-            baggage:
-              cabin: false
-              hold: false
-        constraints:
-          diet: []
-          safety: null
-          mobility: null
-          other: []
-        assist_needed:
-          flights: false
-          accommodation: false
-          activities: false
-          other: []
-        personas:
-          primary:
-            name: null
-            confidence: null
-          emerging: []
-        explanations:
-          persona_summary: null
-          pros: []
-          cons: []
-          critical_needs: []
-          non_critical_preferences: []
-          user_goals: []
-      synthesis_notes: "Brève note sur la qualité des données entrantes"
+          estimated_total_group: 0
+        # ... (autres champs standards)
+      ```
+      **NE JAMAIS PRODUIRE DE JSON.**
+    async_execution: false
+
+  system_contract_validation:
+    description: |-
+      Voici le System Contract généré automatiquement par le script Python :
+
+      {system_contract_draft}
+
+      Ton rôle CRITIQUE :
+      1. **Vérifier la cohérence** : Les dates calculées sont-elles logiques ? Le budget est-il réaliste ?
+      2. **Compléter les spécifications** : Enrichis les sections `flights`, `accommodation`, `experience` avec les préférences du voyageur.
+      3. **Ajouter les tags manquants** : Utilise les analyses précédentes pour compléter les `interest_vectors`, `constraints`, etc.
+
+      Tu as accès aux analyses précédentes (narratif, challenge, trip_spec) dans le contexte.
+
+      **IMPORTANT** : Ne modifie PAS les calculs du script (dates, budgets). Complète uniquement les champs qualitatifs.
+    expected_output: |-
+      Le System Contract COMPLET et VALIDÉ au format YAML STRICT.
+
+      Format attendu (COMPLET) :
+      ```yaml
+      meta:
+        request_id: "..."
+        user_id: "..."
+        timestamp: "..."
+        source_version: "production_v5"
+      user_intelligence:
+        email: "..."
+        narrative_summary: "..."
+        feasibility_status: "VALID|WARNING|CRITICAL"
+        feasibility_alerts: []
+      timing:
+        request_type: "FIXED|FLEXIBLE_RANGE|FLEXIBLE_MONTH"
+        duration_min_nights: 0
+        duration_max_nights: 0
+        departure_dates_whitelist: []
+        return_dates_whitelist: []
+      geography:
+        origin_iata: "XXX"
+        origin_city: "..."
+        destination_is_defined: true
+        destination_city: "..."
+        destination_country: "..."
+        discovery_climate_zones: []
+        discovery_regions: []
+        excluded_tags: []
+      financials:
+        currency: "EUR"
+        total_hard_cap: 0
+        total_soft_cap: 0
+      specifications:
+        flights:
+          cabin_class: "ECONOMY|BUSINESS|FIRST"
+          luggage_policy: "CARRY_ON|CHECKED"
+          stopover_tolerance: "0|1|2+"
+        accommodation:
+          types_allowed: []
+          min_rating_10: 0.0
+          required_amenities: []
+          location_vibe: "..."
+        experience:
+          pace: "RELAXED|BALANCED|INTENSE"
+          interest_vectors: []
+          constraints: []
+      ```
+      **NE JAMAIS PRODUIRE DE JSON.**
     async_execution: false

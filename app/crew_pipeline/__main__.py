@@ -11,7 +11,7 @@ from copy import deepcopy
 from pathlib import Path
 from typing import Any, Dict, Optional
 
-from app.crew_pipeline import run_pipeline_from_payload, travliaq_crew_pipeline
+from app.crew_pipeline import travliaq_crew_pipeline
 from app.services.persona_inference_service import persona_engine
 from app.services.supabase_service import supabase_service
 
@@ -127,7 +127,12 @@ def main(argv: Optional[list[str]] = None) -> int:
         _apply_llm_overrides(provider=args.llm_provider, model=args.model)
 
         LOGGER.info("🚀 Lancement de la pipeline CrewAI (mode CLI)")
-        result = run_pipeline_from_payload(payload, pipeline=travliaq_crew_pipeline)
+        
+        # Adaptation pour la nouvelle signature de run()
+        result = travliaq_crew_pipeline.run(
+            questionnaire_data=payload.get("questionnaire_data") or payload.get("questionnaire"),
+            persona_inference=payload.get("persona_inference") or payload.get("persona"),
+        )
 
         printable = deepcopy(result)
         if not args.include_raw:

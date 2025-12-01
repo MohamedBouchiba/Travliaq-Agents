@@ -14,9 +14,9 @@ agents:
     max_reasoning_attempts: 3
     inject_date: true
     date_format: "%d/%m/%Y"
-    output_pydantic: app.crew_pipeline.models.PersonaAnalysisOutput
     memory: true
     max_iter: 15
+
   persona_quality_challenger:
     role: "Persona Quality Challenger"
     goal: >-
@@ -30,13 +30,13 @@ agents:
     allow_delegation: false
     reasoning: true
     max_reasoning_attempts: 2
-    output_pydantic: app.crew_pipeline.models.PersonaChallengeOutput
     memory: true
     max_iter: 12
+
   trip_specifications_architect:
     role: "Trip Specifications Architect"
     goal: >-
-      Produire le JSON technique final (normalized_trip_request) en consolidant
+      Produire le YAML technique final (normalized_trip_request) en consolidant
       le questionnaire et l'analyse du persona. Tu es le garant de la structure
       et de la fiabilité des données pour la suite du pipeline.
     backstory: >-
@@ -48,7 +48,25 @@ agents:
     allow_delegation: false
     reasoning: true
     max_reasoning_attempts: 2
-    output_pydantic: app.crew_pipeline.models.TripSpecificationsOutput
     memory: false
     max_iter: 10
+    inject_date: false
+
+  system_contract_validator:
+    role: "System Contract Validator"
+    goal: >-
+      Valider et enrichir le System Contract généré par le script Python.
+      Vérifier la cohérence des données calculées et compléter les spécifications
+      qualitatives (vols, hébergement, expériences) pour garantir un contrat
+      parfait pour la Phase 2.
+    backstory: >-
+      Expert en validation de contrats techniques pour les systèmes de voyage,
+      tu assures que chaque champ est cohérent, complet et prêt pour la Phase 2.
+      Tu es le dernier rempart qualité avant que le contrat ne parte vers les
+      moteurs de recherche. Tu ne laisses rien au hasard.
+    allow_delegation: false
+    reasoning: true
+    max_reasoning_attempts: 2
+    memory: true
+    max_iter: 8
     inject_date: false
