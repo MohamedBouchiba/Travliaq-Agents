@@ -352,6 +352,14 @@ def test_trip_intent_defaults_to_full_scope_when_no_help_with():
     assert intent.assist_accommodation is True
     assert intent.assist_activities is True
 
+
+def test_pipeline_detects_custom_crew_builder(tmp_path):
+    default_pipeline = CrewPipeline(output_dir=tmp_path)
+    assert default_pipeline._use_mock_crew is False
+
+    custom_pipeline = CrewPipeline(crew_builder=lambda **_: DummyCrew({}), output_dir=tmp_path)
+    assert custom_pipeline._use_mock_crew is True
+
 def test_pipeline_passes_inputs_to_crew(tmp_path):
     dummy = DummyCrew({})
     pipeline = CrewPipeline(crew_builder=lambda **_: dummy, output_dir=tmp_path)

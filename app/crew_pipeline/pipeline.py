@@ -149,6 +149,7 @@ class CrewPipeline:
         self._output_dir = Path(output_dir) if output_dir is not None else Path(settings.crew_output_dir)
         self._config_dir = Path(__file__).resolve().parent / "config"
         self._crew_builder = crew_builder or self._build_crew
+        self._use_mock_crew = crew_builder is not None
 
     def _derive_trip_intent(
         self,
@@ -224,7 +225,7 @@ class CrewPipeline:
             )
 
         # Mode simplifié pour les tests unitaires : on injecte un Crew factice via crew_builder
-        if self._crew_builder is not self._build_crew:
+        if self._use_mock_crew:
             return self._run_with_mocked_crew(
                 questionnaire_data, persona_inference, run_id, run_dir if should_save else None
             )
