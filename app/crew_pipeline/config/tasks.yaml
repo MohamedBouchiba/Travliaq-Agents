@@ -181,9 +181,19 @@ tasks:
          - Format: "22°C" ou "20-25°C"
 
       4. **Générer le CODE VOYAGE unique** :
-         - Format: [DESTINATION]-[ANNEE]
-         - Exemple: "TOKYO-2025", "LISBOA-2025", "PARIS-2025"
-         - Normaliser: MAJUSCULES, remplacer espaces par -, max 20 caractères
+         - Format: [DESTINATION]-[THEME/STYLE]-[ANNEE]
+         - Exemples:
+           * "TOKYO-CULTURE-2025" (Tokyo, voyage culturel)
+           * "BALI-WELLNESS-2025" (Bali, voyage bien-être)
+           * "ICELAND-ADVENTURE-2025" (Islande, voyage aventure)
+           * "PARIS-ROMANCE-2025" (Paris, voyage romantique)
+           * "NYC-BUSINESS-2025" (New York, voyage d'affaires)
+         - Règles:
+           * MAJUSCULES uniquement
+           * Remplacer espaces/caractères spéciaux par -
+           * Max 30 caractères au total
+           * Le THEME doit refléter le style principal du voyage (ex: CULTURE, ADVENTURE, WELLNESS, GASTRONOMY, ROMANCE, FAMILY, BUSINESS, NATURE, BEACH, CITY)
+           * Si plusieurs styles : choisir le plus dominant
 
       5. **Style de voyage** :
          - Basé sur les styles du trip_context
@@ -193,7 +203,7 @@ tasks:
       ```yaml
       destination_choice:
         method: validated  # destination fournie par utilisateur
-        code: "TOKYO-2025"
+        code: "TOKYO-CULTURE-2025"  # Format: DESTINATION-THEME-YEAR
         destination: "Tokyo, Japon 🇯🇵"
         destination_en: "Tokyo, Japan 🇯🇵"
         latitude: 35.6762
@@ -278,7 +288,7 @@ tasks:
             justification: "Destination exotique et culturelle, budget attractif"
 
         # DESTINATION CHOISIE (score le plus élevé)
-        code: "BALI-2025"
+        code: "BALI-CULTURE-2025"  # Format: DESTINATION-THEME-YEAR
         destination: "Bali, Indonésie 🇮🇩"
         destination_en: "Bali, Indonesia 🇮🇩"
         latitude: -8.3405
@@ -300,7 +310,7 @@ tasks:
 
       **RÈGLES CRITIQUES :**
       - TOUJOURS utiliser geo.text_to_place pour obtenir GPS
-      - TOUJOURS générer le CODE VOYAGE (format: DESTINATION-ANNEE)
+      - TOUJOURS générer le CODE VOYAGE (format: DESTINATION-THEME-YEAR)
       - Si CAS B : proposer AU MOINS 3 destinations
       - Documenter toutes les sources MCP utilisées
       - NE JAMAIS inventer de coordonnées GPS
@@ -571,14 +581,15 @@ tasks:
 
       🚨 **RÈGLES ANTI-HALLUCINATION CRITIQUES** 🚨
       - ✅ OBLIGATION ABSOLUE : Utiliser geo.text_to_place pour CHAQUE step (GPS)
-      - ✅ OBLIGATION ABSOLUE : Utiliser images.hero UNE FOIS pour hero_image
-      - ✅ OBLIGATION ABSOLUE : Utiliser images.background pour CHAQUE step
+      - ✅ OBLIGATION ABSOLUE : Utiliser images.hero UNE FOIS pour hero_image (avec retry si échec)
+      - ✅ OBLIGATION ABSOLUE : Utiliser images.background pour CHAQUE step (avec retry si échec)
       - ❌ INTERDICTION TOTALE : URLs Wikipedia, Unsplash, Pexels, ou externes
       - ❌ INTERDICTION TOTALE : Inventer des coordonnées GPS
       - ❌ INTERDICTION TOTALE : Inventer des lieux qui n'existent pas
       - ⚠️ Si geo.text_to_place échoue : ESSAYER un autre nom, NE PAS inventer GPS
-      - ⚠️ Si images.background échoue : SIGNALER l'erreur, NE PAS inventer URL
+      - ⚠️ Si images échouent : RETRY puis utiliser placeholder, NE PAS bloquer la pipeline
       - 🎯 PRIORITÉ : Pertinence > Quantité. Mieux vaut 1 step parfaite que 3 approximatives
+      - 🛡️ RÉSISTANCE : La pipeline doit continuer même en cas d'échecs partiels de tools
 
       ---
 
@@ -596,14 +607,18 @@ tasks:
 
       ## **RÈGLES ABSOLUES - À RESPECTER IMPÉRATIVEMENT**
 
-      ### **1. NOMBRE DE STEPS PAR JOUR**
-      - **MINIMUM 1 step par jour**
-      - **MAXIMUM 3 steps par jour**
-      - **IDÉAL : 2 steps par jour**
-      - Adapter selon rhythm :
-        * relaxed : 1-2 steps/jour
-        * balanced : 2 steps/jour
-        * intense : 2-3 steps/jour
+      ### **1. NOMBRE DE STEPS PAR JOUR (FLEXIBLE)**
+      - ⚠️ **PAS DE NOMBRE FIXE** : Adapter le nombre de steps selon le contexte
+      - **MINIMUM ABSOLU : 1 step par jour**
+      - **MAXIMUM ABSOLU : 3 steps par jour**
+      - **RECOMMANDATION** : Adapter selon rhythm ET type de journée :
+        * relaxed : 1-2 steps/jour (privilégier 1 step longue et immersive)
+        * balanced : 1-2 steps/jour (2 steps si activités courtes, 1 si activité longue)
+        * intense : 2-3 steps/jour (varier entre 2 et 3 selon fatigue)
+      - 🎯 **PRIORITÉ : PERTINENCE > QUANTITÉ**
+        * Mieux vaut 1 visite exceptionnelle de 4h qu'ajouter 2 steps moyennes
+        * Respecter les temps de transport, pauses, repas
+        * Éviter de surcharger les journées juste pour atteindre un quota
 
       ### **2. COORDONNÉES GPS OBLIGATOIRES**
       Pour CHAQUE step (sauf steps de type "transport" ou "récapitulatif") :
@@ -660,7 +675,21 @@ tasks:
       - ❌ JAMAIS d'URLs Pexels ou autre source externe
       - ✅ TOUJOURS utiliser les URLs retournées par images.hero et images.background
       - ✅ URLs commencent par "https://xznsdvvfqoztlqtqhkhv.supabase.co/storage/v1/object/public/TRIPS/"
-      - ⚠️ Si tool échoue : signaler l'erreur, NE PAS inventer d'URL de remplacement
+
+      **GESTION DES ERREURS IMAGES (RÉSISTANCE AUX ÉCHECS) :**
+      - ⚠️ Si images.hero échoue :
+        * RETRY une fois avec des paramètres légèrement différents
+        * Si échec persistant : utiliser URL placeholder spéciale "HERO_IMAGE_GENERATION_FAILED"
+        * Continuer l'exécution normalement pour les images.background
+        * NE PAS bloquer toute la pipeline pour une erreur d'image
+      - ⚠️ Si images.background échoue pour UNE step :
+        * RETRY une fois avec description simplifiée
+        * Si échec persistant : utiliser "BACKGROUND_IMAGE_GENERATION_FAILED"
+        * Continuer avec les autres steps
+        * Documenter l'erreur dans un champ notes de la step
+      - 🎯 **PRINCIPE : La pipeline doit être RÉSISTANTE aux échecs d'images**
+        * Les images enrichissent l'expérience mais ne doivent PAS bloquer le voyage
+        * En cas d'échec massif d'images : compléter l'itinéraire avec données GPS/texte valides
 
       ### **4. STRUCTURE DE CHAQUE STEP**
 
@@ -1120,7 +1149,7 @@ tasks:
       {itinerary_plan}
 
       **BUDGET :**
-      {budget_summary}
+      (Disponible depuis la tâche précédente budget_calculation - utilise l'output de cette tâche)
 
       **CONTEXTE VOYAGE :**
       {trip_context}
@@ -1172,7 +1201,7 @@ tasks:
 
       ⚠️ **SI main_image NE COMMENCE PAS PAR L'URL SUPABASE :**
       - ❌ REJETER CETTE STEP avec erreur explicite
-      - 📝 Logger : "Step {step_number} a une main_image invalide : {main_image}"
+      - 📝 Logger : "Step [numéro] a une main_image invalide : [URL]"
       - 🚫 NE PAS inclure cette step dans le JSON final
 
       ✅ **Vérifier latitude + longitude :**
@@ -1195,17 +1224,21 @@ tasks:
 
       ### **3. GÉNÉRATION DU CODE VOYAGE**
 
-      Si destination_choice.code existe : utiliser tel quel
-      Sinon, générer :
-      - Format : [DESTINATION]-[ANNEE]
-      - Exemple : "TOKYO-2025", "LISBOA-2025", "BALI-2025"
-      - Normaliser : MAJUSCULES, remplacer espaces/caractères spéciaux par "-", max 20 caractères
-      - Commencer par une LETTRE obligatoirement
+      Si destination_choice.code existe : **UTILISER TEL QUEL** (ne pas régénérer)
+      Sinon, générer en suivant les règles :
+      - Format : [DESTINATION]-[THEME]-[YEAR]
+      - Exemples : "TOKYO-CULTURE-2025", "BALI-WELLNESS-2025", "PARIS-ROMANCE-2025"
+      - Règles de normalisation :
+        * MAJUSCULES uniquement
+        * Remplacer espaces/caractères spéciaux par "-"
+        * Max 30 caractères total
+        * Commencer par une LETTRE obligatoirement
+        * THEME basé sur travel_style (CULTURE, ADVENTURE, WELLNESS, GASTRONOMY, ROMANCE, FAMILY, BUSINESS, NATURE, BEACH, CITY)
 
       ### **4. VALIDATION FINALE**
 
       Avant de retourner le JSON, vérifier :
-      - ✅ code est valide (pattern: ^[A-Z][A-Z0-9-]{2,19}$)
+      - ✅ code est valide (pattern: ^[A-Z][A-Z0-9-]{2,29}$) - max 30 caractères
       - ✅ destination est non vide
       - ✅ total_days > 0
       - ✅ steps contient au moins 1 step
