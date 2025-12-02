@@ -1,6 +1,7 @@
 """Assemblage final du YAML `trip` à partir des artefacts d'agents et de scripts."""
 from __future__ import annotations
 
+import re
 from typing import Any, Dict, List, Optional
 
 DEFAULT_MAIN_IMAGE = "https://images.unsplash.com/photo-1507525428034-b723cf961d3e"
@@ -16,6 +17,26 @@ def _extract_summary_stats(final_choice: Dict[str, Any]) -> List[Dict[str, Any]]
     if isinstance(stats, list):
         return stats
     return []
+
+
+def _normalize_trip_code(raw_code: Optional[str]) -> str:
+    """Normalise le code du trip pour respecter la règle `^[A-Z][A-Z0-9-]{2,19}$`."""
+
+    if not raw_code:
+        return "TRIP"
+
+    code = str(raw_code).upper()
+    code = re.sub(r"[^A-Z0-9]+", "-", code).strip("-")
+
+    # Assurer que le code commence par une lettre et fait au moins 3 caractères
+    if not code or not code[0].isalpha():
+        code = f"T{code}" if code else "TRIP"
+
+    code = code[:20]
+    if len(code) < 3:
+        code = code.ljust(3, "X")
+
+    return code
 
 
 def assemble_trip(
@@ -38,7 +59,9 @@ def assemble_trip(
         return DEFAULT_MAIN_IMAGE
 
     trip_core = {
-        "code": destination_choice.get("code") or (questionnaire.get("destination") or "DEST2026").upper().replace(" ", ""),
+        "code": _normalize_trip_code(
+            destination_choice.get("code") or questionnaire.get("destination") or "TRIP"
+        ),
         "destination": destination_choice.get("destination") or questionnaire.get("destination"),
         "destination_en": destination_choice.get("destination_en"),
         "total_days": destination_choice.get("total_days") or normalized_trip_request.get("nuits_exactes") or questionnaire.get("nuits_exactes"),
