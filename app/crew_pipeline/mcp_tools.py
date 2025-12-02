@@ -358,31 +358,39 @@ async def custom_sse_client(
                                     # CRITICAL FIX: This MCP server responds directly in POST body
                                     # instead of via SSE events. Parse and forward to read stream.
                                     if response.text:
-                                        try:
-                                            logger.info(f"📦 Parsing POST response as JSON-RPC message...")
-                                            
-                                            # The response might be SSE-formatted (event: message\ndata: {...})
-                                            response_text = response.text.strip()
-                                            json_text = response_text
-                                            
-                                            # Check if it's SSE format
-                                            if response_text.startswith("event:"):
-                                                logger.info("🔍 Detected SSE format in POST response, extracting data...")
-                                                # Extract the JSON from the 'data:' line
-                                                for line in response_text.split('\n'):
-                                                    if line.startswith('data:'):
-                                                        json_text = line[5:].strip()  # Remove 'data:' prefix
-                                                        logger.info(f"✂️ Extracted JSON from SSE data line")
-                                                        break
-                                            
-                                            response_message = types.JSONRPCMessage.model_validate_json(json_text)
-                                            logger.info(f"✅ Parsed response: method={getattr(response_message, 'method', None)}, id={getattr(response_message, 'id', None)}")
-                                            response_session_message = SessionMessage(response_message)
-                                            await read_stream_writer.send(response_session_message)
-                                            logger.info(f"📬 Response forwarded to session read stream")
-                                        except Exception as exc:
-                                            logger.error(f"❌ Failed to parse POST response: {exc}")
-                                            logger.error(f"Response text: {response.text[:500]}")
+                                        logger.info(f"📦 Parsing POST response as JSON-RPC message...")
+                                        
+                                        # The response might be SSE-formatted (event: message\ndata: {...})
+                                        response_text = response.text.strip()
+                                        json_text = response_text
+                                        
+                                        # Check if it's SSE format
+                                        if response_text.startswith("event:"):
+                                            current_event = None
+                                            for line in response_text.split('\n'):
+                                                line = line.strip()
+                                                if not line:
+                                                    continue
+                                                    
+                                                if line.startswith('event:'):
+                                                    current_event = line[6:].strip()
+                                                elif line.startswith('data:'):
+                                                    json_text = line[5:].strip()
+                                                    
+                                                    try:
+                                                        response_message = types.JSONRPCMessage.model_validate_json(json_text)
+                                                        response_session_message = SessionMessage(response_message)
+                                                        await read_stream_writer.send(response_session_message)
+                                                    except Exception as exc:
+                                                        logger.error(f"❌ Failed to parse JSON from SSE line: {exc}")
+                                        else:
+                                            # Fallback for non-SSE response (if any)
+                                            try:
+                                                response_message = types.JSONRPCMessage.model_validate_json(response_text)
+                                                response_session_message = SessionMessage(response_message)
+                                                await read_stream_writer.send(response_session_message)
+                                            except Exception as exc:
+                                                logger.error(f"❌ Failed to parse POST response: {exc}")
                         except Exception:
                             logger.exception("Error in post_writer")
                         finally:
