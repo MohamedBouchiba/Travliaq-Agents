@@ -4,6 +4,8 @@ import logging
 from typing import Any, List, Dict, Type, Optional
 import time
 import re
+from datetime import date, datetime
+from functools import wraps
 
 from crewai.tools import BaseTool
 from pydantic import BaseModel, Field, create_model
@@ -32,6 +34,65 @@ from contextlib import asynccontextmanager
 from urllib.parse import urljoin, urlparse
 
 logger = logging.getLogger(__name__)
+
+
+def validate_date_params(func):
+    """
+    Décorateur qui valide les paramètres de date AVANT l'exécution de l'outil MCP.
+
+    Vérifie que toutes les dates sont:
+    - Au format ISO valide (YYYY-MM-DD)
+    - Dans le futur (>= aujourd'hui)
+
+    Lance une ValueError avec message explicite si validation échoue.
+    """
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        today = date.today()
+
+        # Liste des paramètres de date à valider
+        date_params = [
+            'checkin',
+            'checkout',
+            'departure',
+            'return_date',
+            'date',
+            'departure_date',
+            'return',
+        ]
+
+        for param in date_params:
+            if param in kwargs:
+                date_str = kwargs[param]
+
+                if not date_str:
+                    continue  # Paramètre optionnel non fourni
+
+                # Validation du format
+                try:
+                    date_obj = datetime.fromisoformat(str(date_str)).date()
+                except (ValueError, AttributeError) as e:
+                    raise ValueError(
+                        f"❌ Format de date invalide pour '{param}': {date_str}\n"
+                        f"Format attendu: YYYY-MM-DD (exemple: 2025-12-15)\n"
+                        f"Erreur: {e}"
+                    ) from e
+
+                # Validation date future
+                if date_obj < today:
+                    raise ValueError(
+                        f"❌ Date passée détectée pour '{param}': {date_str}\n"
+                        f"Les voyages ne peuvent être planifiés que dans le futur.\n"
+                        f"Date minimum: {today.isoformat()}\n"
+                        f"💡 Suggestion: Consulte system_contract.timing.departure_dates_whitelist "
+                        f"pour les dates validées."
+                    )
+
+        # Si toutes les validations passent, exécuter la fonction
+        return func(*args, **kwargs)
+
+    return wrapper
+
 
 # Configuration pour les retries et timeouts
 _FAST_TEST_MODE = os.getenv("FAST_TEST_MODE", "").lower() in {"1", "true", "yes", "on"}
@@ -99,7 +160,8 @@ class MCPToolWrapper(BaseTool):
     tool_name: str = Field(..., description="Name of the tool on the MCP server")
     timeout: int = Field(default=MCP_TIMEOUT_SECONDS, description="Timeout en secondes")
     max_retries: int = Field(default=MCP_MAX_RETRIES, description="Nombre maximum de tentatives")
-    
+
+    @validate_date_params
     def _run(self, **kwargs: Any) -> Any:
         return asyncio.run(self._async_run(**kwargs))
 
@@ -192,7 +254,8 @@ class MCPResourceWrapper(BaseTool):
     server_url: str = Field(..., description="URL of the MCP server")
     resource_uri: str = Field(..., description="URI of the resource")
     timeout: int = Field(default=MCP_TIMEOUT_SECONDS, description="Timeout en secondes")
-    
+
+    @validate_date_params
     def _run(self, **kwargs: Any) -> Any:
         return asyncio.run(self._async_run(**kwargs))
     

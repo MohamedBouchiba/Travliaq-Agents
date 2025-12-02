@@ -391,6 +391,7 @@ class CrewPipeline:
             "persona_context": persona_yaml,
             "normalized_trip_request": yaml.dump(normalized_trip_request, allow_unicode=True, sort_keys=False),
             "system_contract_draft": system_contract_yaml,
+            "current_year": datetime.now().year,
         }
 
         output_phase2 = crew_phase2.kickoff(inputs=inputs_phase2)
