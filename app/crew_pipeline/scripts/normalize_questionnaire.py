@@ -11,18 +11,48 @@ class NormalizationError(Exception):
 
 
 def _parse_date(value: Any) -> Tuple[Any, List[str]]:
+    """
+    Parse une date depuis différents formats et retourne ISO (YYYY-MM-DD).
+
+    Formats supportés:
+    - ISO: 2025-12-15, 2025/12/15
+    - Européen: 15/12/2025, 15-12-2025, 15.12.2025
+    - Américain: 12/15/2025 (ambiguë avec européen, testé en dernier)
+    """
     warnings: List[str] = []
     if value in (None, "", "null"):
         return None, warnings
     if isinstance(value, datetime):
         return value.date().isoformat(), warnings
     if isinstance(value, str):
-        try:
-            parsed = datetime.fromisoformat(value.replace("Z", ""))
-            return parsed.date().isoformat(), warnings
-        except Exception:
-            warnings.append(f"date invalide: {value}")
-            return None, warnings
+        # Nettoyer la chaîne
+        value_clean = value.strip().replace("Z", "")
+
+        # Liste des formats à essayer (ordre = priorité)
+        formats = [
+            "%Y-%m-%d",      # ISO: 2025-12-15 (format prioritaire)
+            "%Y/%m/%d",      # ISO slash: 2025/12/15
+            "%d/%m/%Y",      # Européen slash: 15/12/2025
+            "%d-%m-%Y",      # Européen dash: 15-12-2025
+            "%d.%m.%Y",      # Européen point: 15.12.2025
+            "%m/%d/%Y",      # Américain: 12/15/2025 (ambiguë, testé en dernier)
+        ]
+
+        for fmt in formats:
+            try:
+                parsed = datetime.strptime(value_clean, fmt)
+                iso_date = parsed.date().isoformat()
+                # Log si conversion effectuée depuis format non-ISO
+                if fmt != "%Y-%m-%d":
+                    warnings.append(f"date convertie depuis {fmt}: {value} -> {iso_date}")
+                return iso_date, warnings
+            except ValueError:
+                continue
+
+        # Si aucun format ne fonctionne
+        warnings.append(f"date invalide (aucun format reconnu): {value}")
+        return None, warnings
+
     warnings.append(f"format inconnu pour la date: {value}")
     return None, warnings
 

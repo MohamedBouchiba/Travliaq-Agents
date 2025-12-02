@@ -1,211 +1,1356 @@
 tasks:
-  traveller_profile_brief:
+  # ==========================================================================
+  # TASK 1: TRIP CONTEXT BUILDING
+  # ==========================================================================
+  trip_context_building:
     description: |-
-      Analyse attentivement le questionnaire client et l'inférence persona existante.
+      Tu reçois le questionnaire utilisateur et l'inférence persona. Ta mission :
+      extraire et structurer les informations critiques pour créer un contexte
+      clair que tous les autres agents utiliseront.
 
-      QUESTIONNAIRE (YAML):
+      **QUESTIONNAIRE (YAML):**
       {questionnaire}
 
-      INFÉRENCE PERSONA (YAML):
+      **INFÉRENCE PERSONA (YAML):**
       {persona_context}
 
-      Produis un raisonnement explicite: identifie les éléments positifs, les points de vigilance, les besoins critiques.
-      Termine par un paragraphe narratif immersif.
+      **INFORMATIONS À EXTRAIRE :**
+
+      1. **Destination** :
+         - has_destination: yes/no (du questionnaire)
+         - destination_provided: [nom exact si fourni] ou null
+         - destination_type: city/region/country
+
+      2. **Dates** :
+         - dates_type: fixed/flexible/no_dates
+         - departure_date: [YYYY-MM-DD] si fixed
+         - return_date: [YYYY-MM-DD] si fixed
+         - departure_window: {start, end} si flexible
+         - return_window: {start, end} si flexible
+         - duration_nights: [nombre] (obligatoire)
+
+      3. **Voyageurs** :
+         - travel_group: solo/duo/group35/family
+         - travelers_count: [nombre]
+         - children_count: [nombre] si family
+         - travelers_details: [liste si fournie]
+
+      4. **Budget** :
+         - budget_amount: [nombre] (par personne ou total selon context)
+         - budget_currency: EUR/USD/etc.
+         - budget_type: per_person/total_group
+         - budget_range: {min, max} si fourni
+
+      5. **Services demandés** :
+         - help_with: [liste] (flights, accommodation, activities)
+         - Si vide ou null, considérer comme ["flights", "accommodation", "activities"]
+
+      6. **Préférences voyage** :
+         - rhythm: relaxed/balanced/intense (si activities demandé)
+         - schedule_prefs: [liste] (Matinal, Flexible, Couche-tard)
+         - styles: [liste] (Culture, Gastronomie, Nature, etc.)
+         - mobility: [liste] (Voiture, Transports en commun, Vélo, À pied)
+
+      7. **Contraintes** :
+         - constraints: [liste] (Allergies, Handicap, Animal, etc.)
+         - security_level: low/medium/high (inféré ou fourni)
+
+      8. **Préférences vols** (si flights dans help_with) :
+         - departure_location: [ville, pays]
+         - flight_preference: direct/1_escale/flexible
+         - luggage: cabin_only/checked_included
+
+      9. **Préférences hébergement** (si accommodation dans help_with) :
+         - accommodation_type: [liste] (Hôtel, Appartement, Auberge)
+         - comfort: economique/standard/confort/luxe
+         - hotel_preferences: [liste] (Petit-déjeuner, Annulation gratuite, etc.)
+         - neighborhood: centre/calme/transports
+         - equipment: [liste] (WiFi, Piscine, Parking, etc.)
+
+      **DÉTECTION D'INCOHÉRENCES :**
+      - Si dates fixed mais pas de departure_date → WARN
+      - Si budget_amount = 0 ou null → WARN
+      - Si has_destination=yes mais pas de destination fournie → WARN
+      - Si duration_nights manquant → calculer depuis dates ou mettre null
+
+      **RÈGLES CRITIQUES :**
+      - NE JAMAIS inventer d'informations absentes
+      - Si info manquante → null
+      - Si incohérence → signaler dans warnings
+      - Toujours inclure current_year: {current_year}
+
     expected_output: |-
-      Une analyse structurée au format YAML STRICT.
+      Un YAML structuré STRICT avec TOUTES les informations extraites :
 
       ```yaml
-      persona_analysis:
-        macro_persona_identified: "Nom du persona MCP"
-        narrative: "Texte immersif..."
-        pros: ["point 1", "point 2"]
-        cons: ["point 1", "point 2"]
-        critical_needs: ["besoin 1"]
-        implicit_goals: ["objectif 1"]
+      trip_context:
+        destination:
+          has_destination: yes  # ou no
+          destination_provided: "Tokyo, Japon"  # ou null
+          destination_type: city  # ou region, country, null
+
+        dates:
+          dates_type: fixed  # ou flexible, no_dates
+          departure_date: "2025-12-15"  # ou null
+          return_date: "2025-12-22"  # ou null
+          departure_window:  # si flexible
+            start: "2025-12-10"
+            end: "2025-12-20"
+          return_window:  # si flexible
+            start: "2025-12-17"
+            end: "2025-12-27"
+          duration_nights: 7
+
+        travelers:
+          travel_group: duo  # solo, duo, group35, family
+          travelers_count: 2
+          children_count: 0  # ou nombre si family
+          travelers_details: []  # ou liste si fournie
+
+        budget:
+          budget_amount: 1500
+          budget_currency: EUR
+          budget_type: per_person  # ou total_group
+          budget_range:
+            min: 1200
+            max: 1800
+
+        services_requested:
+          help_with: ["flights", "accommodation", "activities"]
+          flights_needed: true
+          accommodation_needed: true
+          activities_needed: true
+
+        preferences:
+          rhythm: balanced  # relaxed, balanced, intense
+          schedule_prefs: ["Flexible"]
+          styles: ["Culture", "Gastronomie"]
+          mobility: ["Transports en commun", "À pied"]
+
+        constraints:
+          constraints_list: []  # ou liste
+          security_level: medium  # low, medium, high
+
+        flights_prefs:  # si flights_needed
+          departure_location: "Bruxelles, Belgique"
+          flight_preference: direct  # direct, 1_escale, flexible
+          luggage: checked_included  # cabin_only, checked_included
+
+        accommodation_prefs:  # si accommodation_needed
+          accommodation_type: ["Hôtel"]
+          comfort: confort  # economique, standard, confort, luxe
+          hotel_preferences: ["Petit-déjeuner inclus", "Annulation gratuite"]
+          neighborhood: centre  # centre, calme, transports
+          equipment: ["WiFi gratuit", "Piscine"]
+
+        warnings: []  # Liste des incohérences détectées
+        current_year: 2025
       ```
+
       **NE JAMAIS PRODUIRE DE JSON.**
+
     async_execution: false
 
-  persona_challenge_review:
+  # ==========================================================================
+  # TASK 2: DESTINATION STRATEGY
+  # ==========================================================================
+  destination_strategy:
     description: |-
-      Tu es le relecteur critique de l'analyse précédente.
+      Tu reçois le trip_context de la tâche précédente. Ta mission dépend de has_destination.
 
-      **Action MCP OBLIGATOIRE** : vérifie la faisabilité (budget, destination, saison) en consultant les guides et études via MCP.
-      1. Challenge l'argumentation.
-      2. Vérifie la cohérence avec le questionnaire.
-      3. Cite tes sources MCP.
-    expected_output: |-
-      Une revue critique au format YAML STRICT.
+      **IMPORTANT** : Le trip_context est disponible dans l'output de la tâche précédente.
+      Utilise les informations de destination, dates, budget, styles, etc. pour effectuer ta stratégie.
 
+      **ANNÉE ACTUELLE :** {current_year}
+
+      ---
+
+      ## **CAS A : has_destination = yes (Destination fournie)**
+
+      L'utilisateur a fourni une destination. Tu dois :
+
+      1. **Valider la destination** avec geo.text_to_place(query="Tokyo")
+         - Obtenir les coordonnées GPS (latitude, longitude)
+         - Vérifier que la destination existe
+
+      2. **Enrichir avec places.overview(query="Tokyo")**
+         - Obtenir des infos supplémentaires (pays, région, etc.)
+
+      3. **Météo estimée** :
+         - Utiliser les dates du voyage pour estimer la météo moyenne
+         - Format: "22°C" ou "20-25°C"
+
+      4. **Générer le CODE VOYAGE unique** :
+         - Format: [DESTINATION]-[ANNEE]
+         - Exemple: "TOKYO-2025", "LISBOA-2025", "PARIS-2025"
+         - Normaliser: MAJUSCULES, remplacer espaces par -, max 20 caractères
+
+      5. **Style de voyage** :
+         - Basé sur les styles du trip_context
+         - Exemple: "Culture & Gastronomie", "Nature & Aventure"
+
+      **OUTPUT ATTENDU pour CAS A :**
       ```yaml
-      challenge_report:
-        feasibility_check:
-          budget_valid: true/false
-          season_valid: true/false
-          notes: "Explication basée sur le guide X..."
-        biases_detected: ["biais 1"]
-        recommendations: ["action 1"]
+      destination_choice:
+        method: validated  # destination fournie par utilisateur
+        code: "TOKYO-2025"
+        destination: "Tokyo, Japon 🇯🇵"
+        destination_en: "Tokyo, Japan 🇯🇵"
+        latitude: 35.6762
+        longitude: 139.6503
+        country: "Japon"
+        region: "Kantō"
+        average_weather: "22°C"
+        travel_style: "Culture & Gastronomie"
+        travel_style_en: "Culture & Food"
+        total_days: 7  # depuis trip_context
+        validation_notes: "Destination validée via geo.text_to_place"
       ```
-      **NE JAMAIS PRODUIRE DE JSON.**
-    async_execution: false
 
-  trip_specifications_design:
-    description: |-
-      Tu es responsable de la création du fichier de spécifications final.
-      Fusionne les faits bruts du questionnaire (input_payload) avec l'analyse validée.
+      ---
 
-      INPUT PAYLOAD (YAML):
-      {input_payload}
+      ## **CAS B : has_destination = no (Pas de destination)**
 
-      Directives :
-      1. Fidélité Totale : Si info absente -> null.
-      2. Structure : Produis un YAML propre respectant strictement la structure cible.
-    expected_output: |-
-      Un fichier YAML STRICT contenant uniquement la clé `normalized_trip_request`.
+      L'utilisateur n'a pas de destination. Tu dois :
 
+      1. **Proposer 3-5 destinations** compatibles avec :
+         - Budget (budget_amount, budget_currency)
+         - Dates (departure_date ou departure_window)
+         - Durée (duration_nights)
+         - Styles (preferences.styles)
+         - Voyageurs (travel_group, travelers_count)
+
+      2. **Pour CHAQUE destination proposée** :
+         - Utiliser geo.text_to_place(query="Bali") pour GPS
+         - Utiliser places.overview(query="Bali") pour infos
+         - Calculer un SCORE sur 100 :
+           * Budget compatible (30 points)
+           * Saison favorable (25 points)
+           * Sécurité (20 points)
+           * Match avec styles (15 points)
+           * Accessibilité depuis departure_location (10 points)
+         - Lister les RISQUES (météo, sécurité, visa, etc.)
+         - Estimer le budget indicatif
+
+      3. **Choisir LA MEILLEURE destination** :
+         - Celle avec le score le plus élevé
+         - Justifier le choix avec 2-3 arguments clairs
+
+      4. **Générer le CODE VOYAGE** pour la destination choisie
+
+      **OUTPUT ATTENDU pour CAS B :**
       ```yaml
-      normalized_trip_request:
-        email: "..."
-        voyageurs: 0
-        destination: "..."
-        nuits_exactes: 0
-        contraintes: []
-      ```
-      **NE JAMAIS PRODUIRE DE JSON.**
-    async_execution: false
+      destination_choice:
+        method: scouted  # destination choisie par l'agent
 
-  system_contract_validation:
-    description: |-
-      Voici le System Contract généré automatiquement par le script Python :
+        options_considered:
+          - city: "Bali"
+            country: "Indonésie"
+            latitude: -8.3405
+            longitude: 115.0920
+            score: 87
+            budget_fit: excellent  # excellent, good, acceptable
+            season_fit: parfaite  # parfaite, bonne, moyenne
+            risks: ["Saison des pluies partielle"]
+            indicative_budget: "1200-1500€"
+            justification: "Destination tropicale idéale pour culture et nature, budget compatible"
 
-      {system_contract_draft}
+          - city: "Lisbonne"
+            country: "Portugal"
+            latitude: 38.7223
+            longitude: -9.1393
+            score: 82
+            budget_fit: excellent
+            season_fit: bonne
+            risks: []
+            indicative_budget: "1100-1400€"
+            justification: "Ville culturelle et gastronomique, proche de Bruxelles"
 
-      Ton rôle CRITIQUE :
-      1. Vérifier la cohérence : Les dates calculées sont-elles logiques ? Le budget est-il réaliste ?
-      2. Compléter les spécifications : Enrichis les sections flights/accommodation/experience avec les préférences du voyageur.
-      3. Ajouter les tags manquants : Utilise les analyses précédentes pour compléter interest_vectors, constraints, etc.
-    expected_output: |-
-      Le System Contract COMPLET et VALIDÉ au format YAML STRICT.
-
-      ```yaml
-      system_contract:
-        meta: {...}
-        user_intelligence: {...}
-        timing: {...}
-        geography: {...}
-        financials: {...}
-        specifications: {...}
-      ```
-      **NE JAMAIS PRODUIRE DE JSON.**
-    async_execution: false
-
-  destination_scouting:
-    description: |-
-      Propose 4-5 options de destination compatibles avec le budget, les dates et le style.
-      Inclue un score de faisabilité (0-100), les risques météo/sécurité et les coûts approximatifs.
-
-      **Action MCP** : Pour valider une ville, utilise `geo.text_to_place` avec le paramètre `query` (ex: "Paris"). Ne jamais passer de dictionnaire ou d'objet complexe.
-    expected_output: |-
-      ```yaml
-      destination_slate:
-        options:
-          - city: "..."
-            country: "..."
+          - city: "Marrakech"
+            country: "Maroc"
+            latitude: 31.6295
+            longitude: -7.9811
             score: 78
-            risks: ["..."]
-            indicative_budget: "..."
+            budget_fit: good
+            season_fit: moyenne
+            risks: ["Chaleur élevée en été"]
+            indicative_budget: "1000-1300€"
+            justification: "Destination exotique et culturelle, budget attractif"
+
+        # DESTINATION CHOISIE (score le plus élevé)
+        code: "BALI-2025"
+        destination: "Bali, Indonésie 🇮🇩"
+        destination_en: "Bali, Indonesia 🇮🇩"
+        latitude: -8.3405
+        longitude: 115.0920
+        country: "Indonésie"
+        region: "Bali"
+        average_weather: "28°C"
+        travel_style: "Culture & Nature"
+        travel_style_en: "Culture & Nature"
+        total_days: 7
+        decision_rationale: |-
+          Bali a été choisie (score: 87/100) pour 3 raisons principales :
+          1. Budget parfaitement compatible (1200-1500€ vs 1500€ demandé)
+          2. Destination idéale pour Culture & Nature (match avec vos styles)
+          3. Saison favorable avec météo agréable (28°C en moyenne)
       ```
+
+      ---
+
+      **RÈGLES CRITIQUES :**
+      - TOUJOURS utiliser geo.text_to_place pour obtenir GPS
+      - TOUJOURS générer le CODE VOYAGE (format: DESTINATION-ANNEE)
+      - Si CAS B : proposer AU MOINS 3 destinations
+      - Documenter toutes les sources MCP utilisées
+      - NE JAMAIS inventer de coordonnées GPS
+
+    expected_output: |-
+      Un YAML STRICT avec la structure destination_choice (CAS A ou CAS B selon has_destination).
+
+      **NE JAMAIS PRODUIRE DE JSON.**
+
     async_execution: false
 
-  flight_pricing:
+  # ==========================================================================
+  # TASK 3: FLIGHTS RESEARCH
+  # ==========================================================================
+  flights_research:
     description: |-
-      Estime les vols principaux pour les options retenues (prix, durée, bagages, escales).
-      Priorité : ne pas halluciner. Si info absente -> null.
+      🚨 **RÈGLES ANTI-HALLUCINATION** 🚨
+      - ✅ OBLIGATION : Utiliser UNIQUEMENT flights.prices pour les estimations de prix
+      - ✅ OBLIGATION : Utiliser airports.nearest pour trouver les aéroports
+      - ❌ INTERDICTION : Inventer des prix ou des horaires de vol
+      - ❌ INTERDICTION : Utiliser des données obsolètes ou approximatives
+      - ⚠️ Si aucun tool disponible : SIGNALER "Données indisponibles" avec raison
+      - ⚠️ Si tool échoue : INDIQUER l'erreur précise, NE PAS inventer de données
 
-      **RÈGLE CRITIQUE DATES** : Utilise UNIQUEMENT les dates validées dans `system_contract.timing` (departure_dates_whitelist, return_dates_whitelist).
-      REFUSE d'utiliser des dates passées (avant {current_year}). Si les dates sont en 2023/2024, c'est une erreur : utilise les dates corrigées du contrat.
+      ---
 
-      **Action MCP** : Utilise `flights.prices` et `airports.nearest` avec des valeurs STRING simples (ex: origin="BRU", destination="DPS", city="Bali"). Ne jamais passer de dictionnaire.
+      Tu reçois le trip_context et la destination_choice. Ta mission : rechercher
+      et estimer les vols UNIQUEMENT via les tools MCP.
+
+      **CONTEXTE VOYAGE :**
+      {trip_context}
+
+      **DESTINATION CHOISIE :**
+      {destination_choice}
+
+      **DATES VALIDÉES :**
+      - Départ : {validated_departure_dates}
+      - Retour : {validated_return_dates}
+
+      **ANNÉE ACTUELLE :** {current_year}
+
+      ---
+
+      **PROCESSUS OBLIGATOIRE :**
+
+      1. **Identifier les aéroports** :
+         - Origine : airports.nearest(city="Bruxelles") depuis trip_context.flights_prefs.departure_location
+         - Destination : airports.nearest(city="Tokyo") depuis destination_choice.destination
+
+      2. **Rechercher les vols** :
+         - Utiliser flights.prices(origin="BRU", destination="NRT", departure="2025-12-15")
+         - RÈGLE CRITIQUE : dates >= {current_year}-12-02 (JAMAIS de dates 2023 ou 2024)
+         - Respecter flight_preference (direct/1_escale/flexible)
+
+      3. **Sélectionner la meilleure option** :
+         - Prioriser selon flight_preference
+         - Vérifier compatibilité avec budget
+
+      4. **Estimer les bagages** :
+         - Si luggage=cabin_only : 0€ supplémentaire
+         - Si luggage=checked_included : +30-50€ par personne
+
+      **SI OUTILS MCP ÉCHOUENT :**
+      - Fournir une estimation prudente basée sur :
+        * Distance approximative
+        * Prix moyens connus pour cette route
+        * Mentionner explicitement que c'est une estimation
+
+      **CALCUL DU PRIX TOTAL :**
+      - Prix vol aller-retour × nombre de voyageurs
+      - + Bagages si checked_included
+      - Arrondir à la dizaine supérieure
+
     expected_output: |-
+      Un YAML STRICT avec la structure flight_quotes :
+
       ```yaml
       flight_quotes:
-        from: "Bruxelles (BRU)"
-        to: "Destination"
-        duration: "6h30"
-        type: "1 escale"
-        price: "850€"
+        origin:
+          city: "Bruxelles"
+          airport_code: "BRU"
+          airport_name: "Brussels Airport"
+
+        destination:
+          city: "Tokyo"
+          airport_code: "NRT"
+          airport_name: "Narita International Airport"
+
+        outbound:
+          departure_date: "2025-12-15"
+          duration: "12h30"
+          stops: 0  # 0 pour direct, 1 pour 1 escale
+          airline: "Brussels Airlines"
+          price_per_person: 650
+
+        inbound:
+          departure_date: "2025-12-22"
+          duration: "13h00"
+          stops: 0
+          airline: "Brussels Airlines"
+          price_per_person: 650
+
+        total:
+          price_per_person: 1300
+          travelers_count: 2
+          total_price: 2600
+          currency: EUR
+          luggage_included: true
+          luggage_cost: 0  # ou montant si cabin_only et bagages ajoutés
+
+        summary:
+          from: "Bruxelles (BRU)"
+          to: "Tokyo (NRT)"
+          duration: "12h30"
+          type: "Vol direct"  # ou "1 escale" ou "2 escales"
+          price: "2 600€"
+
+        sources: ["flights.prices", "airports.nearest"]
+        notes: "Prix indicatifs basés sur recherche MCP"
       ```
+
+      **NE JAMAIS PRODUIRE DE JSON.**
+
     async_execution: false
 
-  lodging_pricing:
+  # ==========================================================================
+  # TASK 4: ACCOMMODATION RESEARCH
+  # ==========================================================================
+  accommodation_research:
     description: |-
-      Estime les hébergements (type, confort, quartier) avec un slot de prix et les équipements clés.
-      Mentionne la faisabilité budgétaire et les compromis éventuels.
+      🚨 **RÈGLES ANTI-HALLUCINATION** 🚨
+      - ✅ OBLIGATION : Utiliser UNIQUEMENT booking.search pour rechercher hébergements
+      - ✅ OBLIGATION : Utiliser booking.details pour détails si disponible
+      - ❌ INTERDICTION ABSOLUE : Inventer noms d'hôtels, prix, ou notes
+      - ❌ INTERDICTION ABSOLUE : Utiliser des données approximatives
+      - ⚠️ Si booking.search échoue : SIGNALER explicitement et fournir estimation PRUDENTE
+      - ⚠️ TOUJOURS mentionner la source (booking.search result ou estimation)
 
-      **RÈGLE CRITIQUE DATES** : Utilise UNIQUEMENT les dates validées dans `system_contract.timing`.
+      ---
 
-      **Action MCP** : Pour chercher des hôtels, utilise `booking.search` avec des valeurs simples (ex: city="Bali", pas de dictionnaire). Pour valider une ville, utilise `places.overview` avec query="Bali" (string simple, pas d'objet).
+      Tu reçois le trip_context et la destination_choice. Ta mission : rechercher
+      et estimer les hébergements UNIQUEMENT via booking.search.
+
+      **CONTEXTE VOYAGE :**
+      {trip_context}
+
+      **DESTINATION CHOISIE :**
+      {destination_choice}
+
+      **DATES VALIDÉES :**
+      - Check-in : {validated_departure_dates}
+      - Check-out : {validated_return_dates}
+
+      **ANNÉE ACTUELLE :** {current_year}
+
+      ---
+
+      **PROCESSUS OBLIGATOIRE :**
+
+      1. **Valider la destination avec places.overview(query="Tokyo")** :
+         - Obtenir les quartiers populaires
+         - Identifier le centre-ville
+
+      2. **Rechercher les hébergements avec booking.search** :
+         - Paramètres : city="Tokyo", checkin="2025-12-15", checkout="2025-12-22"
+         - Filtrer par type : accommodation_type (Hôtel, Appartement, etc.)
+         - Filtrer par confort : comfort (économique=1-2★, standard=3★, confort=4★, luxe=5★)
+         - Filtrer par quartier : neighborhood (centre/calme/transports)
+         - Filtrer par équipements : equipment (WiFi, Piscine, etc.)
+
+      3. **Sélectionner 1-3 options** :
+         - Meilleur rapport qualité/prix
+         - Compatible avec budget
+         - Match avec préférences (hotel_preferences)
+
+      4. **Pour chaque hébergement** :
+         - Nom complet
+         - Note moyenne (/5)
+         - Prix par nuit
+         - Quartier
+         - Équipements principaux
+         - Lien si disponible
+
+      **SI OUTILS MCP ÉCHOUENT :**
+      - Fournir une estimation prudente basée sur :
+        * Prix moyens connus pour cette destination
+        * Confort demandé (étoiles)
+        * Mentionner explicitement que c'est une estimation
+
+      **CALCUL DU PRIX TOTAL :**
+      - Prix par nuit × nombre de nuits × nombre de chambres
+      - Arrondir à la dizaine supérieure
+
     expected_output: |-
+      Un YAML STRICT avec la structure lodging_quotes :
+
       ```yaml
       lodging_quotes:
-        hotel_name: "..."
-        hotel_rating: 4.5
-        price: "620€"
-        neighborhood: "Central"
+        destination:
+          city: "Tokyo"
+          country: "Japon"
+          neighborhood_searched: "Shibuya"
+
+        search_criteria:
+          checkin: "2025-12-15"
+          checkout: "2025-12-22"
+          nights: 7
+          travelers: 2
+          rooms_needed: 1
+          type: ["Hôtel"]
+          comfort: confort  # économique, standard, confort, luxe
+          stars: 4
+
+        options:
+          - hotel_name: "Hotel Gracery Shinjuku"
+            hotel_rating: 4.3
+            stars: 4
+            neighborhood: "Shinjuku"
+            price_per_night: 120
+            total_price: 840
+            currency: EUR
+            amenities: ["WiFi gratuit", "Restaurant", "Climatisation"]
+            url: "https://booking.com/hotel/..."
+            notes: "Hôtel central avec excellent rapport qualité/prix"
+
+          - hotel_name: "Shibuya Excel Hotel Tokyu"
+            hotel_rating: 4.5
+            stars: 4
+            neighborhood: "Shibuya"
+            price_per_night: 140
+            total_price: 980
+            currency: EUR
+            amenities: ["WiFi gratuit", "Petit-déjeuner inclus", "Vue panoramique"]
+            url: "https://booking.com/hotel/..."
+            notes: "Emplacement idéal avec vue sur Shibuya"
+
+        recommended:
+          hotel_name: "Hotel Gracery Shinjuku"
+          hotel_rating: 4.3
+          total_price: 840
+          price_display: "840€"
+          neighborhood: "Shinjuku"
+          justification: "Meilleur rapport qualité/prix, quartier central animé"
+
+        summary:
+          accommodation_type: "Hôtel 4★"
+          nights: 7
+          rooms: 1
+          total_price: 840
+          price_per_night_avg: 120
+          currency: EUR
+          price_display: "840€"
+
+        sources: ["booking.search", "places.overview"]
+        notes: "Prix indicatifs pour 2 voyageurs, 1 chambre double"
       ```
+
+      **NE JAMAIS PRODUIRE DE JSON.**
+
     async_execution: false
 
-  activities_geo_design:
+  # ==========================================================================
+  # TASK 5: ITINERARY DESIGN (CŒUR DE LA PIPELINE)
+  # ==========================================================================
+  itinerary_design:
     description: |-
-      Conçois les steps géolocalisés (1-3/jour) en tenant compte du rythme demandé.
-      Chaque step doit contenir main_image, lat/lon si connu, why/tips et une estimation de durée/prix.
-    expected_output: |-
+      🎯 **TU ES LE CŒUR DE LA PIPELINE. Cette tâche est LA PLUS IMPORTANTE.**
+
+      🚨 **RÈGLES ANTI-HALLUCINATION CRITIQUES** 🚨
+      - ✅ OBLIGATION ABSOLUE : Utiliser geo.text_to_place pour CHAQUE step (GPS)
+      - ✅ OBLIGATION ABSOLUE : Utiliser images.hero UNE FOIS pour hero_image
+      - ✅ OBLIGATION ABSOLUE : Utiliser images.background pour CHAQUE step
+      - ❌ INTERDICTION TOTALE : URLs Wikipedia, Unsplash, Pexels, ou externes
+      - ❌ INTERDICTION TOTALE : Inventer des coordonnées GPS
+      - ❌ INTERDICTION TOTALE : Inventer des lieux qui n'existent pas
+      - ⚠️ Si geo.text_to_place échoue : ESSAYER un autre nom, NE PAS inventer GPS
+      - ⚠️ Si images.background échoue : SIGNALER l'erreur, NE PAS inventer URL
+      - 🎯 PRIORITÉ : Pertinence > Quantité. Mieux vaut 1 step parfaite que 3 approximatives
+
+      ---
+
+      Tu reçois tout le contexte et tu dois concevoir un itinéraire complet jour par jour.
+
+      **CONTEXTE VOYAGE :**
+      {trip_context}
+
+      **DESTINATION CHOISIE :**
+      {destination_choice}
+
+      **ANNÉE ACTUELLE :** {current_year}
+
+      ---
+
+      ## **RÈGLES ABSOLUES - À RESPECTER IMPÉRATIVEMENT**
+
+      ### **1. NOMBRE DE STEPS PAR JOUR**
+      - **MINIMUM 1 step par jour**
+      - **MAXIMUM 3 steps par jour**
+      - **IDÉAL : 2 steps par jour**
+      - Adapter selon rhythm :
+        * relaxed : 1-2 steps/jour
+        * balanced : 2 steps/jour
+        * intense : 2-3 steps/jour
+
+      ### **2. COORDONNÉES GPS OBLIGATOIRES**
+      Pour CHAQUE step (sauf steps de type "transport" ou "récapitulatif") :
+      - Appeler geo.text_to_place(query="Tokyo Tower") OU places.overview(query="Tokyo Tower")
+      - Extraire latitude et longitude
+      - NE JAMAIS inventer de coordonnées GPS
+      - Si tool échoue : signaler l'erreur et essayer un autre nom
+
+      ### **3. IMAGES SUPABASE OBLIGATOIRES**
+
+      **ÉTAPE A : Image Hero (UNE FOIS AU DÉBUT)**
+      ```
+      images.hero(
+        city="Tokyo",
+        country="Japon",
+        trip_name="Tokyo Adventure",
+        trip_folder="tokyo-2025-abc123"
+      )
+      ```
+      → Tu reçois : `{"url": "https://xznsdvvfqoztlqtqhkhv.supabase.co/storage/v1/object/public/TRIPS/tokyo-2025-abc123/hero_1733155800.jpg", "type": "hero"}`
+
+      → **COPIE CETTE URL** dans le champ `hero_image` de ton output
+
+      **ÉTAPE B : Images Background (POUR CHAQUE STEP)**
+      Pour step 1 - "Tokyo Tower" :
+      ```
+      images.background(
+        activity="visiting Tokyo Tower",
+        city="Tokyo",
+        country="Japon",
+        trip_name="Tokyo Adventure",
+        trip_folder="tokyo-2025-abc123"
+      )
+      ```
+      → Tu reçois : `{"url": "https://xznsdvvfqoztlqtqhkhv.supabase.co/storage/v1/object/public/TRIPS/tokyo-2025-abc123/background_1733155920.jpg", "type": "background"}`
+
+      → **COPIE CETTE URL** dans le champ `main_image` de cette step
+
+      Pour step 2 - "Senso-ji Temple" :
+      ```
+      images.background(
+        activity="exploring Senso-ji Temple",
+        city="Tokyo",
+        country="Japon",
+        trip_name="Tokyo Adventure",
+        trip_folder="tokyo-2025-abc123"
+      )
+      ```
+      → **COPIE L'URL RETOURNÉE** dans le champ `main_image` de cette step
+
+      **RÈGLES CRITIQUES POUR LES IMAGES :**
+      - ❌ JAMAIS d'URLs Wikipedia
+      - ❌ JAMAIS d'URLs Unsplash
+      - ❌ JAMAIS d'URLs Pexels ou autre source externe
+      - ✅ TOUJOURS utiliser les URLs retournées par images.hero et images.background
+      - ✅ URLs commencent par "https://xznsdvvfqoztlqtqhkhv.supabase.co/storage/v1/object/public/TRIPS/"
+      - ⚠️ Si tool échoue : signaler l'erreur, NE PAS inventer d'URL de remplacement
+
+      ### **4. STRUCTURE DE CHAQUE STEP**
+
+      Champs OBLIGATOIRES :
+      - step_number : numéro d'ordre (1, 2, 3, ...)
+      - day_number : jour du voyage (1, 2, 3, ...)
+      - title : titre court et accrocheur
+      - main_image : URL Supabase (depuis images.background)
+
+      Champs FORTEMENT RECOMMANDÉS :
+      - latitude : GPS (depuis geo.text_to_place)
+      - longitude : GPS (depuis geo.text_to_place)
+      - why : pourquoi visiter (2-3 phrases)
+      - tips : conseils pratiques (2-3 phrases)
+      - duration : durée estimée (ex: "2h", "3h30", "Demi-journée")
+      - price : prix estimé en euros (nombre, ex: 15, 25, 0 pour gratuit)
+
+      Champs OPTIONNELS :
+      - subtitle : sous-titre descriptif
+      - step_type : activité/visite/restaurant/transport/hébergement
+      - transfer : comment se rendre depuis step précédente
+      - weather_icon : emoji météo (🌤️, ☀️, ⛅)
+      - weather_temp : température estimée
+
+      ### **5. STEP RÉCAPITULATIVE FINALE**
+
+      TOUJOURS ajouter une dernière step de type "récapitulatif" :
+      - is_summary: true
+      - step_number : dernier numéro
+      - day_number : dernier jour
+      - title : "Résumé du voyage"
+      - subtitle : "[X] jours — [Destination]"
+      - main_image : réutiliser hero_image
+      - summary_stats : 4-8 statistiques (voir ci-dessous)
+
+      **SUMMARY_STATS (4 à 8 items obligatoires) :**
+      Types disponibles :
+      - days : nombre de jours
+      - budget : budget total
+      - weather : météo moyenne
+      - style : style de voyage
+      - cities : nombre de villes
+      - people : nombre de voyageurs
+      - activities : nombre d'activités
+      - custom : statistique personnalisée (avec icon, label, color)
+
+      Exemple :
       ```yaml
-      activities_plan:
+      summary_stats:
+        - type: days
+          value: 7
+        - type: budget
+          value: "3 500€"
+        - type: weather
+          value: "22°C"
+        - type: style
+          value: "Culture & Gastronomie"
+        - type: cities
+          value: 2
+        - type: people
+          value: 2
+        - type: activities
+          value: 12
+        - type: custom
+          value: "Direct"
+          icon: "Plane"
+          label: "VOL"
+          color: "golden"
+      ```
+
+      ### **6. ADAPTATION AU RYTHME**
+
+      **relaxed (tranquille)** :
+      - 1-2 activités/jour maximum
+      - Durée: 2-3h par activité
+      - Inclure temps libre/repos
+      - Éviter les journées chargées
+
+      **balanced (équilibré)** :
+      - 2 activités/jour
+      - Durée: 2-4h par activité
+      - Mix activités + temps libre
+      - Rythme confortable
+
+      **intense (intense)** :
+      - 2-3 activités/jour
+      - Durée: 3-5h par activité
+      - Journées bien remplies
+      - Optimisation des trajets
+
+      ### **7. STYLES À RESPECTER**
+
+      Adapter les activités selon styles du trip_context :
+      - Culture : musées, temples, sites historiques
+      - Gastronomie : restaurants, marchés, cours de cuisine
+      - Nature : parcs, randonnées, plages
+      - Aventure : sports, activités outdoor
+      - Détente : spa, plages, wellness
+      - Nightlife : bars, clubs, spectacles
+
+      ---
+
+      ## **EXEMPLE COMPLET D'OUTPUT ATTENDU**
+
+      ```yaml
+      itinerary_plan:
+        hero_image: "https://xznsdvvfqoztlqtqhkhv.supabase.co/storage/v1/object/public/TRIPS/tokyo-2025-abc123/hero_1733155800.jpg"
+
+        steps:
+          # JOUR 1
+          - step_number: 1
+            day_number: 1
+            title: "Arrivée à Tokyo"
+            subtitle: "Installation et première découverte de Shibuya"
+            main_image: "https://xznsdvvfqoztlqtqhkhv.supabase.co/storage/v1/object/public/TRIPS/tokyo-2025-abc123/background_1733155900.jpg"
+            step_type: "activité"
+            latitude: 35.6595
+            longitude: 139.7004
+            duration: "2h"
+            price: 0
+            why: "Shibuya Crossing est l'un des passages piétons les plus emblématiques au monde. Immersion immédiate dans l'énergie de Tokyo."
+            tips: "Visitez en fin d'après-midi pour voir le crossing illuminé. Montez au Shibuya Sky pour une vue panoramique (2000¥)."
+            transfer: "30 min en train depuis l'aéroport Narita (3000¥)"
+            weather_icon: "🌤️"
+            weather_temp: "22°C"
+
+          - step_number: 2
+            day_number: 1
+            title: "Dîner à Shibuya"
+            subtitle: "Découverte de la cuisine japonaise"
+            main_image: "https://xznsdvvfqoztlqtqhkhv.supabase.co/storage/v1/object/public/TRIPS/tokyo-2025-abc123/background_1733155920.jpg"
+            step_type: "restaurant"
+            latitude: 35.6612
+            longitude: 139.6988
+            duration: "1h30"
+            price: 35
+            why: "Profitez de votre première soirée pour découvrir la cuisine locale dans le quartier animé de Shibuya."
+            tips: "Testez un izakaya pour une expérience authentique. Réservation recommandée pour les restaurants populaires."
+
+          # JOUR 2
+          - step_number: 3
+            day_number: 2
+            title: "Senso-ji Temple"
+            subtitle: "Le plus ancien temple de Tokyo"
+            main_image: "https://xznsdvvfqoztlqtqhkhv.supabase.co/storage/v1/object/public/TRIPS/tokyo-2025-abc123/background_1733155940.jpg"
+            step_type: "visite"
+            latitude: 35.7147
+            longitude: 139.7966
+            duration: "3h"
+            price: 0
+            why: "Temple bouddhiste emblématique d'Asakusa, avec sa porte Kaminarimon et sa rue commerçante Nakamise."
+            tips: "Arrivez tôt le matin (8h) pour éviter la foule. Gratuit. Goûtez les ningyo-yaki (gâteaux traditionnels) dans Nakamise."
+            transfer: "25 min en métro depuis Shibuya"
+            weather_icon: "☀️"
+            weather_temp: "23°C"
+
+          - step_number: 4
+            day_number: 2
+            title: "Tokyo Skytree"
+            subtitle: "Vue panoramique sur Tokyo"
+            main_image: "https://xznsdvvfqoztlqtqhkhv.supabase.co/storage/v1/object/public/TRIPS/tokyo-2025-abc123/background_1733155960.jpg"
+            step_type: "activité"
+            latitude: 35.7101
+            longitude: 139.8107
+            duration: "2h"
+            price: 25
+            why: "Plus haute tour du Japon (634m) avec vue à 360° sur Tokyo et le Mont Fuji (par temps clair)."
+            tips: "Réservez en ligne pour éviter la file. Sunset recommandé. Ticket: 2500¥ (Tembo Deck) ou 4000¥ (Tembo Galleria)."
+            transfer: "10 min à pied depuis Senso-ji"
+
+          # JOUR 3
+          - step_number: 5
+            day_number: 3
+            title: "Meiji Shrine"
+            subtitle: "Sanctuaire shinto au cœur d'une forêt"
+            main_image: "https://xznsdvvfqoztlqtqhkhv.supabase.co/storage/v1/object/public/TRIPS/tokyo-2025-abc123/background_1733155980.jpg"
+            step_type: "visite"
+            latitude: 35.6764
+            longitude: 139.6993
+            duration: "2h"
+            price: 0
+            why: "Sanctuaire paisible dédié à l'empereur Meiji, niché dans une forêt de 100 000 arbres en plein Tokyo."
+            tips: "Entrée gratuite. Participez à une cérémonie de purification. Visitez le jardin intérieur (500¥)."
+            transfer: "15 min en métro depuis l'hôtel"
+            weather_icon: "🌤️"
+            weather_temp: "21°C"
+
+          - step_number: 6
+            day_number: 3
+            title: "Harajuku & Takeshita Street"
+            subtitle: "Quartier de la mode et de la pop culture"
+            main_image: "https://xznsdvvfqoztlqtqhkhv.supabase.co/storage/v1/object/public/TRIPS/tokyo-2025-abc123/background_1733156000.jpg"
+            step_type: "activité"
+            latitude: 35.6702
+            longitude: 139.7026
+            duration: "3h"
+            price: 30
+            why: "Épicentre de la mode kawaii et de la street culture japonaise. Boutiques uniques, crêpes géantes, cosplay."
+            tips: "Visitez le dimanche pour voir les cosplayeurs. Goûtez les crêpes Marion (célèbres). Budget shopping à prévoir."
+            transfer: "5 min à pied depuis Meiji Shrine"
+
+          # [...] Continuer pour tous les jours jusqu'au dernier
+
+          # JOUR 7 (dernier jour)
+          - step_number: 13
+            day_number: 7
+            title: "Tsukiji Outer Market"
+            subtitle: "Marché aux poissons et petit-déjeuner sushi"
+            main_image: "https://xznsdvvfqoztlqtqhkhv.supabase.co/storage/v1/object/public/TRIPS/tokyo-2025-abc123/background_1733156100.jpg"
+            step_type: "activité"
+            latitude: 35.6654
+            longitude: 139.7707
+            duration: "2h"
+            price: 25
+            why: "Marché animé avec stands de street food et restaurants de sushi ultra-frais. Expérience authentique avant le départ."
+            tips: "Arrivez tôt (7h) pour le meilleur choix. Déjeunez dans un sushi-ya du marché. Comptez 3000¥/personne."
+            transfer: "20 min en métro depuis l'hôtel"
+            weather_icon: "☀️"
+            weather_temp: "20°C"
+
+          - step_number: 14
+            day_number: 7
+            title: "Départ de Tokyo"
+            subtitle: "Vol retour vers Bruxelles"
+            main_image: "https://xznsdvvfqoztlqtqhkhv.supabase.co/storage/v1/object/public/TRIPS/tokyo-2025-abc123/background_1733156120.jpg"
+            step_type: "transport"
+            duration: "3h"
+            price: 0
+            why: "Transfert vers l'aéroport Narita et vol retour."
+            tips: "Arrivez 3h avant le vol international. Narita Express : 3000¥, 60 min."
+            transfer: "Train Narita Express depuis Tokyo Station"
+
+          # STEP RÉCAPITULATIVE (OBLIGATOIRE)
+          - step_number: 15
+            day_number: 7
+            title: "Résumé du voyage"
+            subtitle: "7 jours — Tokyo, Japon 🇯🇵"
+            main_image: "https://xznsdvvfqoztlqtqhkhv.supabase.co/storage/v1/object/public/TRIPS/tokyo-2025-abc123/hero_1733155800.jpg"
+            is_summary: true
+            step_type: "récapitulatif"
+            duration: "—"
+            price: 0
+            summary_stats:
+              - type: days
+                value: 7
+              - type: budget
+                value: "3 500€"
+              - type: weather
+                value: "22°C"
+              - type: style
+                value: "Culture & Gastronomie"
+              - type: cities
+                value: 1
+              - type: people
+                value: 2
+              - type: activities
+                value: 13
+              - type: custom
+                value: "Direct"
+                icon: "Plane"
+                label: "VOL"
+                color: "golden"
+      ```
+
+      ---
+
+      **CHECKLIST FINALE AVANT DE SOUMETTRE TON OUTPUT :**
+      - ✅ 1-3 steps par jour pour CHAQUE jour du voyage
+      - ✅ TOUTES les steps ont latitude + longitude (sauf transport/récap)
+      - ✅ TOUTES les steps ont main_image avec URL Supabase
+      - ✅ hero_image présent en haut avec URL Supabase
+      - ✅ Step récapitulative finale avec is_summary: true
+      - ✅ summary_stats avec 4-8 items
+      - ✅ AUCUNE URL Wikipedia, Unsplash ou externe
+      - ✅ Prix cohérents avec budget
+      - ✅ Rythme respecté (relaxed/balanced/intense)
+      - ✅ Styles respectés (Culture, Gastronomie, etc.)
+
+    expected_output: |-
+      Un YAML STRICT avec la structure itinerary_plan (voir exemple complet ci-dessus).
+
+      **NE JAMAIS PRODUIRE DE JSON.**
+
+    async_execution: false
+
+  # ==========================================================================
+  # TASK 6: BUDGET CALCULATION
+  # ==========================================================================
+  budget_calculation:
+    description: |-
+      Tu reçois les outputs de tous les agents précédents. Ta mission : calculer
+      le budget total et vérifier la cohérence avec le budget utilisateur.
+
+      **CONTEXTE VOYAGE :**
+      {trip_context}
+
+      **VOLS :**
+      {flight_quotes}
+
+      **HÉBERGEMENT :**
+      {lodging_quotes}
+
+      **ITINÉRAIRE :**
+      {itinerary_plan}
+
+      ---
+
+      **PROCESSUS DE CALCUL :**
+
+      1. **Extraire les coûts** :
+         - Vols : flight_quotes.total.total_price
+         - Hébergement : lodging_quotes.recommended.total_price
+         - Activités : somme des itinerary_plan.steps[].price (sauf steps is_summary)
+         - Transport local : estimer 10-15€/jour/personne
+
+      2. **Calculer le total** :
+         - Total = Vols + Hébergement + Activités + Transport local
+         - Par personne = Total / travelers_count
+
+      3. **Comparer avec budget utilisateur** :
+         - Budget demandé : trip_context.budget.budget_amount
+         - Delta = (Total - Budget demandé) / Budget demandé × 100
+         - Statut :
+           * OK : delta ≤ 5%
+           * WARN : 5% < delta ≤ 15%
+           * EXCEED : delta > 15%
+
+      4. **Proposer des ajustements si EXCEED** :
+         - Réduire hébergement (passer à confort inférieur)
+         - Réduire activités payantes
+         - Chercher vols moins chers (accepter escale)
+         - Réduire durée du séjour
+
+      **RÈGLES :**
+      - Toujours arrondir à la dizaine supérieure
+      - Fournir détails par catégorie
+      - Être transparent sur les estimations vs prix réels
+
+    expected_output: |-
+      Un YAML STRICT avec la structure budget_summary :
+
+      ```yaml
+      budget_summary:
+        breakdown:
+          flights:
+            total: 2600
+            per_person: 1300
+            currency: EUR
+            source: "flight_quotes"
+
+          accommodation:
+            total: 840
+            per_person: 420
+            currency: EUR
+            source: "lodging_quotes"
+
+          activities:
+            total: 245
+            per_person: 122.5
+            currency: EUR
+            source: "itinerary_plan (somme des step.price)"
+            details:
+              - "Tokyo Skytree: 25€"
+              - "Harajuku shopping: 30€"
+              - "Tsukiji breakfast: 25€"
+              - "Autres activités: 165€"
+
+          transport_local:
+            total: 200
+            per_person: 100
+            currency: EUR
+            source: "estimation (métro + trains locaux)"
+            notes: "Estimation basée sur 7 jours × 15€/jour/personne"
+
+        totals:
+          grand_total: 3885
+          per_person: 1942.5
+          travelers_count: 2
+          currency: EUR
+          display: "3 885€"
+
+        comparison:
+          budget_requested: 1500
+          budget_type: per_person  # ou total_group
+          currency: EUR
+          delta_amount: 442.5
+          delta_percent: 29.5
+          status: EXCEED  # OK, WARN, EXCEED
+
+        adjustments:
+          - category: "Hébergement"
+            current: 840
+            proposed: 600
+            saving: 240
+            action: "Passer d'un hôtel 4★ à un hôtel 3★"
+
+          - category: "Activités"
+            current: 245
+            proposed: 180
+            saving: 65
+            action: "Réduire shopping et activités payantes"
+
+        final_adjusted:
+          grand_total: 3580
+          per_person: 1790
+          currency: EUR
+          display: "3 580€"
+          delta_percent: 19.3
+          status: WARN  # toujours au-dessus mais acceptable
+
+        recommendation: |-
+          Le budget initial de 3 885€ dépasse le budget demandé de 1 500€/personne (3 000€ total) de 29.5%.
+          Avec les ajustements proposés (hébergement 3★ + réduction activités), le budget ajusté est de 3 580€ (1 790€/personne),
+          soit un dépassement de 19.3% encore notable mais plus acceptable.
+
+          Recommandation : Valider ces ajustements OU augmenter le budget à 1 800€/personne.
+      ```
+
+      **NE JAMAIS PRODUIRE DE JSON.**
+
+    async_execution: false
+
+  # ==========================================================================
+  # TASK 7: FINAL ASSEMBLY (AGENT INTELLIGENT)
+  # ==========================================================================
+  final_assembly:
+    description: |-
+      🎯 **TU ES LE DERNIER REMPART QUALITÉ. C'EST TOI QUI GÉNÈRES LE JSON FINAL.**
+
+      🚨 **RÈGLES ANTI-HALLUCINATION ULTRA-STRICTES** 🚨
+      - ✅ OBLIGATION : COPIER EXACTEMENT les données depuis les outputs des agents
+      - ❌ INTERDICTION TOTALE : Inventer, modifier, ou "améliorer" les données reçues
+      - ❌ INTERDICTION TOTALE : Ajouter des steps non présentes dans itinerary_plan
+      - ❌ INTERDICTION TOTALE : Accepter des main_image ne commençant PAS par Supabase URL
+      - ❌ INTERDICTION TOTALE : Accepter des steps sans GPS (sauf transport/récapitulatif)
+      - 🔍 VALIDATION : Chaque step DOIT avoir step_number, day_number, title, main_image valide
+      - 🔍 VALIDATION : Rejeter les steps invalides, NE PAS les "corriger"
+      - 📊 PRIORITÉ : Qualité > Quantité. Mieux vaut 5 steps parfaites que 20 approximatives
+      - ⚠️ Si données manquantes : SIGNALER clairement dans un champ "warnings" ou "errors"
+      - ⚠️ JAMAIS inventer de données pour "compléter" un JSON incomplet
+
+      ---
+
+      Tu reçois TOUS les outputs des agents précédents. Ta mission : consolider et
+      produire le JSON final conforme au schéma Trip, prêt pour insertion en base de données.
+
+      **DESTINATION CHOISIE :**
+      {destination_choice}
+
+      **VOLS :**
+      {flight_quotes}
+
+      **HÉBERGEMENT :**
+      {lodging_quotes}
+
+      **ITINÉRAIRE :**
+      {itinerary_plan}
+
+      **BUDGET :**
+      {budget_summary}
+
+      **CONTEXTE VOYAGE :**
+      {trip_context}
+
+      ---
+
+      ## **PROCESSUS D'ASSEMBLAGE**
+
+      ### **1. CHAMPS TRIP (niveau racine)**
+
+      **OBLIGATOIRES :**
+      - code : depuis destination_choice.code (ex: "TOKYO-2025")
+      - destination : depuis destination_choice.destination (ex: "Tokyo, Japon 🇯🇵")
+      - total_days : depuis destination_choice.total_days ou trip_context.dates.duration_nights
+      - steps : depuis itinerary_plan.steps (voir point 2)
+
+      **RECOMMANDÉS :**
+      - destination_en : depuis destination_choice.destination_en
+      - main_image : depuis itinerary_plan.hero_image
+      - flight_from : depuis flight_quotes.origin.city
+      - flight_to : depuis flight_quotes.destination.city
+      - flight_duration : depuis flight_quotes.outbound.duration
+      - flight_type : depuis flight_quotes.summary.type
+      - hotel_name : depuis lodging_quotes.recommended.hotel_name
+      - hotel_rating : depuis lodging_quotes.recommended.hotel_rating
+      - total_price : depuis budget_summary.totals.display
+      - total_budget : depuis budget_summary.totals.display
+      - average_weather : depuis destination_choice.average_weather
+      - travel_style : depuis destination_choice.travel_style
+      - travel_style_en : depuis destination_choice.travel_style_en
+      - start_date : depuis trip_context.dates.departure_date (format: YYYY-MM-DD)
+      - travelers : depuis trip_context.travelers.travelers_count
+      - price_flights : depuis flight_quotes.summary.price
+      - price_hotels : depuis lodging_quotes.summary.price_display
+      - price_transport : depuis budget_summary.breakdown.transport_local.total + "€"
+      - price_activities : depuis budget_summary.breakdown.activities.total + "€"
+
+      ### **2. STEPS (tableau de steps)**
+
+      **VALIDATION CRITIQUE DE CHAQUE STEP :**
+
+      Pour CHAQUE step dans itinerary_plan.steps :
+
+      ✅ **Vérifier champs OBLIGATOIRES :**
+      - step_number : doit être présent (integer)
+      - day_number : doit être présent (integer)
+      - title : doit être présent (string non vide)
+      - main_image : doit être présent ET commencer par "https://xznsdvvfqoztlqtqhkhv.supabase.co/storage/v1/object/public/TRIPS/"
+
+      ⚠️ **SI main_image NE COMMENCE PAS PAR L'URL SUPABASE :**
+      - ❌ REJETER CETTE STEP avec erreur explicite
+      - 📝 Logger : "Step {step_number} a une main_image invalide : {main_image}"
+      - 🚫 NE PAS inclure cette step dans le JSON final
+
+      ✅ **Vérifier latitude + longitude :**
+      - Si step_type != "transport" ET step_type != "récapitulatif" :
+        * latitude ET longitude DOIVENT être présentes
+        * Si absentes : ❌ REJETER avec erreur
+
+      ✅ **Copier champs optionnels présents :**
+      - title_en, subtitle, subtitle_en
+      - step_type, why, why_en, tips, tips_en
+      - transfer, transfer_en, suggestion, suggestion_en
+      - weather_icon, weather_temp, weather_description, weather_description_en
+      - duration, price
+      - images (array)
+
+      ✅ **Step récapitulative (is_summary: true) :**
+      - summary_stats DOIT contenir 4-8 items
+      - Si moins de 4 : AJOUTER des stats calculées (days, budget, people, activities)
+      - Si plus de 8 : TRONQUER à 8
+
+      ### **3. GÉNÉRATION DU CODE VOYAGE**
+
+      Si destination_choice.code existe : utiliser tel quel
+      Sinon, générer :
+      - Format : [DESTINATION]-[ANNEE]
+      - Exemple : "TOKYO-2025", "LISBOA-2025", "BALI-2025"
+      - Normaliser : MAJUSCULES, remplacer espaces/caractères spéciaux par "-", max 20 caractères
+      - Commencer par une LETTRE obligatoirement
+
+      ### **4. VALIDATION FINALE**
+
+      Avant de retourner le JSON, vérifier :
+      - ✅ code est valide (pattern: ^[A-Z][A-Z0-9-]{2,19}$)
+      - ✅ destination est non vide
+      - ✅ total_days > 0
+      - ✅ steps contient au moins 1 step
+      - ✅ TOUTES les steps ont step_number, day_number, title, main_image
+      - ✅ TOUTES les main_image commencent par l'URL Supabase
+      - ✅ AU MOINS une step avec is_summary: true
+      - ✅ summary_stats de la step récap contient 4-8 items
+
+      Si une validation échoue : RETOURNER un JSON d'erreur avec :
+      ```yaml
+      error: true
+      error_message: "Description précise de l'erreur"
+      failed_validations: ["liste des validations échouées"]
+      ```
+
+      ---
+
+      ## **EXEMPLE COMPLET DE JSON FINAL ATTENDU**
+
+      ```yaml
+      trip:
+        code: "TOKYO-2025"
+        destination: "Tokyo, Japon 🇯🇵"
+        destination_en: "Tokyo, Japan 🇯🇵"
+        total_days: 7
+        main_image: "https://xznsdvvfqoztlqtqhkhv.supabase.co/storage/v1/object/public/TRIPS/tokyo-2025-abc123/hero_1733155800.jpg"
+
+        flight_from: "Bruxelles"
+        flight_to: "Tokyo"
+        flight_duration: "12h30"
+        flight_type: "Vol direct"
+
+        hotel_name: "Hotel Gracery Shinjuku"
+        hotel_rating: 4.3
+
+        total_price: "3 885€"
+        total_budget: "3 885€"
+        average_weather: "22°C"
+
+        travel_style: "Culture & Gastronomie"
+        travel_style_en: "Culture & Food"
+
+        start_date: "2025-12-15"
+        travelers: 2
+
+        price_flights: "2 600€"
+        price_hotels: "840€"
+        price_transport: "200€"
+        price_activities: "245€"
+
         steps:
           - step_number: 1
             day_number: 1
-            title: "Arrivée"
-            main_image: "https://..."
+            title: "Arrivée à Tokyo"
+            subtitle: "Installation et première découverte de Shibuya"
+            main_image: "https://xznsdvvfqoztlqtqhkhv.supabase.co/storage/v1/object/public/TRIPS/tokyo-2025-abc123/background_1733155900.jpg"
+            step_type: "activité"
+            latitude: 35.6595
+            longitude: 139.7004
             duration: "2h"
             price: 0
-      ```
-    async_execution: false
+            why: "Shibuya Crossing est l'un des passages piétons les plus emblématiques au monde."
+            tips: "Visitez en fin d'après-midi pour voir le crossing illuminé."
+            weather_icon: "🌤️"
+            weather_temp: "22°C"
 
-  budget_consistency:
-    description: |-
-      Vérifie l'alignement budget total vs vols/hôtels/activités. Si dépassement >15%, propose des arbitrages explicites.
-    expected_output: |-
-      ```yaml
-      budget_alignment_report:
-        status: "OK|WARN|BLOCK"
-        delta_percent: 12
-        recommendations: ["..."]
-      ```
-    async_execution: false
+          - step_number: 2
+            day_number: 1
+            title: "Dîner à Shibuya"
+            main_image: "https://xznsdvvfqoztlqtqhkhv.supabase.co/storage/v1/object/public/TRIPS/tokyo-2025-abc123/background_1733155920.jpg"
+            step_type: "restaurant"
+            latitude: 35.6612
+            longitude: 139.6988
+            duration: "1h30"
+            price: 35
+            why: "Découverte de la cuisine locale dans le quartier animé."
+            tips: "Testez un izakaya pour une expérience authentique."
 
-  destination_decision:
-    description: |-
-      Choisis l'option finale en fixant total_budget/total_price, travel_style et les summary_stats (4-8 stats).
-      Documente les hypothèses et les risques résiduels.
-    expected_output: |-
-      ```yaml
-      final_destination_choice:
-        code: "DEST2026"
-        destination: "Doha, Qatar"
-        total_days: 21
-        total_budget: "900-1 200€"
-        summary_stats: []
-      ```
-    async_execution: false
+          # [...] Toutes les autres steps
 
-  feasibility_safety_gate:
-    description: |-
-      Applique un filtre final visa/météo/sécurité. Si risque critique, statut=CRITICAL.
-    expected_output: |-
-      ```yaml
-      feasibility_gate:
-        status: "OK|WARN|CRITICAL"
-        alerts: ["visa obligatoire"]
+          - step_number: 15
+            day_number: 7
+            title: "Résumé du voyage"
+            subtitle: "7 jours — Tokyo, Japon 🇯🇵"
+            main_image: "https://xznsdvvfqoztlqtqhkhv.supabase.co/storage/v1/object/public/TRIPS/tokyo-2025-abc123/hero_1733155800.jpg"
+            is_summary: true
+            step_type: "récapitulatif"
+            duration: "—"
+            price: 0
+            summary_stats:
+              - type: days
+                value: 7
+              - type: budget
+                value: "3 885€"
+              - type: weather
+                value: "22°C"
+              - type: style
+                value: "Culture & Gastronomie"
+              - type: cities
+                value: 1
+              - type: people
+                value: 2
+              - type: activities
+                value: 14
+              - type: custom
+                value: "Direct"
+                icon: "Plane"
+                label: "VOL"
+                color: "golden"
       ```
+
+      ---
+
+      **CHECKLIST FINALE :**
+      - ✅ Tous les champs obligatoires présents
+      - ✅ Code unique généré/validé
+      - ✅ Toutes les steps validées
+      - ✅ Toutes les main_image sont des URLs Supabase
+      - ✅ Toutes les steps ont GPS (sauf transport/récap)
+      - ✅ Step récapitulative présente avec summary_stats
+      - ✅ JSON conforme au schéma Trip
+
+    expected_output: |-
+      Un YAML STRICT contenant uniquement la clé `trip` avec tout le JSON final.
+
+      **STRUCTURE :**
+      ```yaml
+      trip:
+        code: "..."
+        destination: "..."
+        # [...] tous les champs
+        steps:
+          - step_number: 1
+            # [...]
+      ```
+
+      ⚠️ **SI ERREURS DE VALIDATION :**
+      ```yaml
+      error: true
+      error_message: "Description de l'erreur"
+      failed_validations:
+        - "Step 3 manque latitude/longitude"
+        - "Step 5 a une main_image invalide (URL externe)"
+      ```
+
+      **NE JAMAIS PRODUIRE DE JSON.**
+
     async_execution: false

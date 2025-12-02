@@ -17,10 +17,9 @@ from crewai import Agent, Crew, Process, Task
 from crewai import LLM
 
 from app.config import settings
+from app.crew_pipeline.logging_config import setup_pipeline_logging
 from app.crew_pipeline.mcp_tools import get_mcp_tools
 from app.crew_pipeline.scripts import (
-    assemble_trip,
-    build_system_contract,
     NormalizationError,
     normalize_questionnaire,
     validate_trip_schema,
@@ -28,6 +27,9 @@ from app.crew_pipeline.scripts import (
 from app.services.supabase_service import supabase_service
 
 logger = logging.getLogger(__name__)
+
+# Variable globale pour éviter l'initialisation multiple du logging
+_logging_initialized = False
 
 
 PLACEHOLDER_MARKERS = {"your_key_here", "your_key*here", "changeme"}
@@ -206,6 +208,12 @@ class CrewPipeline:
     ) -> Dict[str, Any]:
         """Exécute la pipeline complète (scripts + agents)."""
 
+        # Initialiser le logging une seule fois au début de l'exécution
+        global _logging_initialized
+        if not _logging_initialized:
+            setup_pipeline_logging(level=logging.INFO, console_output=True)
+            _logging_initialized = True
+
         run_id = self._generate_run_id(questionnaire_data)
         logger.info(f"🚀 Lancement Pipeline CrewAI (Run ID: {run_id})")
 
@@ -257,11 +265,6 @@ class CrewPipeline:
         # Conversion YAML pour les prompts agents
         questionnaire_yaml = yaml.dump(normalized_questionnaire, allow_unicode=True, sort_keys=False)
         persona_yaml = yaml.dump(persona_inference, allow_unicode=True, sort_keys=False)
-        input_payload_yaml = yaml.dump(
-            {"questionnaire": normalized_questionnaire, "persona": persona_inference},
-            allow_unicode=True,
-            sort_keys=False,
-        )
 
         # 1. Chargement de la configuration
         agents_config = self._load_yaml_config("agents.yaml")
@@ -280,27 +283,22 @@ class CrewPipeline:
             except Exception as e:
                 logger.warning(f"⚠️ Erreur chargement MCP: {e}")
 
-        # 3. Agents nécessaires
-        analyst = self._create_agent("traveller_insights_analyst", agents_config["traveller_insights_analyst"], tools=mcp_tools)
-        challenger = self._create_agent("persona_quality_challenger", agents_config["persona_quality_challenger"], tools=mcp_tools)
-        architect = self._create_agent("trip_specifications_architect", agents_config["trip_specifications_architect"], tools=[])
-        contract_validator = self._create_agent("system_contract_validator", agents_config["system_contract_validator"], tools=[])
-        scout = self._create_agent("destination_scout", agents_config["destination_scout"], tools=mcp_tools)
-        flight_agent = self._create_agent("flight_pricing_analyst", agents_config["flight_pricing_analyst"], tools=mcp_tools)
-        lodging_agent = self._create_agent("lodging_pricing_analyst", agents_config["lodging_pricing_analyst"], tools=mcp_tools)
-        activities_agent = self._create_agent("activities_geo_designer", agents_config["activities_geo_designer"], tools=mcp_tools)
-        budget_agent = self._create_agent("budget_consistency_controller", agents_config["budget_consistency_controller"], tools=[])
-        decision_maker = self._create_agent("destination_decision_maker", agents_config["destination_decision_maker"], tools=[])
-        safety_gate = self._create_agent("feasibility_safety_expert", agents_config["feasibility_safety_expert"], tools=mcp_tools)
+        # 3. Agents nécessaires (nouvelle architecture - 7 agents)
+        context_builder = self._create_agent("trip_context_builder", agents_config["trip_context_builder"], tools=[])
+        strategist = self._create_agent("destination_strategist", agents_config["destination_strategist"], tools=mcp_tools)
+        flight_specialist = self._create_agent("flights_specialist", agents_config["flights_specialist"], tools=mcp_tools)
+        accommodation_specialist = self._create_agent("accommodation_specialist", agents_config["accommodation_specialist"], tools=mcp_tools)
+        itinerary_designer = self._create_agent("itinerary_designer", agents_config["itinerary_designer"], tools=mcp_tools)
+        budget_calculator = self._create_agent("budget_calculator", agents_config["budget_calculator"], tools=[])
+        final_assembler = self._create_agent("final_assembler", agents_config["final_assembler"], tools=[])
 
-        # 4. Phase 1 - Analyse & Spécifications
-        task1 = Task(name="traveller_profile_brief", agent=analyst, **tasks_config["traveller_profile_brief"])
-        task2 = Task(name="persona_challenge_review", agent=challenger, context=[task1], **tasks_config["persona_challenge_review"])
-        task3 = Task(name="trip_specifications_design", agent=architect, context=[task2], **tasks_config["trip_specifications_design"])
+        # 4. Phase 1 - Context & Strategy
+        task1 = Task(name="trip_context_building", agent=context_builder, **tasks_config["trip_context_building"])
+        task2 = Task(name="destination_strategy", agent=strategist, context=[task1], **tasks_config["destination_strategy"])
 
         crew_phase1 = self._crew_builder(
-            agents=[analyst, challenger, architect],
-            tasks=[task1, task2, task3],
+            agents=[context_builder, strategist],
+            tasks=[task1, task2],
             verbose=self._verbose,
             process=Process.sequential,
         )
@@ -308,134 +306,114 @@ class CrewPipeline:
         inputs_phase1 = {
             "questionnaire": questionnaire_yaml,
             "persona_context": persona_yaml,
-            "input_payload": input_payload_yaml,
+            "current_year": datetime.now().year,
         }
 
         output_phase1 = crew_phase1.kickoff(inputs=inputs_phase1)
-        tasks_phase1, parsed_phase1 = self._collect_tasks_output(output_phase1, should_save, run_dir, phase_label="PHASE1_ANALYSIS")
-        normalized_trip_request = parsed_phase1.get("trip_specifications_design", {}).get("normalized_trip_request")
-        if not normalized_trip_request:
-            normalized_trip_request = parsed_phase1.get("trip_specifications_design", {})
+        tasks_phase1, parsed_phase1 = self._collect_tasks_output(output_phase1, should_save, run_dir, phase_label="PHASE1_CONTEXT")
 
-        trip_intent = self._derive_trip_intent(normalized_questionnaire, normalized_trip_request or {})
+        # Extraire trip_context et destination_choice
+        trip_context = parsed_phase1.get("trip_context_building", {}).get("trip_context", {})
+        destination_choice = parsed_phase1.get("destination_strategy", {}).get("destination_choice", {})
 
-        # 5. System Contract Draft (script)
-        system_contract_draft = build_system_contract(
-            questionnaire=normalized_questionnaire,
-            normalized_trip_request=normalized_trip_request or {},
-            persona_context=persona_inference,
-        )
-        system_contract_yaml = yaml.dump(system_contract_draft, allow_unicode=True, sort_keys=False)
+        # Dériver l'intent depuis trip_context (plus simple que normalized_trip_request)
+        trip_intent = self._derive_trip_intent(normalized_questionnaire, trip_context)
 
-        if should_save:
-            contract_dir = run_dir / "PHASE2_PREP"
-            contract_dir.mkdir(parents=True, exist_ok=True)
-            self._write_yaml(contract_dir / "system_contract_draft.yaml", system_contract_draft)
+        # 5. Phase 2 - Research (conditionnelle selon help_with)
+        phase2_tasks: List[Task] = []
+        phase2_agents: List[Agent] = []
 
-        # 6. Phase 2 - Validation, scouting, pricing, activités, budget, décision
-        task4 = Task(name="system_contract_validation", agent=contract_validator, context=[task1, task2, task3], **tasks_config["system_contract_validation"])
+        # Convertir outputs en YAML pour prompts
+        trip_context_yaml = yaml.dump(trip_context, allow_unicode=True, sort_keys=False)
+        destination_choice_yaml = yaml.dump(destination_choice, allow_unicode=True, sort_keys=False)
 
-        phase2_tasks: List[Task] = [task4]
-        phase2_agents: List[Agent] = [contract_validator]
+        # Extraire dates validées depuis trip_context
+        dates_info = trip_context.get("dates", {}) or {}
+        departure_window = dates_info.get("departure_window") or {}
+        return_window = dates_info.get("return_window") or {}
+        departure_dates = dates_info.get("departure_date") or departure_window.get("start") or "Non spécifiée"
+        return_dates = dates_info.get("return_date") or return_window.get("end") or "Non spécifiée"
 
-        pricing_context: List[Task] = [task4]
-        scouting_task: Optional[Task] = None
-        if trip_intent.should_scout:
-            scouting_task = Task(name="destination_scouting", agent=scout, context=[task4], **tasks_config["destination_scouting"])
-            phase2_tasks.append(scouting_task)
-            phase2_agents.append(scout)
-            pricing_context = [scouting_task]
+        inputs_phase2 = {
+            "trip_context": trip_context_yaml,
+            "destination_choice": destination_choice_yaml,
+            "current_year": datetime.now().year,
+            "validated_departure_dates": departure_dates,
+            "validated_return_dates": return_dates,
+        }
 
+        # Ajouter les agents conditionnellement
         flight_task: Optional[Task] = None
         if trip_intent.assist_flights:
-            flight_task = Task(name="flight_pricing", agent=flight_agent, context=pricing_context, **tasks_config["flight_pricing"])
+            flight_task = Task(name="flights_research", agent=flight_specialist, **tasks_config["flights_research"])
             phase2_tasks.append(flight_task)
-            phase2_agents.append(flight_agent)
+            phase2_agents.append(flight_specialist)
 
         lodging_task: Optional[Task] = None
         if trip_intent.assist_accommodation:
-            lodging_task = Task(name="lodging_pricing", agent=lodging_agent, context=pricing_context, **tasks_config["lodging_pricing"])
+            lodging_task = Task(name="accommodation_research", agent=accommodation_specialist, **tasks_config["accommodation_research"])
             phase2_tasks.append(lodging_task)
-            phase2_agents.append(lodging_agent)
+            phase2_agents.append(accommodation_specialist)
 
-        activities_task: Optional[Task] = None
+        itinerary_task: Optional[Task] = None
         if trip_intent.assist_activities:
-            activities_task = Task(name="activities_geo_design", agent=activities_agent, context=pricing_context, **tasks_config["activities_geo_design"])
-            phase2_tasks.append(activities_task)
-            phase2_agents.append(activities_agent)
+            itinerary_task = Task(name="itinerary_design", agent=itinerary_designer, **tasks_config["itinerary_design"])
+            phase2_tasks.append(itinerary_task)
+            phase2_agents.append(itinerary_designer)
 
-        budget_context = [task for task in [flight_task, lodging_task, activities_task] if task] or pricing_context
-        budget_task: Optional[Task] = None
-        if budget_context:
-            budget_task = Task(name="budget_consistency", agent=budget_agent, context=budget_context, **tasks_config["budget_consistency"])
-            phase2_tasks.append(budget_task)
-            phase2_agents.append(budget_agent)
+        # Lancer Phase 2 seulement si au moins un service demandé
+        parsed_phase2 = {}
+        tasks_phase2 = []
+        if phase2_tasks:
+            crew_phase2 = self._crew_builder(
+                agents=phase2_agents,
+                tasks=phase2_tasks,
+                verbose=self._verbose,
+                process=Process.sequential,
+            )
+            output_phase2 = crew_phase2.kickoff(inputs=inputs_phase2)
+            tasks_phase2, parsed_phase2 = self._collect_tasks_output(output_phase2, should_save, run_dir, phase_label="PHASE2_RESEARCH")
 
-        decision_task: Optional[Task] = None
-        safety_task: Optional[Task] = None
-        if trip_intent.should_scout and budget_task:
-            decision_task = Task(name="destination_decision", agent=decision_maker, context=[budget_task], **tasks_config["destination_decision"])
-            safety_task = Task(name="feasibility_safety_gate", agent=safety_gate, context=[decision_task], **tasks_config["feasibility_safety_gate"])
-            phase2_tasks.extend([decision_task, safety_task])
-            phase2_agents.extend([decision_maker, safety_gate])
+        # 6. Phase 3 - Budget + Assembly
+        budget_task = Task(name="budget_calculation", agent=budget_calculator, **tasks_config["budget_calculation"])
+        final_task = Task(name="final_assembly", agent=final_assembler, context=[budget_task], **tasks_config["final_assembly"])
 
-        crew_phase2 = self._crew_builder(
-            agents=phase2_agents,
-            tasks=phase2_tasks,
+        crew_phase3 = self._crew_builder(
+            agents=[budget_calculator, final_assembler],
+            tasks=[budget_task, final_task],
             verbose=self._verbose,
             process=Process.sequential,
         )
 
-        inputs_phase2 = {
-            "questionnaire": questionnaire_yaml,
-            "persona_context": persona_yaml,
-            "normalized_trip_request": yaml.dump(normalized_trip_request, allow_unicode=True, sort_keys=False),
-            "system_contract_draft": system_contract_yaml,
-            "current_year": datetime.now().year,
+        # Convertir outputs Phase 2 en YAML pour prompts
+        flight_quotes_yaml = yaml.dump(parsed_phase2.get("flights_research", {}).get("flight_quotes", {}), allow_unicode=True, sort_keys=False)
+        lodging_quotes_yaml = yaml.dump(parsed_phase2.get("accommodation_research", {}).get("lodging_quotes", {}), allow_unicode=True, sort_keys=False)
+        itinerary_plan_yaml = yaml.dump(parsed_phase2.get("itinerary_design", {}).get("itinerary_plan", {}), allow_unicode=True, sort_keys=False)
+
+        inputs_phase3 = {
+            "trip_context": trip_context_yaml,
+            "destination_choice": destination_choice_yaml,
+            "flight_quotes": flight_quotes_yaml,
+            "lodging_quotes": lodging_quotes_yaml,
+            "itinerary_plan": itinerary_plan_yaml,
         }
 
-        output_phase2 = crew_phase2.kickoff(inputs=inputs_phase2)
-        tasks_phase2, parsed_phase2 = self._collect_tasks_output(output_phase2, should_save, run_dir, phase_label="PHASE2_BUILD")
+        output_phase3 = crew_phase3.kickoff(inputs=inputs_phase3)
+        tasks_phase3, parsed_phase3 = self._collect_tasks_output(output_phase3, should_save, run_dir, phase_label="PHASE3_ASSEMBLY")
 
-        if not trip_intent.should_scout:
-            parsed_phase2.setdefault(
-                "destination_decision",
-                {
-                    "code": (trip_intent.destination_value or "DEST-USER").replace(" ", "").upper(),
-                    "destination": trip_intent.destination_value,
-                    "decision_rationale": "Destination fournie par l'utilisateur; aucun scouting exécuté.",
-                    "total_budget": normalized_questionnaire.get("budget_par_personne"),
-                    "total_price": normalized_questionnaire.get("budget_par_personne"),
-                    "total_days": normalized_questionnaire.get("nuits_exactes")
-                    or normalized_trip_request.get("nuits_exactes"),
-                    "summary_stats": [],
-                },
-            )
+        # Extraire le JSON final depuis l'agent final_assembler
+        trip_payload = parsed_phase3.get("final_assembly", {})
 
-        # 7. Assemblage final
-        agent_outputs: Dict[str, Any] = {}
-        agent_outputs.update(parsed_phase1)
-        agent_outputs.update(parsed_phase2)
-
-        final_system_contract = parsed_phase2.get("system_contract_validation", {}).get("system_contract") or parsed_phase2.get("system_contract_validation", {}) or system_contract_draft
-
-        trip_payload = assemble_trip(
-            questionnaire=normalized_questionnaire,
-            normalized_trip_request=normalized_trip_request or {},
-            agent_outputs={
-                "destination_decision": parsed_phase2.get("destination_decision", {}),
-                "flight_pricing": parsed_phase2.get("flight_pricing", {}),
-                "lodging_pricing": parsed_phase2.get("lodging_pricing", {}),
-                "activities_geo_design": parsed_phase2.get("activities_geo_design", {}),
-            },
-        )
-
-        is_valid, schema_error = validate_trip_schema(trip_payload.get("trip", {}))
+        # Validation Schema
+        is_valid, schema_error = False, "No trip payload generated"
+        if "trip" in trip_payload and isinstance(trip_payload.get("trip"), dict):
+            is_valid, schema_error = validate_trip_schema(trip_payload.get("trip", {}))
+        elif "error" in trip_payload:
+            schema_error = trip_payload.get("error_message", "Agent returned error")
 
         if should_save:
             validation_dir = run_dir / "PHASE3_VALIDATION"
             validation_dir.mkdir(parents=True, exist_ok=True)
-            self._write_yaml(validation_dir / "system_contract_final.yaml", final_system_contract)
             self._write_yaml(validation_dir / "trip_payload.yaml", trip_payload)
             self._write_yaml(
                 validation_dir / "schema_validation.yaml",
@@ -465,10 +443,7 @@ class CrewPipeline:
                     status="success" if is_valid else "failed_validation",
                     schema_valid=is_valid,
                     metadata={
-                        "system_contract_id": final_system_contract.get("id")
-                        if isinstance(final_system_contract, dict)
-                        else None,
-                        "task_count": len(tasks_phase1) + len(tasks_phase2),
+                        "task_count": len(tasks_phase1) + len(tasks_phase2) + len(tasks_phase3),
                     },
                 )
             except Exception as exc:
@@ -486,9 +461,9 @@ class CrewPipeline:
             "normalization": normalization.get("metadata", {}),
             "input_context": {"questionnaire": normalized_questionnaire, "persona_inference": persona_inference},
             "pipeline_output": {
-                "normalized_trip_request": normalized_trip_request,
-                "system_contract": final_system_contract,
-                "tasks_details": tasks_phase1 + tasks_phase2,
+                "trip_context": trip_context,
+                "destination_choice": destination_choice,
+                "tasks_details": tasks_phase1 + tasks_phase2 + tasks_phase3,
             },
             "assembly": {
                 "trip": trip_payload,

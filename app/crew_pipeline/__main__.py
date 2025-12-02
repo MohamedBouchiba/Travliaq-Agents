@@ -2,16 +2,35 @@
 
 from __future__ import annotations
 
+# =============================================================================
+# FIX SEGMENTATION FAULT - À garder en haut du fichier
+# =============================================================================
+import os
+import sys
+
+# Désactiver le parallélisme de tokenizers (cause fréquente de segfault)
+os.environ["TOKENIZERS_PARALLELISM"] = "false"
+
+# Limiter les threads OpenMP (utilisé par ChromaDB et autres libs C)
+os.environ["OMP_NUM_THREADS"] = "1"
+
+# Désactiver ChromaDB si possible (commentaire si nécessaire)
+os.environ.setdefault("CHROMA_DISABLE", "1")
+
+# Augmenter la limite de récursion Python (par défaut: 1000)
+sys.setrecursionlimit(2000)
+
+# =============================================================================
+
 import argparse
 import json
 import logging
-import os
-import sys
 from copy import deepcopy
 from pathlib import Path
 from typing import Any, Dict, Optional
 
 from app.crew_pipeline import travliaq_crew_pipeline
+from app.crew_pipeline.logging_config import setup_pipeline_logging
 from app.services.persona_inference_service import persona_engine
 from app.services.supabase_service import supabase_service
 
@@ -19,10 +38,13 @@ LOGGER = logging.getLogger("app.crew_pipeline.cli")
 
 
 def _configure_logging(level: str) -> None:
+    """Configure le logging avec sauvegarde dans logLastPipeline.txt."""
     numeric_level = getattr(logging, level.upper(), logging.INFO)
-    logging.basicConfig(
+
+    # Utiliser le système de logging centralisé qui écrase le fichier à chaque run
+    setup_pipeline_logging(
         level=numeric_level,
-        format="%(asctime)s | %(levelname)-8s | %(name)s | %(message)s",
+        console_output=True,  # Garder la sortie console pour le debug
     )
 
 

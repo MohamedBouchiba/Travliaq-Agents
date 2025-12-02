@@ -215,10 +215,18 @@ class MCPToolWrapper(BaseTool):
                                         output.append(str(item))
                             
                             success_output = "\n".join(output)
-                            logger.info(
-                                f"✅ MCP tool {self.tool_name} exécuté avec succès",
-                                extra={"tool": self.tool_name, "output_size": len(success_output)}
-                            )
+
+                            # Log détaillé pour les outils images pour debug
+                            if self.tool_name.startswith("images."):
+                                logger.info(
+                                    f"✅ MCP tool {self.tool_name} exécuté avec succès - Résultat: {success_output[:500]}",
+                                    extra={"tool": self.tool_name, "output_size": len(success_output), "output_preview": success_output[:200]}
+                                )
+                            else:
+                                logger.info(
+                                    f"✅ MCP tool {self.tool_name} exécuté avec succès",
+                                    extra={"tool": self.tool_name, "output_size": len(success_output)}
+                                )
                             return success_output
                             
             except asyncio.TimeoutError as e:

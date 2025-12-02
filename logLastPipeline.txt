@@ -1,0 +1,601 @@
+2025-12-02 22:05:53 | INFO     | root | ================================================================================
+2025-12-02 22:05:53 | INFO     | root | TRAVLIAQ PIPELINE - LOGS INITIALIZED
+2025-12-02 22:05:53 | INFO     | root | Log file: E:\CrewTravliaq\Travliaq-Agents\logLastPipeline.txt
+2025-12-02 22:05:53 | INFO     | root | Log level: INFO
+2025-12-02 22:05:53 | INFO     | root | Console output: Enabled
+2025-12-02 22:05:53 | INFO     | root | ================================================================================
+2025-12-02 22:05:53 | INFO     | app.crew_pipeline.pipeline | 🚀 Lancement Pipeline CrewAI (Run ID: 2672b8ac-9f6d-4515-b935-5eda3d056275-77639284)
+2025-12-02 22:05:53 | INFO     | app.crew_pipeline.mcp_tools | Fetching MCP tools from https://travliaq-mcp-production.up.railway.app/mcp...
+2025-12-02 22:05:53 | INFO     | app.crew_pipeline.mcp_tools | 🔄 Session MCP récupérée: 672b0791df9244bcabed400ec5345705
+2025-12-02 22:05:53 | INFO     | app.crew_pipeline.mcp_tools | Connecting to SSE with headers: {'Mcp-Session-Id': '672b0791df9244bcabed400ec5345705'}
+2025-12-02 22:05:53 | INFO     | app.crew_pipeline.mcp_tools | 🔧 Using override endpoint URL: https://travliaq-mcp-production.up.railway.app/mcp?sessionId=672b0791df9244bcabed400ec5345705
+2025-12-02 22:05:53 | INFO     | app.crew_pipeline.mcp_tools | 📡 Starting SSE event loop...
+2025-12-02 22:05:53 | INFO     | app.crew_pipeline.mcp_tools | SSE connection established
+2025-12-02 22:05:53 | INFO     | app.crew_pipeline.mcp_tools | Initializing session...
+2025-12-02 22:05:53 | INFO     | app.crew_pipeline.mcp_tools | 📤 Starting post_writer with endpoint: https://travliaq-mcp-production.up.railway.app/mcp?sessionId=672b0791df9244bcabed400ec5345705
+2025-12-02 22:05:53 | INFO     | app.crew_pipeline.mcp_tools | 📝 Waiting for messages to send...
+2025-12-02 22:05:53 | INFO     | app.crew_pipeline.mcp_tools | 📮 Sending client message: method=None, id=None
+2025-12-02 22:05:53 | INFO     | app.crew_pipeline.mcp_tools | ✅ Client message sent successfully: 200, response length: 292
+2025-12-02 22:05:53 | INFO     | app.crew_pipeline.mcp_tools | 📦 Parsing POST response as JSON-RPC message...
+2025-12-02 22:05:53 | INFO     | app.crew_pipeline.mcp_tools | Session initialized. Listing tools...
+2025-12-02 22:05:53 | INFO     | app.crew_pipeline.mcp_tools | 📮 Sending client message: method=None, id=None
+2025-12-02 22:05:53 | INFO     | app.crew_pipeline.mcp_tools | ✅ Client message sent successfully: 202, response length: 0
+2025-12-02 22:05:53 | INFO     | app.crew_pipeline.mcp_tools | 📮 Sending client message: method=None, id=None
+2025-12-02 22:05:53 | INFO     | app.crew_pipeline.mcp_tools | ✅ Client message sent successfully: 200, response length: 12417
+2025-12-02 22:05:53 | INFO     | app.crew_pipeline.mcp_tools | 📦 Parsing POST response as JSON-RPC message...
+2025-12-02 22:05:53 | INFO     | app.crew_pipeline.mcp_tools | Tools listed: 15 found
+2025-12-02 22:05:53 | INFO     | app.crew_pipeline.mcp_tools | Listing resources (knowledge base)...
+2025-12-02 22:05:53 | INFO     | app.crew_pipeline.mcp_tools | 📮 Sending client message: method=None, id=None
+2025-12-02 22:05:53 | INFO     | app.crew_pipeline.mcp_tools | ✅ Client message sent successfully: 200, response length: 1009
+2025-12-02 22:05:53 | INFO     | app.crew_pipeline.mcp_tools | 📦 Parsing POST response as JSON-RPC message...
+2025-12-02 22:05:53 | INFO     | app.crew_pipeline.mcp_tools | Resources listed: 3 found
+2025-12-02 22:05:53 | INFO     | app.crew_pipeline.mcp_tools | Found MCP tool: geo.text_to_place
+2025-12-02 22:05:53 | INFO     | app.crew_pipeline.mcp_tools | ⏱️ Using extended timeout (90s) for geo.text_to_place
+2025-12-02 22:05:53 | INFO     | app.crew_pipeline.mcp_tools | Found MCP tool: places.overview
+2025-12-02 22:05:53 | INFO     | app.crew_pipeline.mcp_tools | ⏱️ Using extended timeout (90s) for places.overview
+2025-12-02 22:05:53 | INFO     | app.crew_pipeline.mcp_tools | Found MCP tool: airports.nearest
+2025-12-02 22:05:53 | INFO     | app.crew_pipeline.mcp_tools | Found MCP tool: climate.avg_temperature
+2025-12-02 22:05:53 | INFO     | app.crew_pipeline.mcp_tools | Found MCP tool: weather.by_coords
+2025-12-02 22:05:53 | INFO     | app.crew_pipeline.mcp_tools | Found MCP tool: weather.brief
+2025-12-02 22:05:53 | INFO     | app.crew_pipeline.mcp_tools | Found MCP tool: weather.by_period
+2025-12-02 22:05:53 | INFO     | app.crew_pipeline.mcp_tools | Found MCP tool: health.ping
+2025-12-02 22:05:53 | INFO     | app.crew_pipeline.mcp_tools | Found MCP tool: images.hero
+2025-12-02 22:05:53 | INFO     | app.crew_pipeline.mcp_tools | Found MCP tool: images.background
+2025-12-02 22:05:53 | INFO     | app.crew_pipeline.mcp_tools | Found MCP tool: images.slider
+2025-12-02 22:05:53 | INFO     | app.crew_pipeline.mcp_tools | Found MCP tool: debug.ls
+2025-12-02 22:05:53 | INFO     | app.crew_pipeline.mcp_tools | Found MCP tool: booking.search
+2025-12-02 22:05:53 | INFO     | app.crew_pipeline.mcp_tools | ⏱️ Using extended timeout (180s) for booking.search
+2025-12-02 22:05:53 | INFO     | app.crew_pipeline.mcp_tools | Found MCP tool: booking.details
+2025-12-02 22:05:53 | INFO     | app.crew_pipeline.mcp_tools | ⏱️ Using extended timeout (180s) for booking.details
+2025-12-02 22:05:53 | INFO     | app.crew_pipeline.mcp_tools | Found MCP tool: flights.prices
+2025-12-02 22:05:53 | INFO     | app.crew_pipeline.mcp_tools | ⏱️ Using extended timeout (180s) for flights.prices
+2025-12-02 22:05:53 | INFO     | app.crew_pipeline.mcp_tools | Found MCP resource: guide_tourisme_complet.md (knowledge-base) (URI: file:///app/src/mcp_server/knowledge-base/guide_tourisme_complet.md)
+2025-12-02 22:05:53 | INFO     | app.crew_pipeline.mcp_tools | Found MCP resource: Le secteur touristique mondial étude approfondie.md (knowledge-base) (URI: file:///app/src/mcp_server/knowledge-base/Le%20secteur%20touristique%20mondial%20%C3%A9tude%20approfondie.md)
+2025-12-02 22:05:53 | INFO     | app.crew_pipeline.mcp_tools | Found MCP resource: Les macro-personas du voyageur moderne cartographi.md (knowledge-base) (URI: file:///app/src/mcp_server/knowledge-base/Les%20macro-personas%20du%20voyageur%20moderne%20cartographi.md)
+2025-12-02 22:05:53 | INFO     | app.crew_pipeline.mcp_tools | ✅ Total MCP tools and resources loaded: 18
+2025-12-02 22:05:53 | INFO     | app.crew_pipeline.pipeline | ✅ 18 outils MCP chargés.
+2025-12-02 22:05:53 | INFO     | root | OpenAI: Successfully validated tool 'create_reasoning_plan'
+2025-12-02 22:06:05 | INFO     | root | OpenAI API usage: {'prompt_tokens': 2595, 'completion_tokens': 513, 'total_tokens': 3108}
+2025-12-02 22:06:16 | INFO     | root | OpenAI API usage: {'prompt_tokens': 2868, 'completion_tokens': 405, 'total_tokens': 3273}
+2025-12-02 22:06:16 | INFO     | root | OpenAI: Successfully validated tool 'create_reasoning_plan'
+2025-12-02 22:06:37 | INFO     | root | OpenAI API usage: {'prompt_tokens': 6390, 'completion_tokens': 541, 'total_tokens': 6931}
+2025-12-02 22:06:37 | INFO     | app.crew_pipeline.mcp_tools | 🔧 Using override endpoint URL: https://travliaq-mcp-production.up.railway.app/mcp?sessionId=672b0791df9244bcabed400ec5345705
+2025-12-02 22:06:37 | INFO     | app.crew_pipeline.mcp_tools | 📡 Starting SSE event loop...
+2025-12-02 22:06:37 | INFO     | app.crew_pipeline.mcp_tools | 📤 Starting post_writer with endpoint: https://travliaq-mcp-production.up.railway.app/mcp?sessionId=672b0791df9244bcabed400ec5345705
+2025-12-02 22:06:37 | INFO     | app.crew_pipeline.mcp_tools | 📝 Waiting for messages to send...
+2025-12-02 22:06:37 | INFO     | app.crew_pipeline.mcp_tools | 📮 Sending client message: method=None, id=None
+2025-12-02 22:06:37 | INFO     | app.crew_pipeline.mcp_tools | ✅ Client message sent successfully: 200, response length: 292
+2025-12-02 22:06:37 | INFO     | app.crew_pipeline.mcp_tools | 📦 Parsing POST response as JSON-RPC message...
+2025-12-02 22:06:37 | INFO     | app.crew_pipeline.mcp_tools | 📮 Sending client message: method=None, id=None
+2025-12-02 22:06:38 | INFO     | app.crew_pipeline.mcp_tools | ✅ Client message sent successfully: 202, response length: 0
+2025-12-02 22:06:38 | INFO     | app.crew_pipeline.mcp_tools | 📮 Sending client message: method=None, id=None
+2025-12-02 22:06:38 | INFO     | app.crew_pipeline.mcp_tools | ✅ Client message sent successfully: 200, response length: 455
+2025-12-02 22:06:38 | INFO     | app.crew_pipeline.mcp_tools | 📦 Parsing POST response as JSON-RPC message...
+2025-12-02 22:06:38 | INFO     | app.crew_pipeline.mcp_tools | 📮 Sending client message: method=None, id=None
+2025-12-02 22:06:38 | INFO     | app.crew_pipeline.mcp_tools | ✅ Client message sent successfully: 200, response length: 12417
+2025-12-02 22:06:38 | INFO     | app.crew_pipeline.mcp_tools | 📦 Parsing POST response as JSON-RPC message...
+2025-12-02 22:06:38 | INFO     | app.crew_pipeline.mcp_tools | ✅ MCP tool geo.text_to_place exécuté avec succès
+2025-12-02 22:06:42 | INFO     | root | OpenAI API usage: {'prompt_tokens': 6501, 'completion_tokens': 184, 'total_tokens': 6685}
+2025-12-02 22:06:42 | INFO     | app.crew_pipeline.mcp_tools | 🔧 Using override endpoint URL: https://travliaq-mcp-production.up.railway.app/mcp?sessionId=672b0791df9244bcabed400ec5345705
+2025-12-02 22:06:42 | INFO     | app.crew_pipeline.mcp_tools | 📡 Starting SSE event loop...
+2025-12-02 22:06:42 | INFO     | app.crew_pipeline.mcp_tools | 📤 Starting post_writer with endpoint: https://travliaq-mcp-production.up.railway.app/mcp?sessionId=672b0791df9244bcabed400ec5345705
+2025-12-02 22:06:42 | INFO     | app.crew_pipeline.mcp_tools | 📝 Waiting for messages to send...
+2025-12-02 22:06:42 | INFO     | app.crew_pipeline.mcp_tools | 📮 Sending client message: method=None, id=None
+2025-12-02 22:06:43 | INFO     | app.crew_pipeline.mcp_tools | ✅ Client message sent successfully: 200, response length: 292
+2025-12-02 22:06:43 | INFO     | app.crew_pipeline.mcp_tools | 📦 Parsing POST response as JSON-RPC message...
+2025-12-02 22:06:43 | INFO     | app.crew_pipeline.mcp_tools | 📮 Sending client message: method=None, id=None
+2025-12-02 22:06:43 | INFO     | app.crew_pipeline.mcp_tools | ✅ Client message sent successfully: 202, response length: 0
+2025-12-02 22:06:43 | INFO     | app.crew_pipeline.mcp_tools | 📮 Sending client message: method=None, id=None
+2025-12-02 22:06:43 | INFO     | app.crew_pipeline.mcp_tools | ✅ Client message sent successfully: 200, response length: 1172
+2025-12-02 22:06:43 | INFO     | app.crew_pipeline.mcp_tools | 📦 Parsing POST response as JSON-RPC message...
+2025-12-02 22:06:43 | INFO     | app.crew_pipeline.mcp_tools | 📮 Sending client message: method=None, id=None
+2025-12-02 22:06:43 | INFO     | app.crew_pipeline.mcp_tools | ✅ Client message sent successfully: 200, response length: 12417
+2025-12-02 22:06:43 | INFO     | app.crew_pipeline.mcp_tools | 📦 Parsing POST response as JSON-RPC message...
+2025-12-02 22:06:43 | INFO     | app.crew_pipeline.mcp_tools | ✅ MCP tool places.overview exécuté avec succès
+2025-12-02 22:06:47 | INFO     | root | OpenAI API usage: {'prompt_tokens': 6684, 'completion_tokens': 195, 'total_tokens': 6879}
+2025-12-02 22:06:47 | INFO     | app.crew_pipeline.mcp_tools | 🔧 Using override endpoint URL: https://travliaq-mcp-production.up.railway.app/mcp?sessionId=672b0791df9244bcabed400ec5345705
+2025-12-02 22:06:47 | INFO     | app.crew_pipeline.mcp_tools | 📡 Starting SSE event loop...
+2025-12-02 22:06:47 | INFO     | app.crew_pipeline.mcp_tools | 📤 Starting post_writer with endpoint: https://travliaq-mcp-production.up.railway.app/mcp?sessionId=672b0791df9244bcabed400ec5345705
+2025-12-02 22:06:47 | INFO     | app.crew_pipeline.mcp_tools | 📝 Waiting for messages to send...
+2025-12-02 22:06:47 | INFO     | app.crew_pipeline.mcp_tools | 📮 Sending client message: method=None, id=None
+2025-12-02 22:06:47 | INFO     | app.crew_pipeline.mcp_tools | ✅ Client message sent successfully: 200, response length: 292
+2025-12-02 22:06:47 | INFO     | app.crew_pipeline.mcp_tools | 📦 Parsing POST response as JSON-RPC message...
+2025-12-02 22:06:47 | INFO     | app.crew_pipeline.mcp_tools | 📮 Sending client message: method=None, id=None
+2025-12-02 22:06:47 | INFO     | app.crew_pipeline.mcp_tools | ✅ Client message sent successfully: 202, response length: 0
+2025-12-02 22:06:47 | INFO     | app.crew_pipeline.mcp_tools | 📮 Sending client message: method=None, id=None
+2025-12-02 22:06:48 | INFO     | app.crew_pipeline.mcp_tools | ✅ Client message sent successfully: 200, response length: 1257
+2025-12-02 22:06:48 | INFO     | app.crew_pipeline.mcp_tools | 📦 Parsing POST response as JSON-RPC message...
+2025-12-02 22:06:48 | INFO     | app.crew_pipeline.mcp_tools | 📮 Sending client message: method=None, id=None
+2025-12-02 22:06:48 | INFO     | app.crew_pipeline.mcp_tools | ✅ Client message sent successfully: 200, response length: 12417
+2025-12-02 22:06:48 | INFO     | app.crew_pipeline.mcp_tools | 📦 Parsing POST response as JSON-RPC message...
+2025-12-02 22:06:48 | INFO     | app.crew_pipeline.mcp_tools | ✅ MCP tool climate.avg_temperature exécuté avec succès
+2025-12-02 22:06:52 | INFO     | root | OpenAI API usage: {'prompt_tokens': 11090, 'completion_tokens': 198, 'total_tokens': 11288}
+2025-12-02 22:08:14 | INFO     | root | OpenAI API usage: {'prompt_tokens': 15291, 'completion_tokens': 4100, 'total_tokens': 19391}
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 2025-12-02 22:06:07 | INFO     | app.crew_pipeline.mcp_tools | ✅ Client message sent successfully: 200, response length: 1188
+2025-12-02 22:06:07 | INFO     | app.crew_pipeline.mcp_tools | 📦 Parsing POST response as JSON-RPC message...
+2025-12-02 22:06:07 | INFO     | app.crew_pipeline.mcp_tools | ✅ MCP tool flights.prices exécuté avec succès
+2025-12-02 22:06:09 | INFO     | root | OpenAI API usage: {'prompt_tokens': 10745, 'completion_tokens': 53, 'total_tokens': 10798}
+2025-12-02 22:06:09 | INFO     | root | OpenAI: Successfully validated tool 'create_reasoning_plan'
+2025-12-02 22:06:32 | INFO     | root | OpenAI API usage: {'prompt_tokens': 6184, 'completion_tokens': 594, 'total_tokens': 6778}
+2025-12-02 22:06:32 | INFO     | app.crew_pipeline.mcp_tools | 🔧 Using override endpoint URL: https://travliaq-mcp-production.up.railway.app/mcp?sessionId=05eca34b365647e0bc718a2d821869a8
+2025-12-02 22:06:32 | INFO     | app.crew_pipeline.mcp_tools | 📡 Starting SSE event loop...
+2025-12-02 22:06:32 | INFO     | app.crew_pipeline.mcp_tools | 📤 Starting post_writer with endpoint: https://travliaq-mcp-production.up.railway.app/mcp?sessionId=05eca34b365647e0bc718a2d821869a8
+2025-12-02 22:06:32 | INFO     | app.crew_pipeline.mcp_tools | 📝 Waiting for messages to send...
+2025-12-02 22:06:32 | INFO     | app.crew_pipeline.mcp_tools | 📮 Sending client message: method=None, id=None
+2025-12-02 22:06:32 | INFO     | app.crew_pipeline.mcp_tools | ✅ Client message sent successfully: 200, response length: 292
+2025-12-02 22:06:32 | INFO     | app.crew_pipeline.mcp_tools | 📦 Parsing POST response as JSON-RPC message...
+2025-12-02 22:06:32 | INFO     | app.crew_pipeline.mcp_tools | 📮 Sending client message: method=None, id=None
+2025-12-02 22:06:32 | INFO     | app.crew_pipeline.mcp_tools | ✅ Client message sent successfully: 202, response length: 0
+2025-12-02 22:06:32 | INFO     | app.crew_pipeline.mcp_tools | 📮 Sending client message: method=None, id=None
+2025-12-02 22:06:32 | INFO     | app.crew_pipeline.mcp_tools | ✅ Client message sent successfully: 200, response length: 1172
+2025-12-02 22:06:32 | INFO     | app.crew_pipeline.mcp_tools | 📦 Parsing POST response as JSON-RPC message...
+2025-12-02 22:06:32 | INFO     | app.crew_pipeline.mcp_tools | 📮 Sending client message: method=None, id=None
+2025-12-02 22:06:32 | INFO     | app.crew_pipeline.mcp_tools | ✅ Client message sent successfully: 200, response length: 12417
+2025-12-02 22:06:32 | INFO     | app.crew_pipeline.mcp_tools | 📦 Parsing POST response as JSON-RPC message...
+2025-12-02 22:06:32 | INFO     | app.crew_pipeline.mcp_tools | ✅ MCP tool places.overview exécuté avec succès
+2025-12-02 22:06:34 | INFO     | root | OpenAI API usage: {'prompt_tokens': 6353, 'completion_tokens': 90, 'total_tokens': 6443}
+2025-12-02 22:06:34 | INFO     | root | OpenAI: Successfully validated tool 'create_reasoning_plan'
+2025-12-02 22:07:09 | INFO     | root | OpenAI API usage: {'prompt_tokens': 6613, 'completion_tokens': 598, 'total_tokens': 7211}
+2025-12-02 22:07:11 | INFO     | root | OpenAI API usage: {'prompt_tokens': 6782, 'completion_tokens': 96, 'total_tokens': 6878}
+2025-12-02 22:07:11 | INFO     | root | OpenAI: Successfully validated tool 'create_reasoning_plan'
+2025-12-02 22:07:47 | INFO     | root | OpenAI API usage: {'prompt_tokens': 7042, 'completion_tokens': 593, 'total_tokens': 7635}
+2025-12-02 22:07:57 | INFO     | root | OpenAI API usage: {'prompt_tokens': 11335, 'completion_tokens': 508, 'total_tokens': 11843}
+2025-12-02 22:07:57 | ERROR    | app.crew_pipeline.cli | ❌ Échec de la pipeline CLI: 'charmap' codec can't encode character '\u274c' in position 82: character maps to <undefined>
+Traceback (most recent call last):
+  File "C:\Users\User\AppData\Local\Programs\Python\Python312\Lib\site-packages\crewai\tools\tool_usage.py", line 265, in _use
+    result = tool.invoke(input=arguments)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\User\AppData\Local\Programs\Python\Python312\Lib\site-packages\crewai\tools\structured_tool.py", line 272, in invoke
+    result = self.func(**parsed_args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "E:\CrewTravliaq\Travliaq-Agents\app\crew_pipeline\mcp_tools.py", line 83, in wrapper
+    raise ValueError(
+ValueError: ❌ Date passée détectée pour 'checkin': 2025-11-23
+Les voyages ne peuvent être planifiés que dans le futur.
+Date minimum: 2025-12-02
+💡 Suggestion: Consulte system_contract.timing.departure_dates_whitelist pour les dates validées.
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\User\AppData\Local\Programs\Python\Python312\Lib\site-packages\crewai\tools\tool_usage.py", line 270, in _use
+    result = tool.invoke(input=arguments)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\User\AppData\Local\Programs\Python\Python312\Lib\site-packages\crewai\tools\structured_tool.py", line 272, in invoke
+    result = self.func(**parsed_args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "E:\CrewTravliaq\Travliaq-Agents\app\crew_pipeline\mcp_tools.py", line 83, in wrapper
+    raise ValueError(
+ValueError: ❌ Date passée détectée pour 'checkin': 2025-11-23
+Les voyages ne peuvent être planifiés que dans le futur.
+Date minimum: 2025-12-02
+💡 Suggestion: Consulte system_contract.timing.departure_dates_whitelist pour les dates validées.
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\User\AppData\Local\Programs\Python\Python312\Lib\site-packages\crewai\tools\tool_usage.py", line 265, in _use
+    result = tool.invoke(input=arguments)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\User\AppData\Local\Programs\Python\Python312\Lib\site-packages\crewai\tools\structured_tool.py", line 272, in invoke
+    result = self.func(**parsed_args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "E:\CrewTravliaq\Travliaq-Agents\app\crew_pipeline\mcp_tools.py", line 83, in wrapper
+    raise ValueError(
+ValueError: ❌ Date passée détectée pour 'checkin': 2025-11-23
+Les voyages ne peuvent être planifiés que dans le futur.
+Date minimum: 2025-12-02
+💡 Suggestion: Consulte system_contract.timing.departure_dates_whitelist pour les dates validées.
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\User\AppData\Local\Programs\Python\Python312\Lib\site-packages\crewai\tools\tool_usage.py", line 270, in _use
+    result = tool.invoke(input=arguments)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\User\AppData\Local\Programs\Python\Python312\Lib\site-packages\crewai\tools\structured_tool.py", line 272, in invoke
+    result = self.func(**parsed_args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "E:\CrewTravliaq\Travliaq-Agents\app\crew_pipeline\mcp_tools.py", line 83, in wrapper
+    raise ValueError(
+ValueError: ❌ Date passée détectée pour 'checkin': 2025-11-23
+Les voyages ne peuvent être planifiés que dans le futur.
+Date minimum: 2025-12-02
+💡 Suggestion: Consulte system_contract.timing.departure_dates_whitelist pour les dates validées.
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\User\AppData\Local\Programs\Python\Python312\Lib\site-packages\crewai\tools\tool_usage.py", line 265, in _use
+    result = tool.invoke(input=arguments)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\User\AppData\Local\Programs\Python\Python312\Lib\site-packages\crewai\tools\structured_tool.py", line 272, in invoke
+    result = self.func(**parsed_args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "E:\CrewTravliaq\Travliaq-Agents\app\crew_pipeline\mcp_tools.py", line 83, in wrapper
+    raise ValueError(
+ValueError: ❌ Date passée détectée pour 'checkin': 2025-11-23
+Les voyages ne peuvent être planifiés que dans le futur.
+Date minimum: 2025-12-02
+💡 Suggestion: Consulte system_contract.timing.departure_dates_whitelist pour les dates validées.
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\User\AppData\Local\Programs\Python\Python312\Lib\site-packages\crewai\tools\tool_usage.py", line 270, in _use
+    result = tool.invoke(input=arguments)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\User\AppData\Local\Programs\Python\Python312\Lib\site-packages\crewai\tools\structured_tool.py", line 272, in invoke
+    result = self.func(**parsed_args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "E:\CrewTravliaq\Travliaq-Agents\app\crew_pipeline\mcp_tools.py", line 83, in wrapper
+    raise ValueError(
+ValueError: ❌ Date passée détectée pour 'checkin': 2025-11-23
+Les voyages ne peuvent être planifiés que dans le futur.
+Date minimum: 2025-12-02
+💡 Suggestion: Consulte system_contract.timing.departure_dates_whitelist pour les dates validées.
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\User\AppData\Local\Programs\Python\Python312\Lib\site-packages\crewai\agent\core.py", line 490, in execute_task
+    result = self._execute_without_timeout(task_prompt, task)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\User\AppData\Local\Programs\Python\Python312\Lib\site-packages\crewai\agent\core.py", line 598, in _execute_without_timeout
+    return self.agent_executor.invoke(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\User\AppData\Local\Programs\Python\Python312\Lib\site-packages\crewai\agents\crew_agent_executor.py", line 188, in invoke
+    formatted_answer = self._invoke_loop()
+                       ^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\User\AppData\Local\Programs\Python\Python312\Lib\site-packages\crewai\agents\crew_agent_executor.py", line 299, in _invoke_loop
+    raise e
+  File "C:\Users\User\AppData\Local\Programs\Python\Python312\Lib\site-packages\crewai\agents\crew_agent_executor.py", line 255, in _invoke_loop
+    tool_result = execute_tool_and_check_finality(
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\User\AppData\Local\Programs\Python\Python312\Lib\site-packages\crewai\utilities\tool_utils.py", line 130, in execute_tool_and_check_finality
+    tool_result = tool_usage.use(tool_calling, agent_action.text)
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\User\AppData\Local\Programs\Python\Python312\Lib\site-packages\crewai\tools\tool_usage.py", line 161, in use
+    return f"{self._use(tool_string=tool_string, tool=tool, calling=calling)}"
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\User\AppData\Local\Programs\Python\Python312\Lib\site-packages\crewai\tools\tool_usage.py", line 296, in _use
+    return self.use(calling=calling, tool_string=tool_string)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\User\AppData\Local\Programs\Python\Python312\Lib\site-packages\crewai\tools\tool_usage.py", line 161, in use
+    return f"{self._use(tool_string=tool_string, tool=tool, calling=calling)}"
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\User\AppData\Local\Programs\Python\Python312\Lib\site-packages\crewai\tools\tool_usage.py", line 296, in _use
+    return self.use(calling=calling, tool_string=tool_string)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\User\AppData\Local\Programs\Python\Python312\Lib\site-packages\crewai\tools\tool_usage.py", line 161, in use
+    return f"{self._use(tool_string=tool_string, tool=tool, calling=calling)}"
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\User\AppData\Local\Programs\Python\Python312\Lib\site-packages\crewai\tools\tool_usage.py", line 289, in _use
+    self._printer.print(
+  File "C:\Users\User\AppData\Local\Programs\Python\Python312\Lib\site-packages\crewai\utilities\printer.py", line 82, in print
+    print(
+  File "C:\Users\User\AppData\Local\Programs\Python\Python312\Lib\site-packages\crewai\llm.py", line 120, in write
+    return self._original_stream.write(s)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\User\AppData\Local\Programs\Python\Python312\Lib\encodings\cp1252.py", line 19, in encode
+    return codecs.charmap_encode(input,self.errors,encoding_table)[0]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+UnicodeEncodeError: 'charmap' codec can't encode character '\u274c' in position 82: character maps to <undefined>
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\User\AppData\Local\Programs\Python\Python312\Lib\site-packages\crewai\tools\tool_usage.py", line 265, in _use
+    result = tool.invoke(input=arguments)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\User\AppData\Local\Programs\Python\Python312\Lib\site-packages\crewai\tools\structured_tool.py", line 272, in invoke
+    result = self.func(**parsed_args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "E:\CrewTravliaq\Travliaq-Agents\app\crew_pipeline\mcp_tools.py", line 83, in wrapper
+    raise ValueError(
+ValueError: ❌ Date passée détectée pour 'checkin': 2025-11-23
+Les voyages ne peuvent être planifiés que dans le futur.
+Date minimum: 2025-12-02
+💡 Suggestion: Consulte system_contract.timing.departure_dates_whitelist pour les dates validées.
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\User\AppData\Local\Programs\Python\Python312\Lib\site-packages\crewai\tools\tool_usage.py", line 270, in _use
+    result = tool.invoke(input=arguments)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\User\AppData\Local\Programs\Python\Python312\Lib\site-packages\crewai\tools\structured_tool.py", line 272, in invoke
+    result = self.func(**parsed_args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "E:\CrewTravliaq\Travliaq-Agents\app\crew_pipeline\mcp_tools.py", line 83, in wrapper
+    raise ValueError(
+ValueError: ❌ Date passée détectée pour 'checkin': 2025-11-23
+Les voyages ne peuvent être planifiés que dans le futur.
+Date minimum: 2025-12-02
+💡 Suggestion: Consulte system_contract.timing.departure_dates_whitelist pour les dates validées.
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\User\AppData\Local\Programs\Python\Python312\Lib\site-packages\crewai\tools\tool_usage.py", line 265, in _use
+    result = tool.invoke(input=arguments)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\User\AppData\Local\Programs\Python\Python312\Lib\site-packages\crewai\tools\structured_tool.py", line 272, in invoke
+    result = self.func(**parsed_args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "E:\CrewTravliaq\Travliaq-Agents\app\crew_pipeline\mcp_tools.py", line 83, in wrapper
+    raise ValueError(
+ValueError: ❌ Date passée détectée pour 'checkin': 2025-11-23
+Les voyages ne peuvent être planifiés que dans le futur.
+Date minimum: 2025-12-02
+💡 Suggestion: Consulte system_contract.timing.departure_dates_whitelist pour les dates validées.
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\User\AppData\Local\Programs\Python\Python312\Lib\site-packages\crewai\tools\tool_usage.py", line 270, in _use
+    result = tool.invoke(input=arguments)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\User\AppData\Local\Programs\Python\Python312\Lib\site-packages\crewai\tools\structured_tool.py", line 272, in invoke
+    result = self.func(**parsed_args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "E:\CrewTravliaq\Travliaq-Agents\app\crew_pipeline\mcp_tools.py", line 83, in wrapper
+    raise ValueError(
+ValueError: ❌ Date passée détectée pour 'checkin': 2025-11-23
+Les voyages ne peuvent être planifiés que dans le futur.
+Date minimum: 2025-12-02
+💡 Suggestion: Consulte system_contract.timing.departure_dates_whitelist pour les dates validées.
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\User\AppData\Local\Programs\Python\Python312\Lib\site-packages\crewai\tools\tool_usage.py", line 265, in _use
+    result = tool.invoke(input=arguments)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\User\AppData\Local\Programs\Python\Python312\Lib\site-packages\crewai\tools\structured_tool.py", line 272, in invoke
+    result = self.func(**parsed_args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "E:\CrewTravliaq\Travliaq-Agents\app\crew_pipeline\mcp_tools.py", line 83, in wrapper
+    raise ValueError(
+ValueError: ❌ Date passée détectée pour 'checkin': 2025-11-23
+Les voyages ne peuvent être planifiés que dans le futur.
+Date minimum: 2025-12-02
+💡 Suggestion: Consulte system_contract.timing.departure_dates_whitelist pour les dates validées.
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\User\AppData\Local\Programs\Python\Python312\Lib\site-packages\crewai\tools\tool_usage.py", line 270, in _use
+    result = tool.invoke(input=arguments)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\User\AppData\Local\Programs\Python\Python312\Lib\site-packages\crewai\tools\structured_tool.py", line 272, in invoke
+    result = self.func(**parsed_args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "E:\CrewTravliaq\Travliaq-Agents\app\crew_pipeline\mcp_tools.py", line 83, in wrapper
+    raise ValueError(
+ValueError: ❌ Date passée détectée pour 'checkin': 2025-11-23
+Les voyages ne peuvent être planifiés que dans le futur.
+Date minimum: 2025-12-02
+💡 Suggestion: Consulte system_contract.timing.departure_dates_whitelist pour les dates validées.
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\User\AppData\Local\Programs\Python\Python312\Lib\site-packages\crewai\agent\core.py", line 490, in execute_task
+    result = self._execute_without_timeout(task_prompt, task)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\User\AppData\Local\Programs\Python\Python312\Lib\site-packages\crewai\agent\core.py", line 598, in _execute_without_timeout
+    return self.agent_executor.invoke(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\User\AppData\Local\Programs\Python\Python312\Lib\site-packages\crewai\agents\crew_agent_executor.py", line 188, in invoke
+    formatted_answer = self._invoke_loop()
+                       ^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\User\AppData\Local\Programs\Python\Python312\Lib\site-packages\crewai\agents\crew_agent_executor.py", line 299, in _invoke_loop
+    raise e
+  File "C:\Users\User\AppData\Local\Programs\Python\Python312\Lib\site-packages\crewai\agents\crew_agent_executor.py", line 255, in _invoke_loop
+    tool_result = execute_tool_and_check_finality(
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\User\AppData\Local\Programs\Python\Python312\Lib\site-packages\crewai\utilities\tool_utils.py", line 130, in execute_tool_and_check_finality
+    tool_result = tool_usage.use(tool_calling, agent_action.text)
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\User\AppData\Local\Programs\Python\Python312\Lib\site-packages\crewai\tools\tool_usage.py", line 161, in use
+    return f"{self._use(tool_string=tool_string, tool=tool, calling=calling)}"
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\User\AppData\Local\Programs\Python\Python312\Lib\site-packages\crewai\tools\tool_usage.py", line 296, in _use
+    return self.use(calling=calling, tool_string=tool_string)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\User\AppData\Local\Programs\Python\Python312\Lib\site-packages\crewai\tools\tool_usage.py", line 161, in use
+    return f"{self._use(tool_string=tool_string, tool=tool, calling=calling)}"
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\User\AppData\Local\Programs\Python\Python312\Lib\site-packages\crewai\tools\tool_usage.py", line 296, in _use
+    return self.use(calling=calling, tool_string=tool_string)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\User\AppData\Local\Programs\Python\Python312\Lib\site-packages\crewai\tools\tool_usage.py", line 161, in use
+    return f"{self._use(tool_string=tool_string, tool=tool, calling=calling)}"
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\User\AppData\Local\Programs\Python\Python312\Lib\site-packages\crewai\tools\tool_usage.py", line 289, in _use
+    self._printer.print(
+  File "C:\Users\User\AppData\Local\Programs\Python\Python312\Lib\site-packages\crewai\utilities\printer.py", line 82, in print
+    print(
+  File "C:\Users\User\AppData\Local\Programs\Python\Python312\Lib\site-packages\crewai\llm.py", line 120, in write
+    return self._original_stream.write(s)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\User\AppData\Local\Programs\Python\Python312\Lib\encodings\cp1252.py", line 19, in encode
+    return codecs.charmap_encode(input,self.errors,encoding_table)[0]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+UnicodeEncodeError: 'charmap' codec can't encode character '\u274c' in position 82: character maps to <undefined>
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\User\AppData\Local\Programs\Python\Python312\Lib\site-packages\crewai\tools\tool_usage.py", line 265, in _use
+    result = tool.invoke(input=arguments)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\User\AppData\Local\Programs\Python\Python312\Lib\site-packages\crewai\tools\structured_tool.py", line 272, in invoke
+    result = self.func(**parsed_args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "E:\CrewTravliaq\Travliaq-Agents\app\crew_pipeline\mcp_tools.py", line 83, in wrapper
+    raise ValueError(
+ValueError: ❌ Date passée détectée pour 'checkin': 2025-11-23
+Les voyages ne peuvent être planifiés que dans le futur.
+Date minimum: 2025-12-02
+💡 Suggestion: Consulte system_contract.timing.departure_dates_whitelist pour les dates validées.
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\User\AppData\Local\Programs\Python\Python312\Lib\site-packages\crewai\tools\tool_usage.py", line 270, in _use
+    result = tool.invoke(input=arguments)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\User\AppData\Local\Programs\Python\Python312\Lib\site-packages\crewai\tools\structured_tool.py", line 272, in invoke
+    result = self.func(**parsed_args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "E:\CrewTravliaq\Travliaq-Agents\app\crew_pipeline\mcp_tools.py", line 83, in wrapper
+    raise ValueError(
+ValueError: ❌ Date passée détectée pour 'checkin': 2025-11-23
+Les voyages ne peuvent être planifiés que dans le futur.
+Date minimum: 2025-12-02
+💡 Suggestion: Consulte system_contract.timing.departure_dates_whitelist pour les dates validées.
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\User\AppData\Local\Programs\Python\Python312\Lib\site-packages\crewai\tools\tool_usage.py", line 265, in _use
+    result = tool.invoke(input=arguments)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\User\AppData\Local\Programs\Python\Python312\Lib\site-packages\crewai\tools\structured_tool.py", line 272, in invoke
+    result = self.func(**parsed_args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "E:\CrewTravliaq\Travliaq-Agents\app\crew_pipeline\mcp_tools.py", line 83, in wrapper
+    raise ValueError(
+ValueError: ❌ Date passée détectée pour 'checkin': 2025-11-23
+Les voyages ne peuvent être planifiés que dans le futur.
+Date minimum: 2025-12-02
+💡 Suggestion: Consulte system_contract.timing.departure_dates_whitelist pour les dates validées.
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\User\AppData\Local\Programs\Python\Python312\Lib\site-packages\crewai\tools\tool_usage.py", line 270, in _use
+    result = tool.invoke(input=arguments)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\User\AppData\Local\Programs\Python\Python312\Lib\site-packages\crewai\tools\structured_tool.py", line 272, in invoke
+    result = self.func(**parsed_args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "E:\CrewTravliaq\Travliaq-Agents\app\crew_pipeline\mcp_tools.py", line 83, in wrapper
+    raise ValueError(
+ValueError: ❌ Date passée détectée pour 'checkin': 2025-11-23
+Les voyages ne peuvent être planifiés que dans le futur.
+Date minimum: 2025-12-02
+💡 Suggestion: Consulte system_contract.timing.departure_dates_whitelist pour les dates validées.
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\User\AppData\Local\Programs\Python\Python312\Lib\site-packages\crewai\tools\tool_usage.py", line 265, in _use
+    result = tool.invoke(input=arguments)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\User\AppData\Local\Programs\Python\Python312\Lib\site-packages\crewai\tools\structured_tool.py", line 272, in invoke
+    result = self.func(**parsed_args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "E:\CrewTravliaq\Travliaq-Agents\app\crew_pipeline\mcp_tools.py", line 83, in wrapper
+    raise ValueError(
+ValueError: ❌ Date passée détectée pour 'checkin': 2025-11-23
+Les voyages ne peuvent être planifiés que dans le futur.
+Date minimum: 2025-12-02
+💡 Suggestion: Consulte system_contract.timing.departure_dates_whitelist pour les dates validées.
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\User\AppData\Local\Programs\Python\Python312\Lib\site-packages\crewai\tools\tool_usage.py", line 270, in _use
+    result = tool.invoke(input=arguments)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\User\AppData\Local\Programs\Python\Python312\Lib\site-packages\crewai\tools\structured_tool.py", line 272, in invoke
+    result = self.func(**parsed_args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "E:\CrewTravliaq\Travliaq-Agents\app\crew_pipeline\mcp_tools.py", line 83, in wrapper
+    raise ValueError(
+ValueError: ❌ Date passée détectée pour 'checkin': 2025-11-23
+Les voyages ne peuvent être planifiés que dans le futur.
+Date minimum: 2025-12-02
+💡 Suggestion: Consulte system_contract.timing.departure_dates_whitelist pour les dates validées.
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "E:\CrewTravliaq\Travliaq-Agents\app\crew_pipeline\__main__.py", line 154, in main
+    result = travliaq_crew_pipeline.run(
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "E:\CrewTravliaq\Travliaq-Agents\app\crew_pipeline\pipeline.py", line 374, in run
+    output_phase2 = crew_phase2.kickoff(inputs=inputs_phase2)
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\User\AppData\Local\Programs\Python\Python312\Lib\site-packages\crewai\crew.py", line 755, in kickoff
+    result = self._run_sequential_process()
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\User\AppData\Local\Programs\Python\Python312\Lib\site-packages\crewai\crew.py", line 995, in _run_sequential_process
+    return self._execute_tasks(self.tasks)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\User\AppData\Local\Programs\Python\Python312\Lib\site-packages\crewai\crew.py", line 1103, in _execute_tasks
+    task_output = task.execute_sync(
+                  ^^^^^^^^^^^^^^^^^^
+  File "C:\Users\User\AppData\Local\Programs\Python\Python312\Lib\site-packages\crewai\task.py", line 458, in execute_sync
+    return self._execute_core(agent, context, tools)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\User\AppData\Local\Programs\Python\Python312\Lib\site-packages\crewai\task.py", line 591, in _execute_core
+    raise e  # Re-raise the exception after emitting the event
+    ^^^^^^^
+  File "C:\Users\User\AppData\Local\Programs\Python\Python312\Lib\site-packages\crewai\task.py", line 522, in _execute_core
+    result = agent.execute_task(
+             ^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\User\AppData\Local\Programs\Python\Python312\Lib\site-packages\crewai\agent\core.py", line 526, in execute_task
+    result = self.execute_task(task, context, tools)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\User\AppData\Local\Programs\Python\Python312\Lib\site-packages\crewai\agent\core.py", line 526, in execute_task
+    result = self.execute_task(task, context, tools)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\User\AppData\Local\Programs\Python\Python312\Lib\site-packages\crewai\agent\core.py", line 525, in execute_task
+    raise e
+  File "C:\Users\User\AppData\Local\Programs\Python\Python312\Lib\site-packages\crewai\agent\core.py", line 490, in execute_task
+    result = self._execute_without_timeout(task_prompt, task)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\User\AppData\Local\Programs\Python\Python312\Lib\site-packages\crewai\agent\core.py", line 598, in _execute_without_timeout
+    return self.agent_executor.invoke(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\User\AppData\Local\Programs\Python\Python312\Lib\site-packages\crewai\agents\crew_agent_executor.py", line 188, in invoke
+    formatted_answer = self._invoke_loop()
+                       ^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\User\AppData\Local\Programs\Python\Python312\Lib\site-packages\crewai\agents\crew_agent_executor.py", line 299, in _invoke_loop
+    raise e
+  File "C:\Users\User\AppData\Local\Programs\Python\Python312\Lib\site-packages\crewai\agents\crew_agent_executor.py", line 255, in _invoke_loop
+    tool_result = execute_tool_and_check_finality(
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\User\AppData\Local\Programs\Python\Python312\Lib\site-packages\crewai\utilities\tool_utils.py", line 130, in execute_tool_and_check_finality
+    tool_result = tool_usage.use(tool_calling, agent_action.text)
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\User\AppData\Local\Programs\Python\Python312\Lib\site-packages\crewai\tools\tool_usage.py", line 161, in use
+    return f"{self._use(tool_string=tool_string, tool=tool, calling=calling)}"
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\User\AppData\Local\Programs\Python\Python312\Lib\site-packages\crewai\tools\tool_usage.py", line 296, in _use
+    return self.use(calling=calling, tool_string=tool_string)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\User\AppData\Local\Programs\Python\Python312\Lib\site-packages\crewai\tools\tool_usage.py", line 161, in use
+    return f"{self._use(tool_string=tool_string, tool=tool, calling=calling)}"
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\User\AppData\Local\Programs\Python\Python312\Lib\site-packages\crewai\tools\tool_usage.py", line 296, in _use
+    return self.use(calling=calling, tool_string=tool_string)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\User\AppData\Local\Programs\Python\Python312\Lib\site-packages\crewai\tools\tool_usage.py", line 161, in use
+    return f"{self._use(tool_string=tool_string, tool=tool, calling=calling)}"
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\User\AppData\Local\Programs\Python\Python312\Lib\site-packages\crewai\tools\tool_usage.py", line 289, in _use
+    self._printer.print(
+  File "C:\Users\User\AppData\Local\Programs\Python\Python312\Lib\site-packages\crewai\utilities\printer.py", line 82, in print
+    print(
+  File "C:\Users\User\AppData\Local\Programs\Python\Python312\Lib\site-packages\crewai\llm.py", line 120, in write
+    return self._original_stream.write(s)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\User\AppData\Local\Programs\Python\Python312\Lib\encodings\cp1252.py", line 19, in encode
+    return codecs.charmap_encode(input,self.errors,encoding_table)[0]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+UnicodeEncodeError: 'charmap' codec can't encode character '\u274c' in position 82: character maps to <undefined>
