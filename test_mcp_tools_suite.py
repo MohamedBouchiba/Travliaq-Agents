@@ -75,8 +75,8 @@ TEST_CASES = [
         "args": {
             "origin": "LHR",
             "destination": "JFK",
-            "start_date": "2025-06-01",
-            "end_date": "2025-06-08"
+            "start_date": "2026-02-12",
+            "end_date": "2026-02-20"
         },
         "description": "Flight prices LHR -> JFK"
     }
