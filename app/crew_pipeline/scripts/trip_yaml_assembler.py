@@ -134,6 +134,78 @@ def _sanitize_summary_stat(stat: Dict[str, Any]) -> Optional[Dict[str, Any]]:
     return None
 
 
+def _build_placeholder_step(
+    day_number: int, trip_core: Dict[str, Any], styles: Optional[List[str]]
+) -> Dict[str, Any]:
+    """Crée une étape par défaut pour garantir une couverture quotidienne."""
+
+    destination_label = trip_core.get("destination") or "Destination"
+    style_hint = ""
+    if styles:
+        joined = ", ".join(str(style) for style in styles[:3])
+        if joined:
+            style_hint = f" Mettez l'accent sur : {joined}."
+
+    main_image = trip_core.get("main_image") or _build_fallback_image(destination_label)
+
+    return {
+        "step_number": day_number,
+        "day_number": day_number,
+        "title": f"Jour {day_number} – Découverte de {destination_label}",
+        "main_image": main_image,
+        "step_type": "activité",
+        "duration": "Journée",
+        "price": 0,
+        "why": f"Itinéraire libre pour explorer {destination_label} à votre rythme." + style_hint,
+        "tips": "Ajoutez ici vos activités ou restaurants préférés pour personnaliser cette journée.",
+        "images": [main_image],
+    }
+
+
+def _ensure_daily_coverage(
+    steps: List[Dict[str, Any]],
+    trip_core: Dict[str, Any],
+    target_total_days: int,
+    styles: Optional[List[str]],
+) -> List[Dict[str, Any]]:
+    """Garantit entre 1 et 3 étapes par jour en ajoutant des placeholders si nécessaire."""
+
+    non_summary_steps = [step for step in steps if not step.get("is_summary")]
+    steps_by_day: Dict[int, List[Dict[str, Any]]] = {}
+
+    for step in non_summary_steps:
+        day = _coerce_positive_int(step.get("day_number"), step.get("step_number") or 1)
+        steps_by_day.setdefault(day, []).append(step)
+
+    for day in range(1, target_total_days + 1):
+        daily_steps = steps_by_day.get(day, [])
+        if not daily_steps:
+            placeholder = _build_placeholder_step(day, trip_core, styles)
+            steps.append(placeholder)
+            steps_by_day.setdefault(day, []).append(placeholder)
+        elif len(daily_steps) > 3:
+            steps_by_day[day] = daily_steps[:3]
+
+    pruned: List[Dict[str, Any]] = []
+    for day in range(1, target_total_days + 1):
+        daily_steps = steps_by_day.get(day, [])
+        if len(daily_steps) > 3:
+            daily_steps = daily_steps[:3]
+        pruned.extend(daily_steps)
+
+    orphan_steps = [
+        step
+        for step in steps
+        if not step.get("is_summary")
+        and _coerce_positive_int(step.get("day_number"), 0) > target_total_days
+    ]
+    pruned.extend(orphan_steps)
+
+    return sorted(
+        pruned, key=lambda s: (_coerce_positive_int(s.get("day_number"), 1), s.get("step_number", 0))
+    )
+
+
 def _build_summary_stats(trip_core: Dict[str, Any], steps: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     """Construit un jeu de statistiques (4-8 items) à partir des données disponibles."""
 
@@ -249,6 +321,13 @@ def assemble_trip(
 
     raw_steps = activities.get("steps") if isinstance(activities.get("steps"), list) else []
     sanitized_steps: List[Dict[str, Any]] = []
+    trip_styles = normalized_trip_request.get("styles") if isinstance(normalized_trip_request.get("styles"), list) else []
+    target_total_days = _coerce_positive_int(
+        trip_core.get("total_days")
+        or normalized_trip_request.get("nuits_exactes")
+        or questionnaire.get("nuits_exactes"),
+        1,
+    )
 
     for idx, step in enumerate(raw_steps, start=1):
         if not isinstance(step, dict):
@@ -314,6 +393,10 @@ def assemble_trip(
             )
 
         sanitized_steps.append(sanitized_step)
+
+    sanitized_steps = _ensure_daily_coverage(
+        sanitized_steps, trip_core, target_total_days, trip_styles
+    )
 
     # Ajout d'un résumé si absent
     has_summary = any(step.get("is_summary") for step in sanitized_steps)
