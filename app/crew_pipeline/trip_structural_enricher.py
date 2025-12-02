@@ -418,6 +418,86 @@ def _ensure_dates(enriched: Dict[str, Any], questionnaire: Mapping[str, Any]) ->
     if return_dates:
         dates["return_dates"] = return_dates
 
+    _force_future_dates(dates)
+
+
+def _force_future_dates(dates: Dict[str, Any]) -> None:
+    """Force les dates à être dans le futur (décalage +1 an si nécessaire)."""
+
+    today = date.today()
+    
+    # 1. Récupération des dates brutes
+    dep_list = dates.get("departure_dates") or []
+    ret_list = dates.get("return_dates") or []
+    
+    if not dep_list:
+        # Cas critique : aucune date. On génère une "Next Season" par défaut (J+90)
+        default_start = today + timedelta(days=90)
+        duration = dates.get("duration_nights") or 7
+        default_end = default_start + timedelta(days=duration)
+        
+        dates["departure_dates"] = [_isoformat(default_start)]
+        dates["return_dates"] = [_isoformat(default_end)]
+        dates["type"] = "fixed"  # On fixe pour éviter l'ambiguïté
+        dates["note"] = "Dates générées par défaut (Next Season)"
+        return
+
+    # 2. Vérification et correction du départ
+    # On prend la première date de départ comme référence
+    first_dep = _parse_date(dep_list[0])
+    if not first_dep:
+        return
+
+    # Si la date est passée, on décale tout
+    years_to_add = 0
+    if first_dep < today:
+        # On calcule combien d'années ajouter pour revenir dans le futur
+        # On ajoute 1 an minimum, ou plus si la date est très vieille
+        while (first_dep.replace(year=first_dep.year + years_to_add) < today):
+            years_to_add += 1
+            
+    if years_to_add > 0:
+        dates["original_dates_detected"] = {
+            "departure": dep_list,
+            "return": ret_list
+        }
+        
+        new_deps = []
+        for d_str in dep_list:
+            d_obj = _parse_date(d_str)
+            if d_obj:
+                try:
+                    new_d = d_obj.replace(year=d_obj.year + years_to_add)
+                    new_deps.append(_isoformat(new_d))
+                except ValueError: 
+                    # Gère le 29 fév -> 1er mars pour les années non bissextiles
+                    new_d = d_obj + timedelta(days=365 * years_to_add)
+                    new_deps.append(_isoformat(new_d))
+        dates["departure_dates"] = new_deps
+        
+        new_rets = []
+        for r_str in ret_list:
+            r_obj = _parse_date(r_str)
+            if r_obj:
+                try:
+                    new_r = r_obj.replace(year=r_obj.year + years_to_add)
+                    new_rets.append(_isoformat(new_r))
+                except ValueError:
+                    new_r = r_obj + timedelta(days=365 * years_to_add)
+                    new_rets.append(_isoformat(new_r))
+        dates["return_dates"] = new_rets
+        
+        # Update range if present
+        if dates.get("range"):
+            r_start = _parse_date(dates["range"].get("start"))
+            r_end = _parse_date(dates["range"].get("end"))
+            if r_start and r_end:
+                try:
+                    dates["range"]["start"] = _isoformat(r_start.replace(year=r_start.year + years_to_add))
+                    dates["range"]["end"] = _isoformat(r_end.replace(year=r_end.year + years_to_add))
+                except ValueError:
+                    pass
+
 
 def _ensure_budget(
     enriched: Dict[str, Any],

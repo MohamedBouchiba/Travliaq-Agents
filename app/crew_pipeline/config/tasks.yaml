@@ -122,6 +122,9 @@ tasks:
       Estime les vols principaux pour les options retenues (prix, durée, bagages, escales).
       Priorité : ne pas halluciner. Si info absente -> null.
 
+      **RÈGLE CRITIQUE DATES** : Utilise UNIQUEMENT les dates validées dans `system_contract.timing` (departure_dates_whitelist, return_dates_whitelist).
+      REFUSE d'utiliser des dates passées (avant {current_year}). Si les dates sont en 2023/2024, c'est une erreur : utilise les dates corrigées du contrat.
+
       **Action MCP** : Utilise `flights.prices` et `airports.nearest` avec des valeurs STRING simples (ex: origin="BRU", destination="DPS", city="Bali"). Ne jamais passer de dictionnaire.
     expected_output: |-
       ```yaml
@@ -138,6 +141,8 @@ tasks:
     description: |-
       Estime les hébergements (type, confort, quartier) avec un slot de prix et les équipements clés.
       Mentionne la faisabilité budgétaire et les compromis éventuels.
+
+      **RÈGLE CRITIQUE DATES** : Utilise UNIQUEMENT les dates validées dans `system_contract.timing`.
 
       **Action MCP** : Pour chercher des hôtels, utilise `booking.search` avec des valeurs simples (ex: city="Bali", pas de dictionnaire). Pour valider une ville, utilise `places.overview` avec query="Bali" (string simple, pas d'objet).
     expected_output: |-
