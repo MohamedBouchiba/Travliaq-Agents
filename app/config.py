@@ -20,7 +20,7 @@ class Settings(BaseSettings):
     # Supabase
     supabase_url: Optional[str] = None
     supabase_service_role_key: Optional[str] = None
-    trip_recommendations_table: str = "trip_recommendations"
+    trip_recommendations_table: str = "trips"
 
     # PostgreSQL Direct
     pg_host: Optional[str] = None
