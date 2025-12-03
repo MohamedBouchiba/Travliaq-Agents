@@ -248,7 +248,71 @@ class SupabaseService:
 
             trip_id = result[0] if result else None
             logger.info("💾 Trip enregistré via insert_trip_from_json", extra={"trip_id": trip_id})
+
+            # 🛡️ FALLBACK: Vérifier que toutes les steps ont été insérées
+            if trip_id:
+                steps = trip_json.get("steps", [])
+                if steps:
+                    cursor = conn.cursor()
+                    cursor.execute("SELECT COUNT(*) FROM steps WHERE trip_id = %s", (trip_id,))
+                    count_result = cursor.fetchone()
+                    steps_count = count_result[0] if count_result else 0
+
+                    if steps_count < len(steps):
+                        logger.warning(f"⚠️ Seulement {steps_count}/{len(steps)} steps insérées. Tentative d'insertion manuelle...")
+                        self._insert_steps_manually(conn, trip_id, steps)
+
             return trip_id
+        except psycopg2.IntegrityError as exc:
+            if conn:
+                conn.rollback()
+
+            # 🛡️ ROBUSTESSE: Gérer les conflits de clé unique
+            error_msg = str(exc)
+            if "trips_code_key" in error_msg or "duplicate key" in error_msg:
+                logger.warning(f"⚠️ Conflit de code trip détecté, tentative avec code modifié: {exc}")
+
+                # Regénérer un code unique en ajoutant un nouveau suffixe UUID
+                import uuid
+                original_code = trip_json.get("code", "TRIP")
+                new_code = f"{original_code.split('-')[0]}-{uuid.uuid4().hex[:6].upper()}"
+                trip_json["code"] = new_code
+
+                logger.info(f"🔄 Nouvelle tentative avec code: {new_code}")
+
+                # Réessayer avec le nouveau code
+                try:
+                    conn = self._get_connection()
+                    cursor = conn.cursor()
+                    cursor.execute("SELECT insert_trip_from_json(%s::jsonb) AS trip_id", (json.dumps(trip_json),))
+                    result = cursor.fetchone()
+                    conn.commit()
+
+                    trip_id = result[0] if result else None
+                    logger.info("✅ Trip enregistré avec code modifié", extra={"trip_id": trip_id, "new_code": new_code})
+
+                    # Vérifier les steps
+                    if trip_id:
+                        steps = trip_json.get("steps", [])
+                        if steps:
+                            cursor = conn.cursor()
+                            cursor.execute("SELECT COUNT(*) FROM steps WHERE trip_id = %s", (trip_id,))
+                            count_result = cursor.fetchone()
+                            steps_count = count_result[0] if count_result else 0
+
+                            if steps_count < len(steps):
+                                logger.warning(f"⚠️ Seulement {steps_count}/{len(steps)} steps insérées. Tentative d'insertion manuelle...")
+                                self._insert_steps_manually(conn, trip_id, steps)
+
+                    return trip_id
+                except Exception as retry_exc:
+                    if conn:
+                        conn.rollback()
+                    logger.error(f"❌ Échec même après modification du code: {retry_exc}")
+                    raise
+            else:
+                logger.error(f"❌ Erreur d'intégrité non gérée: {exc}")
+                raise
         except Exception as exc:
             if conn:
                 conn.rollback()
@@ -258,6 +322,88 @@ class SupabaseService:
             if conn:
                 conn.close()
                 logger.debug("Connexion PostgreSQL fermée après insert_trip_from_json")
+
+    def _insert_steps_manually(self, conn, trip_id: str, steps: list) -> None:
+        """Insère manuellement les steps si la fonction SQL a échoué."""
+        cursor = conn.cursor()
+
+        for step in steps:
+            try:
+                # Convertir les images list en JSONB pour PostgreSQL
+                images = step.get("images", [])
+                images_jsonb = json.dumps(images) if images else '[]'
+
+                # Convertir summary_stats en JSONB
+                summary_stats = step.get("summary_stats")
+                summary_stats_jsonb = json.dumps(summary_stats) if summary_stats else None
+
+                # Requête adaptée au schéma SQL exact de insert_trip_from_json
+                query = """
+                    INSERT INTO steps (
+                        trip_id, step_number, day_number, title, title_en, subtitle, subtitle_en,
+                        main_image, is_summary, step_type, latitude, longitude,
+                        why, why_en, tips, tips_en, transfer, transfer_en, suggestion, suggestion_en,
+                        weather_icon, weather_temp, weather_description, weather_description_en,
+                        price, duration, images, summary_stats
+                    ) VALUES (
+                        %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,
+                        %s, %s, %s, %s, %s, %s, %s, %s,
+                        %s, %s, %s, %s, %s, %s, %s::jsonb, %s::jsonb
+                    )
+                    ON CONFLICT (trip_id, step_number) DO UPDATE SET
+                        day_number = EXCLUDED.day_number,
+                        title = EXCLUDED.title,
+                        subtitle = EXCLUDED.subtitle,
+                        main_image = EXCLUDED.main_image,
+                        latitude = EXCLUDED.latitude,
+                        longitude = EXCLUDED.longitude,
+                        why = EXCLUDED.why,
+                        tips = EXCLUDED.tips,
+                        is_summary = EXCLUDED.is_summary,
+                        step_type = EXCLUDED.step_type,
+                        images = EXCLUDED.images,
+                        summary_stats = EXCLUDED.summary_stats,
+                        updated_at = timezone('utc', now())
+                """
+
+                cursor.execute(query, (
+                    trip_id,
+                    step.get("step_number"),
+                    step.get("day_number"),
+                    step.get("title"),
+                    step.get("title_en"),
+                    step.get("subtitle"),
+                    step.get("subtitle_en"),
+                    step.get("main_image"),
+                    step.get("is_summary", False),
+                    step.get("step_type"),
+                    step.get("latitude"),
+                    step.get("longitude"),
+                    step.get("why"),
+                    step.get("why_en"),
+                    step.get("tips"),
+                    step.get("tips_en"),
+                    step.get("transfer"),
+                    step.get("transfer_en"),
+                    step.get("suggestion"),
+                    step.get("suggestion_en"),
+                    step.get("weather_icon"),
+                    step.get("weather_temp"),
+                    step.get("weather_description"),
+                    step.get("weather_description_en"),
+                    step.get("price"),
+                    step.get("duration"),
+                    images_jsonb,
+                    summary_stats_jsonb
+                ))
+
+                logger.info(f"✅ Step {step.get('step_number')} insérée manuellement")
+            except Exception as exc:
+                logger.error(f"❌ Erreur insertion step {step.get('step_number')}: {exc}")
+                # Continue avec les autres steps même si une échoue
+
+        conn.commit()
+        logger.info(f"✅ {len(steps)} steps insérées manuellement")
 
     def check_connection(self) -> bool:
         """Vérifie que la connexion PostgreSQL fonctionne."""

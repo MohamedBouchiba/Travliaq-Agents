@@ -573,23 +573,239 @@ tasks:
     async_execution: false
 
   # ==========================================================================
-  # TASK 5: ITINERARY DESIGN (CŒUR DE LA PIPELINE)
+  # TASK 5: TRIP STRUCTURE PLANNING (NOUVEAU - Planification du rythme)
+  # ==========================================================================
+  plan_trip_structure:
+    description: |-
+      🎯 **TU CRÉES LE PLAN STRUCTUREL DU SÉJOUR AVANT L'ITINÉRAIRE DÉTAILLÉ.**
+
+      Ta mission : analyser le profil du voyageur, le rythme souhaité, la destination, et
+      la culture locale pour décider de la STRUCTURE OPTIMALE du séjour que l'itinerary_designer
+      suivra ensuite à la lettre.
+
+      **CONTEXTE VOYAGE :**
+      {trip_context}
+
+      **DESTINATION CHOISIE :**
+      {destination_choice}
+
+      **📊 ANALYSE DU RYTHME VOYAGEUR (PRIORITÉ ABSOLUE) :**
+
+      Le champ "rythme" du questionnaire définit IMPÉRATIVEMENT le nombre de steps par jour :
+
+      1. **relaxed (détendu)** :
+         - **1-2 steps/jour MAX**
+         - Privilégier 1 step longue et immersive de 3-4h (ex: journée à la plage, visite approfondie d'un quartier)
+         - Si 2 steps : 1 activité principale + 1 repas/détente légère
+         - Laisser 2-3h de temps libre par jour pour sieste, flâner, improviser
+         - Éviter les journées chargées
+         - Exemple jour type : Matin au temple (3h) → Pause café → Déjeuner tranquille → Temps libre → Dîner décontracté
+
+      2. **balanced (équilibré)** :
+         - **1-2 steps/jour en moyenne**
+         - Mix intelligent : certains jours 1 step longue (4h), d'autres jours 2 steps moyennes (2h chacune)
+         - Alterner journées intenses et journées calmes
+         - Inclure 1-2h de temps libre par jour
+         - Exemple jour type : Visite musée (2-3h) → Déjeuner → Balade quartier historique (2h) → Temps libre soirée
+
+      3. **intense (dynamique)** :
+         - **2-3 steps/jour**
+         - Varier entre 2 et 3 steps selon la fatigue cumulative (pas 3 steps tous les jours!)
+         - Journée 1-2 : 3 steps courtes (1h30 chacune)
+         - Journée 3 : 2 steps (récupération)
+         - Journée 4 : 3 steps à nouveau
+         - Minimiser les temps morts, maximiser les découvertes
+         - Exemple jour type : Marché local (1h30) → Musée (2h) → Déjeuner rapide → Quartier shopping (2h) → Spectacle/restaurant
+
+      **📍 ANALYSE CULTURE LOCALE & MIX D'ACTIVITÉS :**
+
+      ⚠️ **NEUTRALITÉ ABSOLUE - RÈGLE CRITIQUE** ⚠️
+      Tu dois analyser LA DESTINATION FOURNIE DANS {destination_choice} SANS AUCUN BIAIS.
+      - NE PAS favoriser une destination spécifique (Tokyo, Bali, Paris, New York, etc.)
+      - NE PAS favoriser un type de voyage (culture vs nature vs plage vs montagne)
+      - S'adapter à N'IMPORTE QUELLE destination demandée par l'utilisateur
+      - Baser le mix d'activités UNIQUEMENT sur les affinités du questionnaire
+      - Chaque voyage est UNIQUE et personnalisé selon le profil utilisateur
+
+      Identifie les ÉLÉMENTS CULTURELS AUTHENTIQUES de LA DESTINATION CHOISIE :
+      - Recherche la culture, histoire, et traditions locales de LA DESTINATION FOURNIE
+      - Identifie les monuments/sites incontournables spécifiques à cette destination
+      - Identifie la gastronomie typique locale
+      - Identifie les quartiers/zones caractéristiques
+      - Identifie les activités nature/outdoor propres à la géographie locale
+
+      ✅ **MÉTHODE** : Utilise tes connaissances générales sur la destination fournie dans {destination_choice}.
+      Adapte-toi à N'IMPORTE QUELLE destination : ville, région, pays, île, montagne, désert, etc.
+
+      Calcule le MIX D'ACTIVITÉS basé EXCLUSIVEMENT sur affinites_voyage du questionnaire :
+      - Compte le nombre d'affinités par catégorie dans le questionnaire
+      - Répartis les pourcentages proportionnellement aux affinités déclarées
+      - NE PAS imposer de pourcentages fixes (30%, 40%, etc.)
+      - Exemples de calcul :
+        * Si affinites_voyage = ["culture", "culture_urbaine", "musées"] → ~60-70% culture
+        * Si affinites_voyage = ["plage", "nature", "randonnée"] → ~60-70% nature
+        * Si affinites_voyage = ["gastronomie", "culture", "détente"] → mix équilibré 33%-33%-33%
+        * Si affinites_voyage = ["ski", "montagne"] → 100% activités montagne/hiver
+
+      **🗺️ ZONES/QUARTIERS À COUVRIR :**
+
+      Identifie 3-5 zones clés de LA DESTINATION CHOISIE (depuis {destination_choice}) :
+      - Recherche les quartiers/zones principales de cette destination spécifique
+      - Minimiser les allers-retours inutiles
+      - Regrouper les activités par proximité géographique
+      - Assurer une découverte complète de la destination
+      - S'adapter à la taille et structure de la destination (ville compacte, région étendue, archipel, etc.)
+
+      **📋 OUTPUT STRUCTUREL ATTENDU :**
+
+      Tu dois produire un PLAN STRUCTUREL avec :
+      1. **Nombre total de steps** : calculé selon DURÉE + RYTHME (formule: durée_jours × steps_range_moyen)
+         - relaxed : durée × 1.2 steps/jour en moyenne
+         - balanced : durée × 1.5 steps/jour en moyenne
+         - intense : durée × 2.5 steps/jour en moyenne
+      2. **Distribution par jour** : liste exacte respectant le rythme (J1:X steps, J2:Y steps, etc.)
+      3. **Mix de types** : % basés sur les affinités réelles du questionnaire (total = 100%)
+      4. **Zones par jour** : quelle zone/quartier couvrir chaque jour
+      5. **Types d'activités priorisés** : top 5-8 types d'activités à inclure selon culture locale + affinités
+
+      **⚠️ RÈGLES CRITIQUES :**
+      - Le RYTHME du questionnaire est IMPÉRATIF (respecter strict 1-2 ou 2-3 steps/jour)
+      - JAMAIS dépasser 3 steps/jour même pour intense
+      - JAMAIS moins d'1 step/jour
+      - Tenir compte de la fatigue cumulative (alterner jours chargés et jours calmes)
+      - Prioriser QUALITÉ > QUANTITÉ (mieux vaut 1 visite exceptionnelle que 3 visites bâclées)
+
+    expected_output: |-
+      Un YAML STRICT avec le plan structurel :
+
+      ```yaml
+      trip_structure_plan:
+        rhythm_analysis:
+          questionnaire_rhythm: balanced  # depuis questionnaire (relaxed/balanced/intense)
+          steps_per_day_range: "1-2"  # déduit du rythme ("1-2" ou "2-3")
+          total_days: 7  # depuis questionnaire (duree ou nuits_exactes)
+          total_steps_planned: 10  # calculé: 7 jours × 1.5 steps/jour (balanced)
+
+        daily_distribution:
+          - day: 1
+            steps_count: 2
+            zone: "[Zone A de la destination]"  # Ex: centre historique, quartier touristique, zone plage
+            intensity: medium
+          - day: 2
+            steps_count: 2
+            zone: "[Zone A de la destination]"
+            intensity: medium
+          - day: 3
+            steps_count: 1
+            zone: "[Zone B de la destination]"  # Ex: périphérie, nature, quartier alternatif
+            intensity: low  # journée récupération
+          - day: 4
+            steps_count: 2
+            zone: "[Zone C de la destination]"
+            intensity: medium
+          # ... pour CHAQUE jour du séjour
+
+        activity_mix:
+          [categorie_1]: XX  # % calculé depuis affinites_voyage
+          [categorie_2]: XX  # % calculé depuis affinites_voyage
+          [categorie_3]: XX  # % calculé depuis affinites_voyage
+          # Catégories possibles: culture, nature, gastronomy, relaxation, adventure, nightlife, shopping, sports
+          # Total DOIT être 100%
+
+        priority_activity_types:
+          - [type_activité_1_authentique_destination]  # Basé sur culture locale
+          - [type_activité_2_authentique_destination]
+          - [type_activité_3_depuis_affinités]
+          - [type_activité_4_depuis_affinités]
+          # Ex pour ville: museums, historic_sites, local_markets, gastronomy
+          # Ex pour nature: hiking, beaches, viewpoints, wildlife
+          # Ex pour montagne: skiing, snowboarding, mountain_huts, cable_cars
+
+        zones_coverage:
+          - zone: "[Nom Zone A]"  # Nom réel depuis destination
+            days: [1, 2]
+            activities_count: 4
+          - zone: "[Nom Zone B]"
+            days: [3]
+            activities_count: 1
+          - zone: "[Nom Zone C]"
+            days: [4, 5]
+            activities_count: 4
+          # ... pour 3-5 zones principales de la destination
+
+        cultural_priorities:
+          top_1: "[Élément culturel #1 authentique de la destination]"
+          top_2: "[Élément culturel #2 - gastronomie locale]"
+          top_3: "[Élément culturel #3 - architecture/patrimoine]"
+          top_4: "[Élément culturel #4 - nature/géographie typique]"
+          top_5: "[Élément culturel #5 - traditions/artisanat]"
+          # Exemples génériques à adapter :
+          # Ville historique: monuments, musées, gastronomie, quartiers anciens, artisanat
+          # Nature: paysages, faune, randonnées, panoramas, écosystème local
+          # Plage: océan, sports nautiques, fruits de mer, villages côtiers, couchers de soleil
+
+        constraints:
+          max_steps_per_day: 2  # déduit du rythme (1-2 pour relaxed/balanced, 2-3 pour intense)
+          min_free_time_per_day: "1-2h"  # adapté au rythme
+          avoid_back_and_forth: true
+          group_by_proximity: true
+      ```
+
+      **NE JAMAIS PRODUIRE DE JSON. YAML STRICT UNIQUEMENT.**
+
+    async_execution: false
+
+  # ==========================================================================
+  # TASK 6: ITINERARY DESIGN (CŒUR DE LA PIPELINE)
   # ==========================================================================
   itinerary_design:
     description: |-
       🎯 **TU ES LE CŒUR DE LA PIPELINE. Cette tâche est LA PLUS IMPORTANTE.**
 
+      ⚠️ **NEUTRALITÉ ABSOLUE - RÈGLE CRITIQUE** ⚠️
+      Tu dois concevoir un itinéraire pour LA DESTINATION FOURNIE DANS {destination_choice} SANS BIAIS.
+      - S'adapter à N'IMPORTE QUELLE destination (ville, région, pays, île, montagne, désert, plage)
+      - Suivre strictement le PLAN STRUCTUREL fourni dans le CONTEXT
+      - Baser les activités sur les affinités et le rythme du questionnaire UNIQUEMENT
+      - Ne PAS favoriser un type de destination ou d'activités
+      - Chaque itinéraire est UNIQUE et personnalisé
+
       🚨 **RÈGLES ANTI-HALLUCINATION CRITIQUES** 🚨
-      - ✅ OBLIGATION ABSOLUE : Utiliser geo.text_to_place pour CHAQUE step (GPS)
+      - ✅ OBLIGATION ABSOLUE : Utiliser geo.text_to_place OU places.overview pour CHAQUE step (GPS)
       - ✅ OBLIGATION ABSOLUE : Utiliser images.hero UNE FOIS pour hero_image (avec retry si échec)
       - ✅ OBLIGATION ABSOLUE : Utiliser images.background pour CHAQUE step (avec retry si échec)
+      - ✅ OBLIGATION ABSOLUE : Enrichir les steps avec places.overview pour détails (horaires, prix)
       - ❌ INTERDICTION TOTALE : URLs Wikipedia, Unsplash, Pexels, ou externes
       - ❌ INTERDICTION TOTALE : Inventer des coordonnées GPS
       - ❌ INTERDICTION TOTALE : Inventer des lieux qui n'existent pas
-      - ⚠️ Si geo.text_to_place échoue : ESSAYER un autre nom, NE PAS inventer GPS
+      - ❌ INTERDICTION TOTALE : Laisser des champs vides sans raison
+      - ⚠️ Si geo.text_to_place échoue : ESSAYER places.overview, NE PAS inventer GPS
       - ⚠️ Si images échouent : RETRY puis utiliser placeholder, NE PAS bloquer la pipeline
       - 🎯 PRIORITÉ : Pertinence > Quantité. Mieux vaut 1 step parfaite que 3 approximatives
       - 🛡️ RÉSISTANCE : La pipeline doit continuer même en cas d'échecs partiels de tools
+
+      📋 **WORKFLOW STRICT POUR CHAQUE STEP - À SUIVRE IMPÉRATIVEMENT :**
+      1. 🔍 **GPS OBLIGATOIRE** : Rechercher le lieu EXACT avec geo.text_to_place("Nom exact du lieu") → obtenir GPS réelles
+         - Utilise le nom complet du lieu : geo.text_to_place("[Monument/Lieu], [Ville], [Pays]")
+         - Exemples génériques: "Musée principal, [Ville]", "Plage centrale, [Région]", "Parc national, [Pays]"
+         - VÉRIFIER que les coordonnées sont cohérentes avec la destination
+         - NE JAMAIS inventer ou estimer les GPS
+      2. 📚 Enrichir avec places.overview("Nom du lieu") → obtenir description détaillée, horaires, prix d'entrée
+      3. 🖼️ **WORKFLOW IMAGES MCP - OBLIGATOIRE** :
+         - Appeler images.background(activity="visiting [Lieu]", city="[Ville]", country="[Pays]")
+         - Exemple: images.background(activity="exploring historic center", city="[Destination]", country="[Pays]")
+         - ✅ COPIER l'URL Supabase retournée directement dans main_image
+         - ⚠️ Si échec : RÉESSAYER une fois avec paramètres légèrement différents
+         - ❌ NE JAMAIS utiliser placeholders ou URLs externes (Wikipedia, Unsplash, Pexels)
+         - ✅ L'URL doit commencer par "https://...supabase.co/storage/v1/object/public/TRIPS/"
+      4. 📝 Rédiger en FR avec MAXIMUM de détails :
+         - why : 3-4 phrases décrivant l'intérêt, l'histoire, ce qu'on y trouve
+         - tips : 3-5 phrases avec horaires précis, prix, astuces pratiques, conseils vestimentaires si applicable
+         - transfer : Comment s'y rendre depuis le lieu précédent (moyen de transport, durée, prix)
+         - suggestion : Idées complémentaires pour prolonger l'expérience
+      5. 🌍 Traduire TOUT en anglais (why_en, tips_en, transfer_en, suggestion_en, subtitle_en, weather_description_en)
+      6. ☁️ Ajouter météo réaliste selon la saison (weather_icon, weather_temp, weather_description + _en)
+      7. ✅ **CHECKLIST FINALE** : Vérifier que ces 15+ champs sont remplis avant de passer à la step suivante
 
       ---
 
@@ -602,6 +818,28 @@ tasks:
       {destination_choice}
 
       **ANNÉE ACTUELLE :** {current_year}
+
+      **📋 PLAN STRUCTUREL DU SÉJOUR (CONTEXT DE LA TÂCHE PRÉCÉDENTE) :**
+
+      Tu as accès au PLAN STRUCTUREL généré par l'agent trip_structure_planner dans ton CONTEXT.
+      Ce plan contient :
+      - rhythm_analysis : rythme détecté (relaxed/balanced/intense) et nombre total de steps planifiées
+      - daily_distribution : nombre exact de steps par jour (ex: J1:2, J2:1, J3:2, etc.)
+      - activity_mix : pourcentages de culture/gastronomie/nature/détente
+      - priority_activity_types : liste des types d'activités à privilégier
+      - zones_coverage : zones/quartiers à couvrir par jour
+      - cultural_priorities : top 5 éléments culturels de la destination
+
+      🎯 **TU DOIS SUIVRE CE PLAN STRUCTUREL À LA LETTRE** :
+      - Respecter EXACTEMENT le nombre de steps par jour indiqué dans daily_distribution
+      - Respecter les zones/quartiers assignés à chaque jour
+      - Respecter le mix d'activités (% culture, % gastronomie, % nature, etc.)
+      - Choisir les types d'activités depuis priority_activity_types
+      - Ne JAMAIS dépasser max_steps_per_day du plan
+      - Si le plan dit "Jour 1: 2 steps, zone Shibuya" → créer EXACTEMENT 2 steps dans Shibuya
+      - Si le plan dit "Jour 3: 1 step, zone Asakusa" → créer EXACTEMENT 1 step dans Asakusa
+
+      ⚠️ **COHÉRENCE ABSOLUE** : Le nombre total de steps générées DOIT correspondre au total_steps_planned du plan structurel
 
       ---
 
@@ -638,7 +876,7 @@ tasks:
         trip_folder="tokyo-2025-abc123"
       )
       ```
-      → Tu reçois : `{"url": "https://xznsdvvfqoztlqtqhkhv.supabase.co/storage/v1/object/public/TRIPS/tokyo-2025-abc123/hero_1733155800.jpg", "type": "hero"}`
+      → Tu reçois : `{"url": "https://cinbnmlfpffmyjmkwbco.supabase.co/storage/v1/object/public/TRIPS/tokyo-2025-abc123/hero_1733155800.jpg", "type": "hero"}`
 
       → **COPIE CETTE URL** dans le champ `hero_image` de ton output
 
@@ -653,7 +891,7 @@ tasks:
         trip_folder="tokyo-2025-abc123"
       )
       ```
-      → Tu reçois : `{"url": "https://xznsdvvfqoztlqtqhkhv.supabase.co/storage/v1/object/public/TRIPS/tokyo-2025-abc123/background_1733155920.jpg", "type": "background"}`
+      → Tu reçois : `{"url": "https://cinbnmlfpffmyjmkwbco.supabase.co/storage/v1/object/public/TRIPS/tokyo-2025-abc123/background_1733155920.jpg", "type": "background"}`
 
       → **COPIE CETTE URL** dans le champ `main_image` de cette step
 
@@ -674,45 +912,73 @@ tasks:
       - ❌ JAMAIS d'URLs Unsplash
       - ❌ JAMAIS d'URLs Pexels ou autre source externe
       - ✅ TOUJOURS utiliser les URLs retournées par images.hero et images.background
-      - ✅ URLs commencent par "https://xznsdvvfqoztlqtqhkhv.supabase.co/storage/v1/object/public/TRIPS/"
+      - ✅ URLs commencent par "https://cinbnmlfpffmyjmkwbco.supabase.co/storage/v1/object/public/TRIPS/"
 
-      **GESTION DES ERREURS IMAGES (RÉSISTANCE AUX ÉCHECS) :**
+      **GESTION DES ERREURS IMAGES (WORKFLOW STRICT) :**
       - ⚠️ Si images.hero échoue :
         * RETRY une fois avec des paramètres légèrement différents
-        * Si échec persistant : utiliser URL placeholder spéciale "HERO_IMAGE_GENERATION_FAILED"
-        * Continuer l'exécution normalement pour les images.background
-        * NE PAS bloquer toute la pipeline pour une erreur d'image
+        * RETRY une deuxième fois avec paramètres encore plus simples
+        * Si échec persistant après 3 tentatives : LAISSER LE CHAMP VIDE (ne pas mettre de placeholder)
+        * ✅ L'assembleur Python utilisera un fallback Unsplash SEULEMENT en dernier recours
       - ⚠️ Si images.background échoue pour UNE step :
-        * RETRY une fois avec description simplifiée
-        * Si échec persistant : utiliser "BACKGROUND_IMAGE_GENERATION_FAILED"
-        * Continuer avec les autres steps
-        * Documenter l'erreur dans un champ notes de la step
-      - 🎯 **PRINCIPE : La pipeline doit être RÉSISTANTE aux échecs d'images**
-        * Les images enrichissent l'expérience mais ne doivent PAS bloquer le voyage
+        * RETRY une fois avec description simplifiée (ex: "Tokyo Tower" au lieu de "visiting Tokyo Tower at sunset")
+        * RETRY une deuxième fois avec juste le nom du lieu (ex: "Tokyo")
+        * Si échec persistant : LAISSER LE CHAMP main_image VIDE ou null
+        * ❌ NE JAMAIS mettre de placeholders "FAILED" ou URLs externes
+      - 🎯 **PRINCIPE : TOUJOURS UTILISER LES OUTILS MCP**
+        * Les URLs Supabase sont le workflow correct et OBLIGATOIRE
+        * Réessayer autant que nécessaire avant d'abandonner
+        * Ne laisser vide qu'en dernier recours après multiples tentatives
         * En cas d'échec massif d'images : compléter l'itinéraire avec données GPS/texte valides
 
-      ### **4. STRUCTURE DE CHAQUE STEP**
+      ### **4. STRUCTURE DE CHAQUE STEP - CHAMPS DÉTAILLÉS**
 
-      Champs OBLIGATOIRES :
+      🎯 **OBLIGATION : MAXIMUM DE DÉTAILS DANS CHAQUE STEP**
+
+      **Champs OBLIGATOIRES (100% des steps)** :
       - step_number : numéro d'ordre (1, 2, 3, ...)
       - day_number : jour du voyage (1, 2, 3, ...)
-      - title : titre court et accrocheur
+      - title : titre court et accrocheur (FR)
+      - title_en : titre en anglais (EN)
       - main_image : URL Supabase (depuis images.background)
 
-      Champs FORTEMENT RECOMMANDÉS :
-      - latitude : GPS (depuis geo.text_to_place)
-      - longitude : GPS (depuis geo.text_to_place)
-      - why : pourquoi visiter (2-3 phrases)
-      - tips : conseils pratiques (2-3 phrases)
-      - duration : durée estimée (ex: "2h", "3h30", "Demi-journée")
-      - price : prix estimé en euros (nombre, ex: 15, 25, 0 pour gratuit)
+      **Champs OBLIGATOIRES (100% des steps hors transport/récap)** :
+      - subtitle : sous-titre descriptif (FR) - OBLIGATOIRE
+      - subtitle_en : sous-titre en anglais (EN) - OBLIGATOIRE
+      - latitude : GPS (depuis geo.text_to_place ou places.overview) - OBLIGATOIRE
+      - longitude : GPS (depuis geo.text_to_place ou places.overview) - OBLIGATOIRE
+      - why : pourquoi visiter - 3-4 PHRASES détaillées et informatives (FR) - OBLIGATOIRE
+      - why_en : version anglaise du why - 3-4 PHRASES (EN) - OBLIGATOIRE
+      - tips : conseils pratiques ULTRA-DÉTAILLÉS - 3-5 PHRASES avec horaires, prix, astuces (FR) - OBLIGATOIRE
+      - tips_en : version anglaise des tips - 3-5 PHRASES (EN) - OBLIGATOIRE
+      - duration : durée estimée PRÉCISE (ex: "2h30", "3h", "Demi-journée") - OBLIGATOIRE
+      - price : prix estimé RÉALISTE en euros (nombre, ex: 15, 25, 0 pour gratuit) - OBLIGATOIRE
+      - step_type : activité/visite/restaurant/transport/hébergement/loisir - OBLIGATOIRE
+      - weather_icon : emoji météo (🌤️, ☀️, ⛅, 🌧️) - OBLIGATOIRE
+      - weather_temp : température estimée (ex: "22°C") - OBLIGATOIRE
+      - weather_description : description météo en français (ex: "Ensoleillé", "Partiellement nuageux") - OBLIGATOIRE
+      - weather_description_en : description météo en anglais (ex: "Sunny", "Partly cloudy") - OBLIGATOIRE
 
-      Champs OPTIONNELS :
-      - subtitle : sous-titre descriptif
-      - step_type : activité/visite/restaurant/transport/hébergement
-      - transfer : comment se rendre depuis step précédente
-      - weather_icon : emoji météo (🌤️, ☀️, ⛅)
-      - weather_temp : température estimée
+      **Champs RECOMMANDÉS (50% des steps)** :
+      - transfer : comment se rendre depuis step précédente (FR)
+      - transfer_en : version anglaise du transfer (EN)
+      - suggestion : suggestions complémentaires (FR)
+      - suggestion_en : version anglaise des suggestions (EN)
+      - weather_description : description météo (FR, ex: "Ensoleillé")
+      - weather_description_en : description météo (EN, ex: "Sunny")
+      - images : array d'URLs d'images supplémentaires (galerie)
+
+      🚨 **RÈGLE CRITIQUE : BILINGUE FR + EN**
+      Pour CHAQUE step :
+      - Si tu écris "title", tu DOIS écrire "title_en"
+      - Si tu écris "why", tu DOIS écrire "why_en"
+      - Si tu écris "tips", tu DOIS écrire "tips_en"
+      - etc.
+
+      🎯 **PRIORITÉ : QUALITÉ > QUANTITÉ**
+      - Mieux vaut 8 steps ultra-détaillées que 15 steps basiques
+      - Chaque step doit être une expérience complète et documentée
+      - Utiliser TOUS les outils MCP disponibles pour enrichir les données
 
       ### **5. STEP RÉCAPITULATIVE FINALE**
 
@@ -796,45 +1062,70 @@ tasks:
 
       ```yaml
       itinerary_plan:
-        hero_image: "https://xznsdvvfqoztlqtqhkhv.supabase.co/storage/v1/object/public/TRIPS/tokyo-2025-abc123/hero_1733155800.jpg"
+        hero_image: "https://cinbnmlfpffmyjmkwbco.supabase.co/storage/v1/object/public/TRIPS/tokyo-2025-abc123/hero_1733155800.jpg"
 
         steps:
-          # JOUR 1
+          # JOUR 1 - EXEMPLE ULTRA-COMPLET AVEC TOUS LES CHAMPS
           - step_number: 1
             day_number: 1
-            title: "Arrivée à Tokyo"
-            subtitle: "Installation et première découverte de Shibuya"
-            main_image: "https://xznsdvvfqoztlqtqhkhv.supabase.co/storage/v1/object/public/TRIPS/tokyo-2025-abc123/background_1733155900.jpg"
+            title: "Arrivée à Tokyo et Shibuya Crossing"
+            title_en: "Arrival in Tokyo and Shibuya Crossing"
+            subtitle: "Installation et première découverte du quartier emblématique"
+            subtitle_en: "Check-in and first discovery of the iconic district"
+            main_image: "https://cinbnmlfpffmyjmkwbco.supabase.co/storage/v1/object/public/TRIPS/tokyo-2025-abc123/background_1733155900.jpg"
             step_type: "activité"
             latitude: 35.6595
             longitude: 139.7004
-            duration: "2h"
+            duration: "2h30"
             price: 0
-            why: "Shibuya Crossing est l'un des passages piétons les plus emblématiques au monde. Immersion immédiate dans l'énergie de Tokyo."
-            tips: "Visitez en fin d'après-midi pour voir le crossing illuminé. Montez au Shibuya Sky pour une vue panoramique (2000¥)."
-            transfer: "30 min en train depuis l'aéroport Narita (3000¥)"
+            why: "Shibuya Crossing est l'un des passages piétons les plus emblématiques au monde, avec jusqu'à 3000 personnes traversant simultanément. C'est l'immersion parfaite dans l'énergie et le rythme trépidant de Tokyo dès votre arrivée."
+            why_en: "Shibuya Crossing is one of the world's most iconic pedestrian crossings, with up to 3,000 people crossing simultaneously. It's the perfect immersion into Tokyo's energy and fast-paced rhythm from your arrival."
+            tips: "Visitez en fin d'après-midi (17h-19h) pour voir le crossing illuminé au coucher du soleil. Montez au Shibuya Sky (étage 46) pour une vue panoramique à 360° sur Tokyo (2000¥). Le Starbucks au 2ème étage du Tsutaya Building offre une vue gratuite sur le crossing."
+            tips_en: "Visit in late afternoon (5-7pm) to see the crossing illuminated at sunset. Go up to Shibuya Sky (46th floor) for a 360° panoramic view of Tokyo (2000¥). The Starbucks on the 2nd floor of Tsutaya Building offers a free view of the crossing."
+            transfer: "30 min en Narita Express depuis l'aéroport (3220¥), puis 5 min à pied jusqu'à l'hôtel"
+            transfer_en: "30 min by Narita Express from airport (3220¥), then 5 min walk to hotel"
+            suggestion: "Dînez dans un izakaya local pour découvrir la cuisine de rue japonaise. Le quartier regorge d'options pour tous les budgets."
+            suggestion_en: "Have dinner at a local izakaya to discover Japanese street food. The area is full of options for all budgets."
             weather_icon: "🌤️"
             weather_temp: "22°C"
+            weather_description: "Partiellement nuageux"
+            weather_description_en: "Partly cloudy"
+            images: [
+              "https://cinbnmlfpffmyjmkwbco.supabase.co/storage/v1/object/public/TRIPS/tokyo-2025-abc123/background_1733155900.jpg",
+              "https://cinbnmlfpffmyjmkwbco.supabase.co/storage/v1/object/public/TRIPS/tokyo-2025-abc123/background_1733155901.jpg"
+            ]
 
           - step_number: 2
             day_number: 1
-            title: "Dîner à Shibuya"
-            subtitle: "Découverte de la cuisine japonaise"
-            main_image: "https://xznsdvvfqoztlqtqhkhv.supabase.co/storage/v1/object/public/TRIPS/tokyo-2025-abc123/background_1733155920.jpg"
+            title: "Dîner à Shibuya - Izakaya traditionnel"
+            title_en: "Dinner in Shibuya - Traditional Izakaya"
+            subtitle: "Découverte de la cuisine japonaise authentique"
+            subtitle_en: "Discovery of authentic Japanese cuisine"
+            main_image: "https://cinbnmlfpffmyjmkwbco.supabase.co/storage/v1/object/public/TRIPS/tokyo-2025-abc123/background_1733155920.jpg"
             step_type: "restaurant"
             latitude: 35.6612
             longitude: 139.6988
-            duration: "1h30"
+            duration: "2h"
             price: 35
-            why: "Profitez de votre première soirée pour découvrir la cuisine locale dans le quartier animé de Shibuya."
-            tips: "Testez un izakaya pour une expérience authentique. Réservation recommandée pour les restaurants populaires."
+            why: "Profitez de votre première soirée pour découvrir la cuisine locale dans un izakaya traditionnel. Ces tavernes japonaises offrent une ambiance conviviale où les habitants se retrouvent après le travail. Vous pourrez goûter aux yakitori (brochettes grillées), sashimi frais, et saké local dans une atmosphère authentique typiquement tokyoïte."
+            why_en: "Enjoy your first evening discovering local cuisine in a traditional izakaya. These Japanese taverns offer a friendly atmosphere where locals gather after work. You can taste yakitori (grilled skewers), fresh sashimi, and local sake in an authentic Tokyo atmosphere."
+            tips: "Testez un izakaya pour une expérience authentique. Arrivez vers 18h-19h pour éviter la foule du soir. Commandez le 'omakase' (sélection du chef) pour découvrir les spécialités maison. Budget 30-40€/personne. Réservation recommandée pour les établissements populaires comme Torikizoku ou Watami. Peu d'izakayas acceptent les cartes bancaires, prévoyez du cash."
+            tips_en: "Try an izakaya for an authentic experience. Arrive around 6-7pm to avoid the evening crowd. Order the 'omakase' (chef's selection) to discover house specialties. Budget 30-40€/person. Reservation recommended for popular establishments like Torikizoku or Watami. Few izakayas accept credit cards, bring cash."
+            transfer: "10 min à pied depuis Shibuya Crossing"
+            transfer_en: "10 min walk from Shibuya Crossing"
+            suggestion: "Prolongez la soirée au Golden Gai pour découvrir les bars minuscules typiques de Shinjuku"
+            suggestion_en: "Extend the evening at Golden Gai to discover the tiny typical bars of Shinjuku"
+            weather_icon: "🌙"
+            weather_temp: "18°C"
+            weather_description: "Soirée claire"
+            weather_description_en: "Clear evening"
 
           # JOUR 2
           - step_number: 3
             day_number: 2
             title: "Senso-ji Temple"
             subtitle: "Le plus ancien temple de Tokyo"
-            main_image: "https://xznsdvvfqoztlqtqhkhv.supabase.co/storage/v1/object/public/TRIPS/tokyo-2025-abc123/background_1733155940.jpg"
+            main_image: "https://cinbnmlfpffmyjmkwbco.supabase.co/storage/v1/object/public/TRIPS/tokyo-2025-abc123/background_1733155940.jpg"
             step_type: "visite"
             latitude: 35.7147
             longitude: 139.7966
@@ -850,7 +1141,7 @@ tasks:
             day_number: 2
             title: "Tokyo Skytree"
             subtitle: "Vue panoramique sur Tokyo"
-            main_image: "https://xznsdvvfqoztlqtqhkhv.supabase.co/storage/v1/object/public/TRIPS/tokyo-2025-abc123/background_1733155960.jpg"
+            main_image: "https://cinbnmlfpffmyjmkwbco.supabase.co/storage/v1/object/public/TRIPS/tokyo-2025-abc123/background_1733155960.jpg"
             step_type: "activité"
             latitude: 35.7101
             longitude: 139.8107
@@ -865,7 +1156,7 @@ tasks:
             day_number: 3
             title: "Meiji Shrine"
             subtitle: "Sanctuaire shinto au cœur d'une forêt"
-            main_image: "https://xznsdvvfqoztlqtqhkhv.supabase.co/storage/v1/object/public/TRIPS/tokyo-2025-abc123/background_1733155980.jpg"
+            main_image: "https://cinbnmlfpffmyjmkwbco.supabase.co/storage/v1/object/public/TRIPS/tokyo-2025-abc123/background_1733155980.jpg"
             step_type: "visite"
             latitude: 35.6764
             longitude: 139.6993
@@ -881,7 +1172,7 @@ tasks:
             day_number: 3
             title: "Harajuku & Takeshita Street"
             subtitle: "Quartier de la mode et de la pop culture"
-            main_image: "https://xznsdvvfqoztlqtqhkhv.supabase.co/storage/v1/object/public/TRIPS/tokyo-2025-abc123/background_1733156000.jpg"
+            main_image: "https://cinbnmlfpffmyjmkwbco.supabase.co/storage/v1/object/public/TRIPS/tokyo-2025-abc123/background_1733156000.jpg"
             step_type: "activité"
             latitude: 35.6702
             longitude: 139.7026
@@ -898,7 +1189,7 @@ tasks:
             day_number: 7
             title: "Tsukiji Outer Market"
             subtitle: "Marché aux poissons et petit-déjeuner sushi"
-            main_image: "https://xznsdvvfqoztlqtqhkhv.supabase.co/storage/v1/object/public/TRIPS/tokyo-2025-abc123/background_1733156100.jpg"
+            main_image: "https://cinbnmlfpffmyjmkwbco.supabase.co/storage/v1/object/public/TRIPS/tokyo-2025-abc123/background_1733156100.jpg"
             step_type: "activité"
             latitude: 35.6654
             longitude: 139.7707
@@ -914,7 +1205,7 @@ tasks:
             day_number: 7
             title: "Départ de Tokyo"
             subtitle: "Vol retour vers Bruxelles"
-            main_image: "https://xznsdvvfqoztlqtqhkhv.supabase.co/storage/v1/object/public/TRIPS/tokyo-2025-abc123/background_1733156120.jpg"
+            main_image: "https://cinbnmlfpffmyjmkwbco.supabase.co/storage/v1/object/public/TRIPS/tokyo-2025-abc123/background_1733156120.jpg"
             step_type: "transport"
             duration: "3h"
             price: 0
@@ -927,7 +1218,7 @@ tasks:
             day_number: 7
             title: "Résumé du voyage"
             subtitle: "7 jours — Tokyo, Japon 🇯🇵"
-            main_image: "https://xznsdvvfqoztlqtqhkhv.supabase.co/storage/v1/object/public/TRIPS/tokyo-2025-abc123/hero_1733155800.jpg"
+            main_image: "https://cinbnmlfpffmyjmkwbco.supabase.co/storage/v1/object/public/TRIPS/tokyo-2025-abc123/hero_1733155800.jpg"
             is_summary: true
             step_type: "récapitulatif"
             duration: "—"
@@ -956,17 +1247,42 @@ tasks:
 
       ---
 
-      **CHECKLIST FINALE AVANT DE SOUMETTRE TON OUTPUT :**
+      **CHECKLIST FINALE ULTRA-STRICTE AVANT DE SOUMETTRE TON OUTPUT :**
+
+      📋 **STRUCTURE GLOBALE :**
+      - ✅ hero_image présent en haut avec URL Supabase (pas Wikipedia/Unsplash)
       - ✅ 1-3 steps par jour pour CHAQUE jour du voyage
-      - ✅ TOUTES les steps ont latitude + longitude (sauf transport/récap)
-      - ✅ TOUTES les steps ont main_image avec URL Supabase
-      - ✅ hero_image présent en haut avec URL Supabase
-      - ✅ Step récapitulative finale avec is_summary: true
-      - ✅ summary_stats avec 4-8 items
-      - ✅ AUCUNE URL Wikipedia, Unsplash ou externe
-      - ✅ Prix cohérents avec budget
+      - ✅ Step récapitulative finale avec is_summary: true et summary_stats (4-8 items)
+
+      📋 **CHAQUE STEP (hors récap) DOIT AVOIR - LISTE COMPLÈTE :**
+      - ✅ step_number, day_number, title, title_en, main_image (URL Supabase)
+      - ✅ subtitle (FR) + subtitle_en (EN) - OBLIGATOIRE
+      - ✅ latitude + longitude (sauf transport/récap) - GPS VÉRIFIÉS avec geo.text_to_place
+      - ✅ why (3-4 PHRASES détaillées FR) + why_en (3-4 PHRASES EN) - OBLIGATOIRE
+      - ✅ tips (3-5 PHRASES ultra-détaillées avec horaires/prix/astuces FR) + tips_en (3-5 PHRASES EN) - OBLIGATOIRE
+      - ✅ duration PRÉCISE (ex: "2h30", "3h", "Demi-journée") + price RÉALISTE (nombre) - OBLIGATOIRE
+      - ✅ step_type (activité/visite/restaurant/transport/hébergement/loisir) - OBLIGATOIRE
+      - ✅ weather_icon (emoji 🌤️ ☀️ ⛅ 🌧️) + weather_temp (ex: "22°C") - OBLIGATOIRE
+      - ✅ weather_description (FR: "Ensoleillé", "Partiellement nuageux") + weather_description_en (EN: "Sunny", "Partly cloudy") - OBLIGATOIRE
+      - ✅ transfer (comment y aller FR) + transfer_en (EN) - FORTEMENT RECOMMANDÉ
+      - ✅ suggestion (suggestions complémentaires FR) + suggestion_en (EN) - RECOMMANDÉ
+
+      🚨 **SI UNE STEP MANQUE UN DE CES CHAMPS OBLIGATOIRES → RECOMMENCE CETTE STEP**
+
+      📋 **QUALITÉ DES DONNÉES :**
+      - ✅ AUCUNE URL Wikipedia, Unsplash, Pexels, ou externe
+      - ✅ TOUTES les URLs d'images commencent par "https://cinbnmlfpffmyjmkwbco.supabase.co/"
+      - ✅ GPS réels obtenus via geo.text_to_place (pas inventés)
+      - ✅ Prix cohérents et réalistes pour la destination
+      - ✅ Durées réalistes et adaptées au rythme
+
+      📋 **COHÉRENCE GLOBALE :**
       - ✅ Rythme respecté (relaxed/balanced/intense)
-      - ✅ Styles respectés (Culture, Gastronomie, etc.)
+      - ✅ Styles respectés (Culture, Gastronomie, Nature, etc.)
+      - ✅ Budget total compatible avec demande utilisateur
+      - ✅ Chronologie logique (pas de téléportation entre steps)
+
+      🚨 **SI UNE SEULE CASE N'EST PAS COCHÉE : RECOMMENCE LA STEP CONCERNÉE**
 
     expected_output: |-
       Un YAML STRICT avec la structure itinerary_plan (voir exemple complet ci-dessus).
@@ -1119,17 +1435,18 @@ tasks:
     description: |-
       🎯 **TU ES LE DERNIER REMPART QUALITÉ. C'EST TOI QUI GÉNÈRES LE JSON FINAL.**
 
-      🚨 **RÈGLES ANTI-HALLUCINATION ULTRA-STRICTES** 🚨
+      🚨 **RÈGLES DE VALIDATION PRATIQUES** 🚨
       - ✅ OBLIGATION : COPIER EXACTEMENT les données depuis les outputs des agents
       - ❌ INTERDICTION TOTALE : Inventer, modifier, ou "améliorer" les données reçues
       - ❌ INTERDICTION TOTALE : Ajouter des steps non présentes dans itinerary_plan
-      - ❌ INTERDICTION TOTALE : Accepter des main_image ne commençant PAS par Supabase URL
-      - ❌ INTERDICTION TOTALE : Accepter des steps sans GPS (sauf transport/récapitulatif)
-      - 🔍 VALIDATION : Chaque step DOIT avoir step_number, day_number, title, main_image valide
-      - 🔍 VALIDATION : Rejeter les steps invalides, NE PAS les "corriger"
-      - 📊 PRIORITÉ : Qualité > Quantité. Mieux vaut 5 steps parfaites que 20 approximatives
-      - ⚠️ Si données manquantes : SIGNALER clairement dans un champ "warnings" ou "errors"
-      - ⚠️ JAMAIS inventer de données pour "compléter" un JSON incomplet
+      - 🛡️ IMAGES : Accepter les URLs Supabase (idéal) OU Unsplash (fallback acceptable)
+      - 🛡️ IMAGES : Si main_image contient "FAILED" ou est vide → utiliser image fallback générique
+      - 🛡️ GPS : Privilégier les steps avec GPS, mais accepter les steps sans GPS si tout le reste est OK
+      - 🔍 VALIDATION : Chaque step DOIT avoir step_number, day_number, title, main_image (même fallback)
+      - 🔍 TOLÉRANCE : Si quelques steps ont des images fallback → ACCEPTER LE TRIP quand même
+      - 📊 PRIORITÉ : Trip complet et fonctionnel > Perfection absolue des images
+      - ⚠️ Si données manquantes critiques (destination, total_days) : ALORS rejeter avec erreur claire
+      - ✅ JAMAIS bloquer un trip entier juste pour des images Supabase manquantes
 
       ---
 
@@ -1174,7 +1491,11 @@ tasks:
       - flight_duration : depuis flight_quotes.outbound.duration
       - flight_type : depuis flight_quotes.summary.type
       - hotel_name : depuis lodging_quotes.recommended.hotel_name
-      - hotel_rating : depuis lodging_quotes.recommended.hotel_rating
+      - hotel_rating : depuis lodging_quotes.recommended.hotel_rating **CONVERTI en échelle 0-5**
+        * ⚠️ IMPORTANT : Booking.com utilise échelle 0-10, mais le schéma Trip accepte 0-5
+        * FORMULE : hotel_rating_final = hotel_rating_booking / 2
+        * Exemple : 10.0 → 5.0, 8.5 → 4.25, 9.2 → 4.6
+        * Arrondir à 1 décimale (ex: 4.25 → 4.3)
       - total_price : depuis budget_summary.totals.display
       - total_budget : depuis budget_summary.totals.display
       - average_weather : depuis destination_choice.average_weather
@@ -1197,7 +1518,7 @@ tasks:
       - step_number : doit être présent (integer)
       - day_number : doit être présent (integer)
       - title : doit être présent (string non vide)
-      - main_image : doit être présent ET commencer par "https://xznsdvvfqoztlqtqhkhv.supabase.co/storage/v1/object/public/TRIPS/"
+      - main_image : doit être présent ET commencer par "https://cinbnmlfpffmyjmkwbco.supabase.co/storage/v1/object/public/TRIPS/"
 
       ⚠️ **SI main_image NE COMMENCE PAS PAR L'URL SUPABASE :**
       - ❌ REJETER CETTE STEP avec erreur explicite
@@ -1239,7 +1560,7 @@ tasks:
 
       Avant de retourner le JSON, vérifier :
       - ✅ code est valide (pattern: ^[A-Z][A-Z0-9-]{2,29}$) - max 30 caractères
-      - ✅ destination est non vide
+      - ⚠️ destination est présente (peut être un placeholder)
       - ✅ total_days > 0
       - ✅ steps contient au moins 1 step
       - ✅ TOUTES les steps ont step_number, day_number, title, main_image
@@ -1254,6 +1575,11 @@ tasks:
       failed_validations: ["liste des validations échouées"]
       ```
 
+      ⚠️ **EXCEPTION IMPORTANTE : DESTINATION**
+      - Si la destination est "Destination à préciser" ou vide : C'EST UN WARNING, PAS UNE ERREUR BLOQUANTE
+      - Le trip peut être généré avec une destination placeholder
+      - Logger un warning dans un champ `warnings`mais NE PAS rejeter le JSON complet
+
       ---
 
       ## **EXEMPLE COMPLET DE JSON FINAL ATTENDU**
@@ -1264,7 +1590,7 @@ tasks:
         destination: "Tokyo, Japon 🇯🇵"
         destination_en: "Tokyo, Japan 🇯🇵"
         total_days: 7
-        main_image: "https://xznsdvvfqoztlqtqhkhv.supabase.co/storage/v1/object/public/TRIPS/tokyo-2025-abc123/hero_1733155800.jpg"
+        main_image: "https://cinbnmlfpffmyjmkwbco.supabase.co/storage/v1/object/public/TRIPS/tokyo-2025-abc123/hero_1733155800.jpg"
 
         flight_from: "Bruxelles"
         flight_to: "Tokyo"
@@ -1294,7 +1620,7 @@ tasks:
             day_number: 1
             title: "Arrivée à Tokyo"
             subtitle: "Installation et première découverte de Shibuya"
-            main_image: "https://xznsdvvfqoztlqtqhkhv.supabase.co/storage/v1/object/public/TRIPS/tokyo-2025-abc123/background_1733155900.jpg"
+            main_image: "https://cinbnmlfpffmyjmkwbco.supabase.co/storage/v1/object/public/TRIPS/tokyo-2025-abc123/background_1733155900.jpg"
             step_type: "activité"
             latitude: 35.6595
             longitude: 139.7004
@@ -1308,7 +1634,7 @@ tasks:
           - step_number: 2
             day_number: 1
             title: "Dîner à Shibuya"
-            main_image: "https://xznsdvvfqoztlqtqhkhv.supabase.co/storage/v1/object/public/TRIPS/tokyo-2025-abc123/background_1733155920.jpg"
+            main_image: "https://cinbnmlfpffmyjmkwbco.supabase.co/storage/v1/object/public/TRIPS/tokyo-2025-abc123/background_1733155920.jpg"
             step_type: "restaurant"
             latitude: 35.6612
             longitude: 139.6988
@@ -1323,7 +1649,7 @@ tasks:
             day_number: 7
             title: "Résumé du voyage"
             subtitle: "7 jours — Tokyo, Japon 🇯🇵"
-            main_image: "https://xznsdvvfqoztlqtqhkhv.supabase.co/storage/v1/object/public/TRIPS/tokyo-2025-abc123/hero_1733155800.jpg"
+            main_image: "https://cinbnmlfpffmyjmkwbco.supabase.co/storage/v1/object/public/TRIPS/tokyo-2025-abc123/hero_1733155800.jpg"
             is_summary: true
             step_type: "récapitulatif"
             duration: "—"
@@ -1353,8 +1679,9 @@ tasks:
       ---
 
       **CHECKLIST FINALE :**
-      - ✅ Tous les champs obligatoires présents
+      - ✅ Tous les champs obligatoires présents (code, total_days, steps)
       - ✅ Code unique généré/validé
+      - ⚠️ Destination présente (peut être un placeholder si agent strategist a échoué)
       - ✅ Toutes les steps validées
       - ✅ Toutes les main_image sont des URLs Supabase
       - ✅ Toutes les steps ont GPS (sauf transport/récap)

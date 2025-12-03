@@ -24,6 +24,7 @@ from app.crew_pipeline.scripts import (
     normalize_questionnaire,
     validate_trip_schema,
 )
+from app.crew_pipeline.scripts.trip_json_builder import TripJsonBuilder
 from app.services.supabase_service import supabase_service
 
 logger = logging.getLogger(__name__)
@@ -283,11 +284,12 @@ class CrewPipeline:
             except Exception as e:
                 logger.warning(f"⚠️ Erreur chargement MCP: {e}")
 
-        # 3. Agents nécessaires (nouvelle architecture - 7 agents)
+        # 3. Agents nécessaires (nouvelle architecture - 8 agents)
         context_builder = self._create_agent("trip_context_builder", agents_config["trip_context_builder"], tools=[])
         strategist = self._create_agent("destination_strategist", agents_config["destination_strategist"], tools=mcp_tools)
         flight_specialist = self._create_agent("flights_specialist", agents_config["flights_specialist"], tools=mcp_tools)
         accommodation_specialist = self._create_agent("accommodation_specialist", agents_config["accommodation_specialist"], tools=mcp_tools)
+        trip_structure_planner = self._create_agent("trip_structure_planner", agents_config["trip_structure_planner"], tools=[])
         itinerary_designer = self._create_agent("itinerary_designer", agents_config["itinerary_designer"], tools=mcp_tools)
         budget_calculator = self._create_agent("budget_calculator", agents_config["budget_calculator"], tools=[])
         final_assembler = self._create_agent("final_assembler", agents_config["final_assembler"], tools=[])
@@ -355,9 +357,26 @@ class CrewPipeline:
             phase2_tasks.append(lodging_task)
             phase2_agents.append(accommodation_specialist)
 
+        # 🆕 Agent de planification structurelle (NOUVEAU - avant itinerary_design)
+        structure_task: Optional[Task] = None
         itinerary_task: Optional[Task] = None
         if trip_intent.assist_activities:
-            itinerary_task = Task(name="itinerary_design", agent=itinerary_designer, **tasks_config["itinerary_design"])
+            # Étape 1 : Planifier la structure du séjour (rythme, zones, mix d'activités)
+            structure_task = Task(
+                name="plan_trip_structure",
+                agent=trip_structure_planner,
+                **tasks_config["plan_trip_structure"]
+            )
+            phase2_tasks.append(structure_task)
+            phase2_agents.append(trip_structure_planner)
+
+            # Étape 2 : Concevoir l'itinéraire détaillé en suivant le plan structurel
+            itinerary_task = Task(
+                name="itinerary_design",
+                agent=itinerary_designer,
+                context=[structure_task],  # 🔗 Dépend du plan structurel
+                **tasks_config["itinerary_design"]
+            )
             phase2_tasks.append(itinerary_task)
             phase2_agents.append(itinerary_designer)
 
@@ -403,6 +422,46 @@ class CrewPipeline:
 
         # Extraire le JSON final depuis l'agent final_assembler
         trip_payload = parsed_phase3.get("final_assembly", {})
+
+        # 🛡️ FALLBACK ROBUSTE: Si l'agent rejette, utiliser le TripJsonBuilder programmatique
+        # Cela garantit qu'on génère TOUJOURS un trip, même si l'agent est trop strict
+        if "error" in trip_payload or "trip" not in trip_payload:
+            logger.warning("⚠️ Agent final_assembler a échoué, utilisation du TripJsonBuilder programmatique en fallback")
+            try:
+                # 🏗️ Construire le trip programmatiquement avec TOUTES les garanties
+                builder = TripJsonBuilder(
+                    questionnaire=normalized_questionnaire,
+                    trip_context=trip_context,
+                    destination_choice=destination_choice,
+                    flights_research=parsed_phase2.get("flights_research", {}),
+                    accommodation_research=parsed_phase2.get("accommodation_research", {}),
+                    trip_structure_plan=parsed_phase2.get("plan_trip_structure", {}),
+                    itinerary_plan=parsed_phase2.get("itinerary_design", {}),
+                    budget_calculation=parsed_phase3.get("budget_calculation", {}),
+                    mcp_tools=mcp_tools,
+                )
+
+                logger.info(
+                    f"📦 Données transmises au TripJsonBuilder: "
+                    f"questionnaire={bool(normalized_questionnaire)}, "
+                    f"trip_context={bool(trip_context)}, "
+                    f"destination={bool(destination_choice)}, "
+                    f"flights={bool(parsed_phase2.get('flights_research'))}, "
+                    f"accommodation={bool(parsed_phase2.get('accommodation_research'))}, "
+                    f"structure={bool(parsed_phase2.get('plan_trip_structure'))}, "
+                    f"itinerary={bool(parsed_phase2.get('itinerary_design'))}, "
+                    f"budget={bool(parsed_phase3.get('budget_calculation'))}"
+                )
+
+                # Construire le trip JSON avec garanties d'images et GPS
+                trip_payload = builder.build()
+
+                logger.info("✅ Trip assemblé avec succès via TripJsonBuilder programmatique")
+            except Exception as exc:
+                logger.error(f"❌ Erreur lors de l'assemblage TripJsonBuilder: {exc}", exc_info=True)
+                # Garder l'erreur originale de l'agent si le fallback échoue aussi
+                if "error" not in trip_payload:
+                    trip_payload = {"error": True, "error_message": f"TripJsonBuilder assembly failed: {exc}"}
 
         # Validation Schema
         is_valid, schema_error = False, "No trip payload generated"

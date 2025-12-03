@@ -65,22 +65,35 @@ def _extract_summary_stats(final_choice: Dict[str, Any]) -> List[Dict[str, Any]]
 
 def _normalize_trip_code(raw_code: Optional[str]) -> str:
     """Normalise le code du trip pour respecter la règle `^[A-Z][A-Z0-9-]{2,19}$`."""
-
+    
+    import uuid
+    
+    # Générer un suffixe unique de 6 caractères hex (garantit unicité)
+    unique_suffix = uuid.uuid4().hex[:6].upper()
+    
     if not raw_code:
-        return "TRIP"
-
+        return f"TRIP-{unique_suffix}"
+    
     code = str(raw_code).upper()
     code = re.sub(r"[^A-Z0-9]+", "-", code).strip("-")
-
-    # Assurer que le code commence par une lettre et fait au moins 3 caractères
+    
+    # Assurer que le code commence par une lettre
     if not code or not code[0].isalpha():
         code = f"T{code}" if code else "TRIP"
-
-    code = code[:20]
-    if len(code) < 3:
-        code = code.ljust(3, "X")
-
-    return code
+    
+    # Limiter la partie principale pour laisser de la place au suffixe
+    # Format: CODE-SUFFIX (ex: BANGKOK-2025-A3F5E1)
+    max_main_length = 20 - len(unique_suffix) - 1  # -1 pour le tiret
+    code = code[:max_main_length]
+    
+    # Ajouter le suffixe unique
+    code_with_suffix = f"{code}-{unique_suffix}"
+    
+    # Vérifier la longueur minimale (au moins 3 caractères)
+    if len(code_with_suffix) < 3:
+        code_with_suffix = code_with_suffix.ljust(3, "X")
+    
+    return code_with_suffix
 
 
 def _build_fallback_image(destination: Optional[str]) -> str:
@@ -88,6 +101,51 @@ def _build_fallback_image(destination: Optional[str]) -> str:
         slug = quote(str(destination).lower().replace(" ", "-"))
         return f"https://source.unsplash.com/featured/?{slug},travel"
     return DEFAULT_MAIN_IMAGE
+
+
+def _validate_bilingual_fields(step: Dict[str, Any], step_number: int) -> None:
+    """Valide que les champs bilingues sont présents et complets."""
+
+    bilingual_pairs = [
+        ("title", "title_en"),
+        ("subtitle", "subtitle_en"),
+        ("why", "why_en"),
+        ("tips", "tips_en"),
+        ("transfer", "transfer_en"),
+        ("suggestion", "suggestion_en"),
+        ("weather_description", "weather_description_en"),
+    ]
+
+    missing_translations = []
+
+    for fr_field, en_field in bilingual_pairs:
+        # Si le champ FR existe et n'est pas vide, vérifier que la traduction EN existe
+        if step.get(fr_field) and not step.get(en_field):
+            missing_translations.append(f"{fr_field} → {en_field}")
+
+    if missing_translations:
+        logger.warning(
+            f"⚠️ Step {step_number} manque des traductions EN: {', '.join(missing_translations)}"
+        )
+
+    # Vérifier les champs GPS pour les steps non-transport
+    step_type = step.get("step_type", "").lower()
+    is_transport = "transport" in step_type or "récap" in step_type.lower()
+    is_summary = step.get("is_summary", False)
+
+    if not is_transport and not is_summary:
+        if not step.get("latitude") or not step.get("longitude"):
+            logger.warning(
+                f"⚠️ Step {step_number} manque des coordonnées GPS (latitude/longitude)"
+            )
+
+    # Vérifier l'URL de l'image
+    main_image = step.get("main_image", "")
+    if main_image:
+        if "supabase.co" not in main_image and "http" in main_image:
+            logger.warning(
+                f"⚠️ Step {step_number} utilise une URL externe pour main_image: {main_image[:100]}"
+            )
 
 
 def _parse_price(value: Any) -> Optional[float]:
@@ -137,27 +195,56 @@ def _sanitize_summary_stat(stat: Dict[str, Any]) -> Optional[Dict[str, Any]]:
 def _build_placeholder_step(
     day_number: int, trip_core: Dict[str, Any], styles: Optional[List[str]]
 ) -> Dict[str, Any]:
-    """Crée une étape par défaut pour garantir une couverture quotidienne."""
+    """Crée une étape enrichie par défaut pour garantir une couverture quotidienne."""
 
     destination_label = trip_core.get("destination") or "Destination"
-    style_hint = ""
+    destination_en = trip_core.get("destination_en") or destination_label
+
+    style_hint_fr = ""
+    style_hint_en = ""
     if styles:
-        joined = ", ".join(str(style) for style in styles[:3])
-        if joined:
-            style_hint = f" Mettez l'accent sur : {joined}."
+        joined_fr = ", ".join(str(style) for style in styles[:3])
+        if joined_fr:
+            style_hint_fr = f" Mettez l'accent sur : {joined_fr}."
+            # Traductions simplifiées des styles courants
+            style_translations = {
+                "Culture": "Culture",
+                "Gastronomie": "Gastronomy",
+                "Nature": "Nature",
+                "Aventure": "Adventure",
+                "Détente": "Relaxation",
+                "Nightlife": "Nightlife"
+            }
+            joined_en = ", ".join(style_translations.get(style, style) for style in styles[:3])
+            style_hint_en = f" Focus on: {joined_en}."
 
     main_image = trip_core.get("main_image") or _build_fallback_image(destination_label)
+
+    # 🎯 PLACEHOLDER ENRICHI avec champs bilingues
+    logger.warning(
+        f"⚠️ Génération d'un placeholder pour le jour {day_number} - "
+        f"L'agent itinerary_designer n'a pas fourni de step détaillée"
+    )
 
     return {
         "step_number": day_number,
         "day_number": day_number,
         "title": f"Jour {day_number} – Découverte de {destination_label}",
+        "title_en": f"Day {day_number} – Discovering {destination_en}",
+        "subtitle": f"Exploration libre à {destination_label}",
+        "subtitle_en": f"Free exploration in {destination_en}",
         "main_image": main_image,
         "step_type": "activité",
-        "duration": "Journée",
+        "duration": "Journée complète",
         "price": 0,
-        "why": f"Itinéraire libre pour explorer {destination_label} à votre rythme." + style_hint,
+        "why": f"Itinéraire libre pour explorer {destination_label} à votre rythme.{style_hint_fr}",
+        "why_en": f"Free itinerary to explore {destination_en} at your own pace.{style_hint_en}",
         "tips": "Ajoutez ici vos activités ou restaurants préférés pour personnaliser cette journée.",
+        "tips_en": "Add your favorite activities or restaurants here to customize this day.",
+        "weather_icon": "🌤️",
+        "weather_temp": trip_core.get("average_weather") or "22°C",
+        "weather_description": "Agréable",
+        "weather_description_en": "Pleasant",
         "images": [main_image],
     }
 
@@ -278,17 +365,152 @@ def assemble_trip(
     lodging = _safe_get(agent_outputs, "lodging_pricing")
     activities = _safe_get(agent_outputs, "activities_geo_design")
 
-    flight_quotes = flights.get("flight_quotes") if isinstance(flights.get("flight_quotes"), list) else []
+    # 🔧 EXTRACTION ROBUSTE: Chercher les données dans plusieurs structures possibles
+    # Les agents peuvent retourner leurs données sous différentes clés
+
+    # VOLS: Chercher flight_quotes dans plusieurs endroits
+    flight_quotes = []
+    if isinstance(flights.get("flight_quotes"), list):
+        flight_quotes = flights.get("flight_quotes")
+    elif isinstance(flights.get("options"), list):
+        flight_quotes = flights.get("options")
+    elif isinstance(flights.get("quotes"), list):
+        flight_quotes = flights.get("quotes")
+
     first_quote = flight_quotes[0] if flight_quotes and isinstance(flight_quotes[0], dict) else {}
 
-    lodging_quotes = lodging.get("lodging_quotes") if isinstance(lodging.get("lodging_quotes"), list) else []
+    # Si pas de quotes individuels, chercher les données dans l'objet flights directement
+    if not first_quote and flights:
+        first_quote = {
+            "from": flights.get("from") or flights.get("departure") or flights.get("flight_from"),
+            "to": flights.get("to") or flights.get("arrival") or flights.get("flight_to"),
+            "price": flights.get("price") or flights.get("total_price") or flights.get("price_display"),
+            "duration": flights.get("duration") or flights.get("flight_duration"),
+            "type": flights.get("type") or flights.get("flight_type"),
+        }
+
+    # HÉBERGEMENT: Chercher lodging_quotes dans plusieurs endroits
+    lodging_quotes = []
+    if isinstance(lodging.get("lodging_quotes"), list):
+        lodging_quotes = lodging.get("lodging_quotes")
+    elif isinstance(lodging.get("options"), list):
+        lodging_quotes = lodging.get("options")
+    elif isinstance(lodging.get("quotes"), list):
+        lodging_quotes = lodging.get("quotes")
+
     first_lodging = lodging_quotes[0] if lodging_quotes and isinstance(lodging_quotes[0], dict) else {}
 
+    # Si pas de quotes individuels, chercher dans l'objet lodging directement
+    if not first_lodging and lodging:
+        first_lodging = {
+            "hotel_name": lodging.get("hotel_name") or lodging.get("name") or lodging.get("accommodation_name"),
+            "hotel_rating": lodging.get("hotel_rating") or lodging.get("rating") or lodging.get("stars"),
+            "total_price": lodging.get("total_price") or lodging.get("price") or lodging.get("price_display"),
+            "price": lodging.get("price_per_night") or lodging.get("price"),
+        }
+
+    # 🔍 LOGGING DÉTAILLÉ pour debug
+    logger.info(
+        f"📊 Données extraites: "
+        f"flights={bool(first_quote)} (keys: {list(first_quote.keys()) if first_quote else 'None'}), "
+        f"lodging={bool(first_lodging)} (keys: {list(first_lodging.keys()) if first_lodging else 'None'}), "
+        f"activities_steps={len(activities.get('steps', [])) if activities else 0}"
+    )
+
+    if first_quote:
+        logger.info(f"   ✈️  Vol: {first_quote.get('from')} → {first_quote.get('to')}, prix={first_quote.get('price')}, durée={first_quote.get('duration')}, type={first_quote.get('type')}")
+
+    if first_lodging:
+        logger.info(f"   🏨 Hébergement: {first_lodging.get('hotel_name')}, note={first_lodging.get('hotel_rating')}, prix={first_lodging.get('total_price') or first_lodging.get('price')}")
+
+    # 🛡️ ROBUST DESTINATION EXTRACTION
+    # Extrait la destination depuis plusieurs sources possibles
+    def _extract_destination() -> str:
+        # Priorité 1: destination_choice (agent strategist)
+        if destination_choice.get("destination"):
+            return destination_choice["destination"]
+        
+        # Priorité 2: questionnaire direct
+        for key in ("destination", "destination_precise", "lieu_arrivee"):
+            if questionnaire.get(key):
+                return questionnaire[key]
+        
+        # Priorité 3: normalized_trip_request nested
+        trip_frame = normalized_trip_request.get("trip_frame", {})
+        if isinstance(trip_frame, dict):
+            destinations = trip_frame.get("destinations", [])
+            if isinstance(destinations, list) and destinations:
+                first_dest = destinations[0]
+                if isinstance(first_dest, dict) and first_dest.get("city"):
+                    return first_dest["city"]
+        
+        # Fallback sécurisé
+        return "Destination à préciser"
+    
+    # 🛡️ CALCUL DU PRIX TOTAL COMPLET (vols + hébergement + activités + transport local)
+    # Extraire les prix de chaque catégorie
+    price_flights = _parse_price(first_quote.get("price") or flights.get("total_price") or flights.get("price") or 0)
+    price_hotels = _parse_price(first_lodging.get("total_price") or first_lodging.get("price") or lodging.get("total_price") or lodging.get("price") or 0)
+
+    # Prix activités : somme de tous les steps
+    price_activities = 0
+    raw_steps = activities.get("steps") if isinstance(activities.get("steps"), list) else []
+    for step in raw_steps:
+        if isinstance(step, dict) and not step.get("is_summary"):
+            step_price = _parse_price(step.get("price"))
+            if step_price:
+                price_activities += step_price
+
+    # Transport local : estimation si non fourni (10-15€/jour/personne)
+    price_transport = _parse_price(destination_choice.get("price_transport"))
+    if not price_transport:
+        total_days = _coerce_positive_int(
+            destination_choice.get("total_days")
+            or normalized_trip_request.get("nuits_exactes")
+            or questionnaire.get("nuits_exactes"),
+            1,
+        )
+        travelers_count = _coerce_positive_int(questionnaire.get("nombre_voyageurs"), 1)
+        price_transport = total_days * 15 * travelers_count  # 15€/jour/personne
+
+    # PRIX GLOBAL COMPLET
+    total_price_calculated = (price_flights or 0) + (price_hotels or 0) + (price_activities or 0) + (price_transport or 0)
+    total_price_display = f"{int(total_price_calculated)}€" if total_price_calculated > 0 else None
+
+    # 🛡️ TOUJOURS générer un code unique (même si l'agent en a fourni un)
+    # Cela évite les conflits de clé primaire en base
+    trip_code = _normalize_trip_code(
+        destination_choice.get("destination") or questionnaire.get("destination") or "TRIP"
+    )
+
+    # 🛡️ EXTRACTION HERO IMAGE: Chercher dans TOUTES les sources possibles
+    # L'agent génère hero_image dans itinerary_plan, parfois dans destination_choice
+    hero_image_candidate = (
+        activities.get("hero_image")  # ← PRIORITÉ 1: L'agent le met ici
+        or activities.get("main_image")
+        or activities.get("itinerary_plan", {}).get("hero_image")  # Parfois imbriqué
+        or destination_choice.get("main_image")
+        or destination_choice.get("hero_image")
+    )
+
+    # 🔍 EXTRACTION AVANCÉE: Si pas trouvé, chercher dans le raw_output YAML
+    if not hero_image_candidate or "FAILED" in str(hero_image_candidate).upper():
+        import re
+        # Chercher pattern: hero_image: "https://...supabase.co/..."
+        for source_data in [activities, destination_choice]:
+            raw_output = source_data.get("raw_output", "")
+            if isinstance(raw_output, str):
+                match = re.search(r'hero_image:\s*["\']?(https://[^"\'\s]+supabase\.co[^"\'\s]+)["\']?', raw_output, re.IGNORECASE)
+                if match:
+                    hero_image_candidate = match.group(1)
+                    logger.info(f"✅ Hero image extraite depuis raw_output: {hero_image_candidate}")
+                    break
+
+    logger.info(f"🖼️ Hero image candidate: {hero_image_candidate or 'None'}")
+
     trip_core = {
-        "code": _normalize_trip_code(
-            destination_choice.get("code") or questionnaire.get("destination") or "TRIP"
-        ),
-        "destination": destination_choice.get("destination") or questionnaire.get("destination") or "Destination",
+        "code": trip_code,  # 🎯 Code UNIQUE avec UUID
+        "destination": _extract_destination(),
         "destination_en": destination_choice.get("destination_en"),
         "total_days": _coerce_positive_int(
             destination_choice.get("total_days")
@@ -296,28 +518,36 @@ def assemble_trip(
             or questionnaire.get("nuits_exactes"),
             1,
         ),
-        "main_image": destination_choice.get("main_image"),
+        "main_image": hero_image_candidate,
         "flight_from": first_quote.get("from") or flights.get("from") or questionnaire.get("lieu_depart"),
         "flight_to": first_quote.get("to") or flights.get("to") or questionnaire.get("destination"),
         "flight_duration": first_quote.get("duration") or flights.get("duration"),
         "flight_type": first_quote.get("type") or flights.get("type"),
         "hotel_name": first_lodging.get("hotel_name") or lodging.get("hotel_name"),
         "hotel_rating": first_lodging.get("hotel_rating") or lodging.get("hotel_rating"),
-        "total_price": destination_choice.get("total_price") or destination_choice.get("total_budget"),
-        "total_budget": destination_choice.get("total_budget") or questionnaire.get("budget_par_personne"),
+        "total_price": total_price_display,  # 🎯 PRIX COMPLET CALCULÉ
+        "total_budget": total_price_display,  # 🎯 MÊME VALEUR QUE total_price
         "average_weather": destination_choice.get("average_weather"),
         "travel_style": destination_choice.get("travel_style"),
         "travel_style_en": destination_choice.get("travel_style_en"),
         "start_date": _normalize_start_date(questionnaire.get("date_depart")),
         "travelers": questionnaire.get("nombre_voyageurs"),
-        "price_flights": first_quote.get("price") or flights.get("price"),
-        "price_hotels": first_lodging.get("price") or lodging.get("price"),
-        "price_transport": destination_choice.get("price_transport"),
-        "price_activities": activities.get("price"),
+        "price_flights": f"{int(price_flights)}€" if price_flights else None,
+        "price_hotels": f"{int(price_hotels)}€" if price_hotels else None,
+        "price_transport": f"{int(price_transport)}€" if price_transport else None,
+        "price_activities": f"{int(price_activities)}€" if price_activities else None,
     }
 
-    if not trip_core.get("main_image"):
+    # 🖼️ VALIDATION IMAGE HERO: Priorité aux URLs MCP Supabase (workflow correct)
+    hero_image = trip_core.get("main_image")
+    # ✅ WORKFLOW CORRECT: Garder les URLs Supabase générées par images.hero
+    if hero_image and "supabase.co" in str(hero_image):
+        logger.info(f"✅ Hero image Supabase MCP trouvée: {hero_image}")
+    elif not hero_image:
+        # Fallback SEULEMENT si complètement vide (pas d'appel MCP réussi)
         trip_core["main_image"] = _build_fallback_image(trip_core.get("destination"))
+        logger.warning("⚠️ Aucune hero image générée, utilisation du fallback Unsplash")
+    # ⚠️ NE PLUS remplacer les "FAILED" - l'agent doit utiliser les outils MCP correctement
 
     raw_steps = activities.get("steps") if isinstance(activities.get("steps"), list) else []
     sanitized_steps: List[Dict[str, Any]] = []
@@ -339,8 +569,16 @@ def assemble_trip(
         day_number = _coerce_positive_int(filtered_step.get("day_number"), step_number)
         title = filtered_step.get("title") or f"Étape {step_number}"
         main_image = filtered_step.get("main_image") or trip_core.get("main_image")
-        if not main_image:
+
+        # 🖼️ VALIDATION IMAGE STEP: Priorité aux URLs MCP Supabase (workflow correct)
+        # ✅ WORKFLOW CORRECT: L'agent doit appeler images.background() pour CHAQUE step
+        if main_image and "supabase.co" in str(main_image):
+            logger.debug(f"✅ Step {step_number}: Image Supabase MCP trouvée")
+        elif not main_image:
+            # Fallback SEULEMENT si complètement vide
             main_image = _build_fallback_image(trip_core.get("destination"))
+            logger.warning(f"⚠️ Step {step_number}: Aucune image générée, fallback Unsplash")
+        # ⚠️ NE PLUS remplacer les "FAILED" - forcer l'agent à utiliser les outils MCP
 
         sanitized_step: Dict[str, Any] = {
             "step_number": step_number,
@@ -391,6 +629,9 @@ def assemble_trip(
             sanitized_step["summary_stats"] = _sanitize_summary_stats_or_build(
                 sanitized_stats, trip_core, sanitized_steps
             )
+
+        # 🛡️ VALIDATION: Vérifier les champs bilingues et GPS
+        _validate_bilingual_fields(sanitized_step, step_number)
 
         sanitized_steps.append(sanitized_step)
 

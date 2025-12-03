@@ -75,7 +75,40 @@ agents:
     max_iter: 12
 
   # ============================================================================
-  # AGENT 5: ITINERARY DESIGNER (CŒUR DE LA PIPELINE)
+  # AGENT 5: TRIP STRUCTURE PLANNER (NOUVEAU - Planificateur de structure)
+  # ============================================================================
+  trip_structure_planner:
+    role: "Trip Structure & Rhythm Planner"
+    goal: >-
+      Analyser le rythme du voyageur (relaxed/balanced/intense), la destination, et la
+      culture locale pour décider de la structure optimale du séjour : nombre de steps
+      par jour (1-3), types d'activités à prioriser, zones à couvrir, et mix culturel.
+    backstory: >-
+      Stratège de voyage expert, tu analyses le profil du voyageur et la destination
+      pour créer un plan structurel cohérent AVANT que l'itinéraire détaillé soit conçu.
+      Tu décides du RYTHME QUOTIDIEN en fonction du champ "rythme" du questionnaire :
+      - relaxed : 1-2 steps/jour (privilégier 1 step longue et immersive de 3-4h)
+      - balanced : 1-2 steps/jour (mix : 2 steps courtes OU 1 step longue selon le type)
+      - intense : 2-3 steps/jour (varier entre 2 et 3 selon fatigue cumulative)
+
+      Tu analyses la CULTURE LOCALE de la destination fournie pour prioriser les types
+      d'activités authentiques : monuments historiques, gastronomie locale, quartiers
+      typiques, activités nature spécifiques, traditions et artisanat. Tu t'adaptes à
+      N'IMPORTE QUELLE destination (ville, région, pays, île, montagne, désert, etc.).
+
+      Tu décides du MIX D'ACTIVITÉS (% culture, % nature, % gastronomie, % détente) en
+      fonction des affinités_voyage du questionnaire. Tu identifies les ZONES/QUARTIERS
+      clés à couvrir pour une expérience complète et logique (minimiser les allers-retours).
+
+      Ton output est un PLAN STRUCTUREL que l'itinerary_designer suivra à la lettre.
+    allow_delegation: false
+    reasoning: true
+    max_reasoning_attempts: 3
+    memory: true
+    max_iter: 15
+
+  # ============================================================================
+  # AGENT 6: ITINERARY DESIGNER (CŒUR DE LA PIPELINE)
   # ============================================================================
   itinerary_designer:
     role: "Itinerary & Activities Designer"
@@ -89,7 +122,7 @@ agents:
       geo.text_to_place ou places.overview pour obtenir les coordonnées GPS exactes.
       Tu appelles images.hero UNE FOIS pour l'image principale du voyage, puis
       images.background pour CHAQUE step. Tu copies les URLs Supabase retournées
-      (commençant par https://xznsdvvfqoztlqtqhkhv.supabase.co/storage/v1/object/public/TRIPS/)
+      (commençant par https://cinbnmlfpffmyjmkwbco.supabase.co/storage/v1/object/public/TRIPS/)
       dans ton output. Tu ne dois JAMAIS utiliser d'URLs externes (Wikipedia, Unsplash, etc.).
       Tu es le garant de la qualité de l'itinéraire final.
     allow_delegation: false
@@ -101,7 +134,7 @@ agents:
     max_iter: 25
 
   # ============================================================================
-  # AGENT 6: BUDGET CALCULATOR
+  # AGENT 7: BUDGET CALCULATOR
   # ============================================================================
   budget_calculator:
     role: "Budget & Financial Controller"
@@ -120,7 +153,7 @@ agents:
     max_iter: 10
 
   # ============================================================================
-  # AGENT 7: FINAL ASSEMBLER (NOUVEAU - Agent intelligent)
+  # AGENT 8: FINAL ASSEMBLER (Agent intelligent)
   # ============================================================================
   final_assembler:
     role: "Trip JSON Assembler & Validator"
