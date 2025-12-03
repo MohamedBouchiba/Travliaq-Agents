@@ -24,7 +24,7 @@ from app.crew_pipeline.scripts import (
     normalize_questionnaire,
     validate_trip_schema,
 )
-from app.crew_pipeline.scripts.trip_json_builder import TripJsonBuilder
+from app.crew_pipeline.scripts.incremental_trip_builder import IncrementalTripBuilder
 from app.services.supabase_service import supabase_service
 
 logger = logging.getLogger(__name__)
@@ -316,7 +316,49 @@ class CrewPipeline:
 
         # Extraire trip_context et destination_choice
         trip_context = parsed_phase1.get("trip_context_building", {}).get("trip_context", {})
-        destination_choice = parsed_phase1.get("destination_strategy", {}).get("destination_choice", {})
+        destination_strategy = parsed_phase1.get("destination_strategy", {})
+
+        # 🔧 FIX: L'agent peut mettre les données directement dans destination_strategy OU dans destination_choice
+        destination_choice = destination_strategy.get("destination_choice", destination_strategy)
+
+        # 🆕 INITIALIZATION: Créer le IncrementalTripBuilder dès qu'on a la destination
+        logger.info("🏗️ Initialisation du IncrementalTripBuilder...")
+        builder = IncrementalTripBuilder(questionnaire=normalized_questionnaire)
+
+        # 🔧 FIX: Extraction robuste de la destination (plusieurs noms de champs possibles)
+        destination = (
+            destination_choice.get("destination") or
+            destination_choice.get("destination_city") or
+            destination_choice.get("destination_name") or
+            destination_choice.get("city") or
+            normalized_questionnaire.get("destination") or
+            "Unknown Destination"
+        )
+
+        destination_en = destination_choice.get("destination_en") or destination
+
+        # 🔧 DEBUG: Logger la destination extraite
+        logger.info(f"📍 Destination extraite: {destination}")
+        logger.debug(f"🔍 destination_choice keys: {list(destination_choice.keys())}")
+
+        # Extraire la date de départ
+        start_date = normalized_questionnaire.get("date_depart") or \
+                    normalized_questionnaire.get("date_depart_approximative") or \
+                    datetime.now().strftime("%Y-%m-%d")
+
+        # Extraire le rythme
+        rhythm = normalized_questionnaire.get("rythme", "balanced")
+
+        # Initialiser la structure JSON vide
+        builder.initialize_structure(
+            destination=destination,
+            destination_en=destination_en,
+            start_date=start_date,
+            rhythm=rhythm,
+            mcp_tools=mcp_tools,
+        )
+
+        logger.info(f"✅ Structure JSON initialisée: {builder.trip_json['code']}")  # 🔧 FIX: Accès direct
 
         # Dériver l'intent depuis trip_context (plus simple que normalized_trip_request)
         trip_intent = self._derive_trip_intent(normalized_questionnaire, trip_context)
@@ -329,6 +371,9 @@ class CrewPipeline:
         trip_context_yaml = yaml.dump(trip_context, allow_unicode=True, sort_keys=False)
         destination_choice_yaml = yaml.dump(destination_choice, allow_unicode=True, sort_keys=False)
 
+        # 🆕 Ajouter l'état courant du trip JSON (pour que les agents voient la structure)
+        current_trip_json_yaml = builder.get_current_state_yaml()
+
         # Extraire dates validées depuis trip_context
         dates_info = trip_context.get("dates", {}) or {}
         departure_window = dates_info.get("departure_window") or {}
@@ -339,6 +384,7 @@ class CrewPipeline:
         inputs_phase2 = {
             "trip_context": trip_context_yaml,
             "destination_choice": destination_choice_yaml,
+            "current_trip_json": current_trip_json_yaml,  # 🆕 NOUVEAU
             "current_year": datetime.now().year,
             "validated_departure_dates": departure_dates,
             "validated_return_dates": return_dates,
@@ -393,6 +439,10 @@ class CrewPipeline:
             output_phase2 = crew_phase2.kickoff(inputs=inputs_phase2)
             tasks_phase2, parsed_phase2 = self._collect_tasks_output(output_phase2, should_save, run_dir, phase_label="PHASE2_RESEARCH")
 
+            # 🆕 ENRICHISSEMENT: Mettre à jour le builder avec les résultats de PHASE2
+            logger.info("🔧 Enrichissement du trip JSON avec les résultats de PHASE2...")
+            self._enrich_builder_from_phase2(builder, parsed_phase2)
+
         # 6. Phase 3 - Budget + Assembly
         budget_task = Task(name="budget_calculation", agent=budget_calculator, **tasks_config["budget_calculation"])
         final_task = Task(name="final_assembly", agent=final_assembler, context=[budget_task], **tasks_config["final_assembly"])
@@ -409,9 +459,13 @@ class CrewPipeline:
         lodging_quotes_yaml = yaml.dump(parsed_phase2.get("accommodation_research", {}).get("lodging_quotes", {}), allow_unicode=True, sort_keys=False)
         itinerary_plan_yaml = yaml.dump(parsed_phase2.get("itinerary_design", {}).get("itinerary_plan", {}), allow_unicode=True, sort_keys=False)
 
+        # 🆕 Ajouter l'état mis à jour du trip JSON
+        current_trip_json_yaml = builder.get_current_state_yaml()
+
         inputs_phase3 = {
             "trip_context": trip_context_yaml,
             "destination_choice": destination_choice_yaml,
+            "current_trip_json": current_trip_json_yaml,  # 🆕 NOUVEAU
             "flight_quotes": flight_quotes_yaml,
             "lodging_quotes": lodging_quotes_yaml,
             "itinerary_plan": itinerary_plan_yaml,
@@ -420,48 +474,25 @@ class CrewPipeline:
         output_phase3 = crew_phase3.kickoff(inputs=inputs_phase3)
         tasks_phase3, parsed_phase3 = self._collect_tasks_output(output_phase3, should_save, run_dir, phase_label="PHASE3_ASSEMBLY")
 
-        # Extraire le JSON final depuis l'agent final_assembler
-        trip_payload = parsed_phase3.get("final_assembly", {})
+        # 🆕 ENRICHISSEMENT: Mettre à jour le builder avec le budget de PHASE3
+        logger.info("🔧 Enrichissement du trip JSON avec les résultats de PHASE3...")
+        self._enrich_builder_from_phase3(builder, parsed_phase3)
 
-        # 🛡️ FALLBACK ROBUSTE: Si l'agent rejette, utiliser le TripJsonBuilder programmatique
-        # Cela garantit qu'on génère TOUJOURS un trip, même si l'agent est trop strict
-        if "error" in trip_payload or "trip" not in trip_payload:
-            logger.warning("⚠️ Agent final_assembler a échoué, utilisation du TripJsonBuilder programmatique en fallback")
-            try:
-                # 🏗️ Construire le trip programmatiquement avec TOUTES les garanties
-                builder = TripJsonBuilder(
-                    questionnaire=normalized_questionnaire,
-                    trip_context=trip_context,
-                    destination_choice=destination_choice,
-                    flights_research=parsed_phase2.get("flights_research", {}),
-                    accommodation_research=parsed_phase2.get("accommodation_research", {}),
-                    trip_structure_plan=parsed_phase2.get("plan_trip_structure", {}),
-                    itinerary_plan=parsed_phase2.get("itinerary_design", {}),
-                    budget_calculation=parsed_phase3.get("budget_calculation", {}),
-                    mcp_tools=mcp_tools,
-                )
+        # 🆕 Mettre à jour les summary stats
+        builder.update_summary_stats()
 
-                logger.info(
-                    f"📦 Données transmises au TripJsonBuilder: "
-                    f"questionnaire={bool(normalized_questionnaire)}, "
-                    f"trip_context={bool(trip_context)}, "
-                    f"destination={bool(destination_choice)}, "
-                    f"flights={bool(parsed_phase2.get('flights_research'))}, "
-                    f"accommodation={bool(parsed_phase2.get('accommodation_research'))}, "
-                    f"structure={bool(parsed_phase2.get('plan_trip_structure'))}, "
-                    f"itinerary={bool(parsed_phase2.get('itinerary_design'))}, "
-                    f"budget={bool(parsed_phase3.get('budget_calculation'))}"
-                )
+        # 🆕 Récupérer le JSON final depuis le builder
+        trip_payload = builder.get_json()
 
-                # Construire le trip JSON avec garanties d'images et GPS
-                trip_payload = builder.build()
-
-                logger.info("✅ Trip assemblé avec succès via TripJsonBuilder programmatique")
-            except Exception as exc:
-                logger.error(f"❌ Erreur lors de l'assemblage TripJsonBuilder: {exc}", exc_info=True)
-                # Garder l'erreur originale de l'agent si le fallback échoue aussi
-                if "error" not in trip_payload:
-                    trip_payload = {"error": True, "error_message": f"TripJsonBuilder assembly failed: {exc}"}
+        # 🆕 Log du rapport de complétude pour debug
+        completeness = builder.get_completeness_report()
+        logger.info(f"📊 Rapport de complétude du trip:")
+        logger.info(f"   - Complétude trip: {completeness['trip_completeness']}")
+        logger.info(f"   - Steps avec titre: {completeness['steps_with_title']}")
+        logger.info(f"   - Steps avec image: {completeness['steps_with_image']}")
+        logger.info(f"   - Steps avec GPS: {completeness['steps_with_gps']}")
+        if completeness['missing_critical']:
+            logger.warning(f"   - ⚠️ Champs critiques manquants: {completeness['missing_critical']}")
 
         # Validation Schema
         is_valid, schema_error = False, "No trip payload generated"
@@ -537,6 +568,178 @@ class CrewPipeline:
             logger.info(f"💾 Résumé complet sauvegardé dans {run_dir}/_SUMMARY_run_output.yaml")
 
         return final_payload
+
+    def _enrich_builder_from_phase2(
+        self,
+        builder: IncrementalTripBuilder,
+        parsed_phase2: Dict[str, Any],
+    ) -> None:
+        """
+        Enrichir le builder avec les résultats de PHASE2.
+
+        Extrait les données de:
+        - flights_research → set_flight_info()
+        - accommodation_research → set_hotel_info()
+        - itinerary_design → set_step_* pour chaque step
+        """
+        try:
+            # 1. FLIGHTS
+            flights_research = parsed_phase2.get("flights_research", {})
+            if flights_research:
+                flight_quotes = flights_research.get("flight_quotes", {})
+                if flight_quotes:
+                    builder.set_flight_info(
+                        flight_from=flight_quotes.get("departure", "") or flight_quotes.get("from", ""),
+                        flight_to=flight_quotes.get("arrival", "") or flight_quotes.get("to", ""),
+                        duration=flight_quotes.get("duration", ""),
+                        flight_type=flight_quotes.get("type", "") or flight_quotes.get("flight_type", ""),
+                        price=str(flight_quotes.get("price", "")) or str(flight_quotes.get("estimated_price", "")),
+                    )
+
+            # 2. ACCOMMODATION
+            accommodation_research = parsed_phase2.get("accommodation_research", {})
+            if accommodation_research:
+                lodging_quotes = accommodation_research.get("lodging_quotes", {})
+                if lodging_quotes:
+                    builder.set_hotel_info(
+                        hotel_name=lodging_quotes.get("name", "") or lodging_quotes.get("hotel_name", ""),
+                        hotel_rating=float(lodging_quotes.get("rating", 0) or lodging_quotes.get("note", 0) or 0),
+                        price=str(lodging_quotes.get("price", "")) or str(lodging_quotes.get("estimated_price", "")),
+                    )
+
+            # 3. ITINERARY (le plus important - remplir toutes les steps)
+            itinerary_design = parsed_phase2.get("itinerary_design", {})
+            if itinerary_design:
+                itinerary_plan = itinerary_design.get("itinerary_plan", {})
+
+                # Extraire hero image
+                hero_image = itinerary_plan.get("hero_image") or itinerary_plan.get("main_image", "")
+                if hero_image:
+                    builder.set_hero_image(hero_image)
+
+                # Extraire les steps
+                steps = itinerary_plan.get("steps", [])
+                for step_data in steps:
+                    step_number = step_data.get("step_number")
+                    if not step_number or step_data.get("is_summary", False):
+                        continue  # Skip summary step
+
+                    # Titre
+                    title = step_data.get("title", "")
+                    if title:
+                        builder.set_step_title(
+                            step_number=step_number,
+                            title=title,
+                            title_en=step_data.get("title_en", title),
+                            subtitle=step_data.get("subtitle", ""),
+                            subtitle_en=step_data.get("subtitle_en", ""),
+                        )
+
+                    # Image (critique - garantie via MCP si manquante)
+                    image_url = step_data.get("main_image", "") or step_data.get("image", "")
+                    builder.set_step_image(step_number=step_number, image_url=image_url)
+
+                    # GPS
+                    latitude = step_data.get("latitude")
+                    longitude = step_data.get("longitude")
+                    if latitude and longitude:
+                        builder.set_step_gps(
+                            step_number=step_number,
+                            latitude=float(latitude),
+                            longitude=float(longitude),
+                        )
+
+                    # Contenu
+                    builder.set_step_content(
+                        step_number=step_number,
+                        why=step_data.get("why", ""),
+                        why_en=step_data.get("why_en", ""),
+                        tips=step_data.get("tips", ""),
+                        tips_en=step_data.get("tips_en", ""),
+                        transfer=step_data.get("transfer", ""),
+                        transfer_en=step_data.get("transfer_en", ""),
+                        suggestion=step_data.get("suggestion", ""),
+                        suggestion_en=step_data.get("suggestion_en", ""),
+                    )
+
+                    # Météo
+                    weather_icon = step_data.get("weather_icon", "")
+                    weather_temp = step_data.get("weather_temp", "")
+                    if weather_icon or weather_temp:
+                        builder.set_step_weather(
+                            step_number=step_number,
+                            icon=weather_icon,
+                            temp=weather_temp,
+                            description=step_data.get("weather_description", ""),
+                            description_en=step_data.get("weather_description_en", ""),
+                        )
+
+                    # Prix et durée
+                    price = step_data.get("price", 0)
+                    duration = step_data.get("duration", "")
+                    if price or duration:
+                        builder.set_step_price_duration(
+                            step_number=step_number,
+                            price=float(price) if price else 0,
+                            duration=duration,
+                        )
+
+                    # Type
+                    step_type = step_data.get("step_type", "")
+                    if step_type:
+                        builder.set_step_type(step_number=step_number, step_type=step_type)
+
+                logger.info(f"✅ Builder enrichi avec {len(steps)} steps depuis PHASE2")
+
+        except Exception as e:
+            logger.error(f"❌ Erreur lors de l'enrichissement depuis PHASE2: {e}", exc_info=True)
+
+    def _enrich_builder_from_phase3(
+        self,
+        builder: IncrementalTripBuilder,
+        parsed_phase3: Dict[str, Any],
+    ) -> None:
+        """
+        Enrichir le builder avec les résultats de PHASE3.
+
+        Extrait les données de:
+        - budget_calculation → set_prices()
+        """
+        try:
+            budget_calculation = parsed_phase3.get("budget_calculation", {})
+            if budget_calculation:
+                # Extraire les prix
+                total_price = budget_calculation.get("total_price") or \
+                             budget_calculation.get("total_budget") or \
+                             budget_calculation.get("estimated_total", "")
+
+                price_flights = budget_calculation.get("flight_cost") or \
+                               budget_calculation.get("flights_cost") or \
+                               budget_calculation.get("price_flights", "")
+
+                price_hotels = budget_calculation.get("accommodation_cost") or \
+                              budget_calculation.get("lodging_cost") or \
+                              budget_calculation.get("price_hotels", "")
+
+                price_transport = budget_calculation.get("transport_cost") or \
+                                 budget_calculation.get("local_transport_cost") or \
+                                 budget_calculation.get("price_transport", "")
+
+                price_activities = budget_calculation.get("activities_cost") or \
+                                  budget_calculation.get("price_activities", "")
+
+                builder.set_prices(
+                    total_price=str(total_price) if total_price else "",
+                    price_flights=str(price_flights) if price_flights else "",
+                    price_hotels=str(price_hotels) if price_hotels else "",
+                    price_transport=str(price_transport) if price_transport else "",
+                    price_activities=str(price_activities) if price_activities else "",
+                )
+
+                logger.info(f"✅ Builder enrichi avec le budget depuis PHASE3")
+
+        except Exception as e:
+            logger.error(f"❌ Erreur lors de l'enrichissement depuis PHASE3: {e}", exc_info=True)
 
     def _create_agent(self, name: str, config: Dict[str, Any], tools: List[Any]) -> Agent:
         """Crée un agent avec sa configuration complète."""
