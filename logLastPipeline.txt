@@ -6,3 +6,198 @@
 2025-12-03 21:48:54 | INFO     | root | ================================================================================
 2025-12-03 21:48:54 | INFO     | app.crew_pipeline.pipeline | 🚀 Lancement Pipeline CrewAI (Run ID: b24087aa-1ffb-4f6c-aa57-619b2d3e971a-79ed4e70)
 2025-12-03 21:48:54 | INFO     | app.crew_pipeline.mcp_tools | Fetching MCP tools from https://travliaq-mcp-production.up.railway.app/mcp...
+2025-12-03 21:48:58 | INFO     | app.crew_pipeline.mcp_tools | 🔄 Session MCP récupérée: b5adb7dfca69441f9bbfe1d6dff04613
+2025-12-03 21:48:58 | INFO     | app.crew_pipeline.mcp_tools | Connecting to SSE with headers: {'Mcp-Session-Id': 'b5adb7dfca69441f9bbfe1d6dff04613'}
+2025-12-03 21:48:58 | INFO     | app.crew_pipeline.mcp_tools | 🔧 Using override endpoint URL: https://travliaq-mcp-production.up.railway.app/mcp?sessionId=b5adb7dfca69441f9bbfe1d6dff04613
+2025-12-03 21:48:58 | INFO     | app.crew_pipeline.mcp_tools | 📡 Starting SSE event loop...
+2025-12-03 21:48:58 | INFO     | app.crew_pipeline.mcp_tools | SSE connection established
+2025-12-03 21:48:58 | INFO     | app.crew_pipeline.mcp_tools | Initializing session...
+2025-12-03 21:48:58 | INFO     | app.crew_pipeline.mcp_tools | 📤 Starting post_writer with endpoint: https://travliaq-mcp-production.up.railway.app/mcp?sessionId=b5adb7dfca69441f9bbfe1d6dff04613
+2025-12-03 21:48:58 | INFO     | app.crew_pipeline.mcp_tools | 📝 Waiting for messages to send...
+2025-12-03 21:48:58 | INFO     | app.crew_pipeline.mcp_tools | 📮 Sending client message: method=None, id=None
+2025-12-03 21:48:58 | INFO     | app.crew_pipeline.mcp_tools | ✅ Client message sent successfully: 200, response length: 292
+2025-12-03 21:48:58 | INFO     | app.crew_pipeline.mcp_tools | 📦 Parsing POST response as JSON-RPC message...
+2025-12-03 21:48:58 | INFO     | app.crew_pipeline.mcp_tools | Session initialized. Listing tools...
+2025-12-03 21:48:58 | INFO     | app.crew_pipeline.mcp_tools | 📮 Sending client message: method=None, id=None
+2025-12-03 21:48:58 | INFO     | app.crew_pipeline.mcp_tools | ✅ Client message sent successfully: 202, response length: 0
+2025-12-03 21:48:58 | INFO     | app.crew_pipeline.mcp_tools | 📮 Sending client message: method=None, id=None
+2025-12-03 21:48:58 | INFO     | app.crew_pipeline.mcp_tools | ✅ Client message sent successfully: 200, response length: 13043
+2025-12-03 21:48:58 | INFO     | app.crew_pipeline.mcp_tools | 📦 Parsing POST response as JSON-RPC message...
+2025-12-03 21:48:58 | INFO     | app.crew_pipeline.mcp_tools | Tools listed: 15 found
+2025-12-03 21:48:58 | INFO     | app.crew_pipeline.mcp_tools | Listing resources (knowledge base)...
+2025-12-03 21:48:58 | INFO     | app.crew_pipeline.mcp_tools | 📮 Sending client message: method=None, id=None
+2025-12-03 21:48:58 | INFO     | app.crew_pipeline.mcp_tools | ✅ Client message sent successfully: 200, response length: 1009
+2025-12-03 21:48:58 | INFO     | app.crew_pipeline.mcp_tools | 📦 Parsing POST response as JSON-RPC message...
+2025-12-03 21:48:58 | INFO     | app.crew_pipeline.mcp_tools | Resources listed: 3 found
+2025-12-03 21:48:58 | INFO     | app.crew_pipeline.mcp_tools | Found MCP tool: geo.text_to_place
+2025-12-03 21:48:58 | INFO     | app.crew_pipeline.mcp_tools | ⏱️ Using extended timeout (90s) for geo.text_to_place
+2025-12-03 21:48:58 | INFO     | app.crew_pipeline.mcp_tools | Found MCP tool: places.overview
+2025-12-03 21:48:58 | INFO     | app.crew_pipeline.mcp_tools | ⏱️ Using extended timeout (90s) for places.overview
+2025-12-03 21:48:58 | INFO     | app.crew_pipeline.mcp_tools | Found MCP tool: airports.nearest
+2025-12-03 21:48:58 | INFO     | app.crew_pipeline.mcp_tools | Found MCP tool: climate.avg_temperature
+2025-12-03 21:48:58 | INFO     | app.crew_pipeline.mcp_tools | Found MCP tool: weather.by_coords
+2025-12-03 21:48:58 | INFO     | app.crew_pipeline.mcp_tools | Found MCP tool: weather.brief
+2025-12-03 21:48:58 | INFO     | app.crew_pipeline.mcp_tools | Found MCP tool: weather.by_period
+2025-12-03 21:48:58 | INFO     | app.crew_pipeline.mcp_tools | Found MCP tool: health.ping
+2025-12-03 21:48:58 | INFO     | app.crew_pipeline.mcp_tools | Found MCP tool: images.hero
+2025-12-03 21:48:58 | INFO     | app.crew_pipeline.mcp_tools | Found MCP tool: images.background
+2025-12-03 21:48:58 | INFO     | app.crew_pipeline.mcp_tools | Found MCP tool: images.slider
+2025-12-03 21:48:58 | INFO     | app.crew_pipeline.mcp_tools | Found MCP tool: debug.ls
+2025-12-03 21:48:58 | INFO     | app.crew_pipeline.mcp_tools | Found MCP tool: booking.search
+2025-12-03 21:48:58 | INFO     | app.crew_pipeline.mcp_tools | ⏱️ Using extended timeout (180s) for booking.search
+2025-12-03 21:48:58 | INFO     | app.crew_pipeline.mcp_tools | Found MCP tool: booking.details
+2025-12-03 21:48:58 | INFO     | app.crew_pipeline.mcp_tools | ⏱️ Using extended timeout (180s) for booking.details
+2025-12-03 21:48:58 | INFO     | app.crew_pipeline.mcp_tools | Found MCP tool: flights.prices
+2025-12-03 21:48:58 | INFO     | app.crew_pipeline.mcp_tools | ⏱️ Using extended timeout (180s) for flights.prices
+2025-12-03 21:48:58 | INFO     | app.crew_pipeline.mcp_tools | Found MCP resource: Le secteur touristique mondial étude approfondie.md (knowledge-base) (URI: file:///app/src/mcp_server/knowledge-base/Le%20secteur%20touristique%20mondial%20%C3%A9tude%20approfondie.md)
+2025-12-03 21:48:58 | INFO     | app.crew_pipeline.mcp_tools | Found MCP resource: Les macro-personas du voyageur moderne cartographi.md (knowledge-base) (URI: file:///app/src/mcp_server/knowledge-base/Les%20macro-personas%20du%20voyageur%20moderne%20cartographi.md)
+2025-12-03 21:48:58 | INFO     | app.crew_pipeline.mcp_tools | Found MCP resource: guide_tourisme_complet.md (knowledge-base) (URI: file:///app/src/mcp_server/knowledge-base/guide_tourisme_complet.md)
+2025-12-03 21:48:58 | INFO     | app.crew_pipeline.mcp_tools | ✅ Total MCP tools and resources loaded: 18
+2025-12-03 21:48:58 | INFO     | app.crew_pipeline.pipeline | ✅ 18 outils MCP chargés.
+2025-12-03 21:48:58 | INFO     | root | OpenAI: Successfully validated tool 'create_reasoning_plan'
+2025-12-03 21:49:14 | INFO     | root | OpenAI API usage: {'prompt_tokens': 2747, 'completion_tokens': 595, 'total_tokens': 3342}
+2025-12-03 21:49:22 | INFO     | root | OpenAI API usage: {'prompt_tokens': 3102, 'completion_tokens': 347, 'total_tokens': 3449}
+2025-12-03 21:49:22 | INFO     | root | OpenAI: Successfully validated tool 'create_reasoning_plan'
+2025-12-03 21:49:42 | INFO     | root | OpenAI API usage: {'prompt_tokens': 6406, 'completion_tokens': 513, 'total_tokens': 6919}
+2025-12-03 21:49:42 | INFO     | app.crew_pipeline.pipeline | 📁 PHASE1_CONTEXT - Step 1: trip_context_building → output\crew_runs\b24087aa-1ffb-4f6c-aa57-619b2d3e971a-79ed4e70\PHASE1_CONTEXT\step_1_trip_context_building
+2025-12-03 21:49:42 | INFO     | app.crew_pipeline.pipeline | 📁 PHASE1_CONTEXT - Step 2: destination_strategy → output\crew_runs\b24087aa-1ffb-4f6c-aa57-619b2d3e971a-79ed4e70\PHASE1_CONTEXT\step_2_destination_strategy
+2025-12-03 21:49:42 | INFO     | app.crew_pipeline.pipeline | 🏗️ Initialisation du IncrementalTripBuilder...
+2025-12-03 21:49:42 | INFO     | app.crew_pipeline.scripts.incremental_trip_builder | 🏗️ IncrementalTripBuilder créé
+2025-12-03 21:49:42 | INFO     | app.crew_pipeline.pipeline | 📍 Destination extraite: Bali, Indonésie 🇮🇩
+2025-12-03 21:49:42 | INFO     | app.crew_pipeline.scripts.incremental_trip_builder | 🏗️ Structure JSON initialisée: BALI-2025-73C346
+2025-12-03 21:49:42 | INFO     | app.crew_pipeline.scripts.incremental_trip_builder |    - Destination: Bali, Indonésie 🇮🇩
+2025-12-03 21:49:42 | INFO     | app.crew_pipeline.scripts.incremental_trip_builder |    - Jours: 2
+2025-12-03 21:49:42 | INFO     | app.crew_pipeline.scripts.incremental_trip_builder |    - Rythme: intense
+2025-12-03 21:49:42 | INFO     | app.crew_pipeline.scripts.incremental_trip_builder |    - Steps: 5 activités + 1 summary
+2025-12-03 21:49:42 | INFO     | app.crew_pipeline.pipeline | ✅ Structure JSON initialisée: BALI-2025-73C346
+2025-12-03 21:49:42 | INFO     | root | OpenAI: Successfully validated tool 'create_reasoning_plan'
+2025-12-03 21:49:53 | WARNING  | crewai.events.listeners.tracing.trace_batch_manager | Trace batch initialization returned status 401. Continuing without tracing.
+2025-12-03 21:50:10 | INFO     | root | OpenAI API usage: {'prompt_tokens': 6211, 'completion_tokens': 721, 'total_tokens': 6932}
+2025-12-03 21:50:11 | INFO     | app.crew_pipeline.mcp_tools | 🔧 Using override endpoint URL: https://travliaq-mcp-production.up.railway.app/mcp?sessionId=b5adb7dfca69441f9bbfe1d6dff04613
+2025-12-03 21:50:11 | INFO     | app.crew_pipeline.mcp_tools | 📡 Starting SSE event loop...
+2025-12-03 21:50:11 | INFO     | app.crew_pipeline.mcp_tools | 📤 Starting post_writer with endpoint: https://travliaq-mcp-production.up.railway.app/mcp?sessionId=b5adb7dfca69441f9bbfe1d6dff04613
+2025-12-03 21:50:11 | INFO     | app.crew_pipeline.mcp_tools | 📝 Waiting for messages to send...
+2025-12-03 21:50:11 | INFO     | app.crew_pipeline.mcp_tools | 📮 Sending client message: method=None, id=None
+2025-12-03 21:50:11 | INFO     | app.crew_pipeline.mcp_tools | ✅ Client message sent successfully: 200, response length: 292
+2025-12-03 21:50:11 | INFO     | app.crew_pipeline.mcp_tools | 📦 Parsing POST response as JSON-RPC message...
+2025-12-03 21:50:11 | INFO     | app.crew_pipeline.mcp_tools | 📮 Sending client message: method=None, id=None
+2025-12-03 21:50:11 | INFO     | app.crew_pipeline.mcp_tools | ✅ Client message sent successfully: 202, response length: 0
+2025-12-03 21:50:11 | INFO     | app.crew_pipeline.mcp_tools | 📮 Sending client message: method=None, id=None
+2025-12-03 21:50:11 | INFO     | app.crew_pipeline.mcp_tools | ✅ Client message sent successfully: 200, response length: 842
+2025-12-03 21:50:11 | INFO     | app.crew_pipeline.mcp_tools | 📦 Parsing POST response as JSON-RPC message...
+2025-12-03 21:50:11 | INFO     | app.crew_pipeline.mcp_tools | ✅ MCP tool airports.nearest exécuté avec succès
+2025-12-03 21:50:32 | INFO     | root | OpenAI API usage: {'prompt_tokens': 6321, 'completion_tokens': 755, 'total_tokens': 7076}
+2025-12-03 21:50:32 | INFO     | app.crew_pipeline.mcp_tools | 🔧 Using override endpoint URL: https://travliaq-mcp-production.up.railway.app/mcp?sessionId=b5adb7dfca69441f9bbfe1d6dff04613
+2025-12-03 21:50:32 | INFO     | app.crew_pipeline.mcp_tools | 📡 Starting SSE event loop...
+2025-12-03 21:50:32 | INFO     | app.crew_pipeline.mcp_tools | 📤 Starting post_writer with endpoint: https://travliaq-mcp-production.up.railway.app/mcp?sessionId=b5adb7dfca69441f9bbfe1d6dff04613
+2025-12-03 21:50:32 | INFO     | app.crew_pipeline.mcp_tools | 📝 Waiting for messages to send...
+2025-12-03 21:50:32 | INFO     | app.crew_pipeline.mcp_tools | 📮 Sending client message: method=None, id=None
+2025-12-03 21:50:32 | INFO     | app.crew_pipeline.mcp_tools | ✅ Client message sent successfully: 200, response length: 292
+2025-12-03 21:50:32 | INFO     | app.crew_pipeline.mcp_tools | 📦 Parsing POST response as JSON-RPC message...
+2025-12-03 21:50:32 | INFO     | app.crew_pipeline.mcp_tools | 📮 Sending client message: method=None, id=None
+2025-12-03 21:50:32 | INFO     | app.crew_pipeline.mcp_tools | ✅ Client message sent successfully: 202, response length: 0
+2025-12-03 21:50:32 | INFO     | app.crew_pipeline.mcp_tools | 📮 Sending client message: method=None, id=None
+2025-12-03 21:50:33 | INFO     | app.crew_pipeline.mcp_tools | ✅ Client message sent successfully: 200, response length: 981
+2025-12-03 21:50:33 | INFO     | app.crew_pipeline.mcp_tools | 📦 Parsing POST response as JSON-RPC message...
+2025-12-03 21:50:33 | INFO     | app.crew_pipeline.mcp_tools | 📮 Sending client message: method=None, id=None
+2025-12-03 21:50:33 | INFO     | app.crew_pipeline.mcp_tools | ✅ Client message sent successfully: 200, response length: 13043
+2025-12-03 21:50:33 | INFO     | app.crew_pipeline.mcp_tools | 📦 Parsing POST response as JSON-RPC message...
+2025-12-03 21:50:33 | INFO     | app.crew_pipeline.mcp_tools | ✅ MCP tool airports.nearest exécuté avec succès
+2025-12-03 21:50:36 | INFO     | root | OpenAI API usage: {'prompt_tokens': 6463, 'completion_tokens': 149, 'total_tokens': 6612}
+2025-12-03 21:50:37 | INFO     | app.crew_pipeline.mcp_tools | 🔧 Using override endpoint URL: https://travliaq-mcp-production.up.railway.app/mcp?sessionId=b5adb7dfca69441f9bbfe1d6dff04613
+2025-12-03 21:50:37 | INFO     | app.crew_pipeline.mcp_tools | 📡 Starting SSE event loop...
+2025-12-03 21:50:37 | INFO     | app.crew_pipeline.mcp_tools | 📤 Starting post_writer with endpoint: https://travliaq-mcp-production.up.railway.app/mcp?sessionId=b5adb7dfca69441f9bbfe1d6dff04613
+2025-12-03 21:50:37 | INFO     | app.crew_pipeline.mcp_tools | 📝 Waiting for messages to send...
+2025-12-03 21:50:37 | INFO     | app.crew_pipeline.mcp_tools | 📮 Sending client message: method=None, id=None
+2025-12-03 21:50:37 | INFO     | app.crew_pipeline.mcp_tools | ✅ Client message sent successfully: 200, response length: 292
+2025-12-03 21:50:37 | INFO     | app.crew_pipeline.mcp_tools | 📦 Parsing POST response as JSON-RPC message...
+2025-12-03 21:50:37 | INFO     | app.crew_pipeline.mcp_tools | 📮 Sending client message: method=None, id=None
+2025-12-03 21:50:37 | INFO     | app.crew_pipeline.mcp_tools | ✅ Client message sent successfully: 202, response length: 0
+2025-12-03 21:50:37 | INFO     | app.crew_pipeline.mcp_tools | 📮 Sending client message: method=None, id=None
+2025-12-03 21:50:37 | INFO     | app.crew_pipeline.mcp_tools | ✅ Client message sent successfully: 200, response length: 1015
+2025-12-03 21:50:37 | INFO     | app.crew_pipeline.mcp_tools | 📦 Parsing POST response as JSON-RPC message...
+2025-12-03 21:50:37 | INFO     | app.crew_pipeline.mcp_tools | 📮 Sending client message: method=None, id=None
+2025-12-03 21:50:37 | INFO     | app.crew_pipeline.mcp_tools | ✅ Client message sent successfully: 200, response length: 13043
+2025-12-03 21:50:37 | INFO     | app.crew_pipeline.mcp_tools | 📦 Parsing POST response as JSON-RPC message...
+2025-12-03 21:50:37 | INFO     | app.crew_pipeline.mcp_tools | ✅ MCP tool airports.nearest exécuté avec succès
+2025-12-03 21:50:45 | INFO     | root | OpenAI API usage: {'prompt_tokens': 10647, 'completion_tokens': 307, 'total_tokens': 10954}
+2025-12-03 21:50:45 | INFO     | app.crew_pipeline.mcp_tools | 🔧 Using override endpoint URL: https://travliaq-mcp-production.up.railway.app/mcp?sessionId=b5adb7dfca69441f9bbfe1d6dff04613
+2025-12-03 21:50:45 | INFO     | app.crew_pipeline.mcp_tools | 📡 Starting SSE event loop...
+2025-12-03 21:50:45 | INFO     | app.crew_pipeline.mcp_tools | 📤 Starting post_writer with endpoint: https://travliaq-mcp-production.up.railway.app/mcp?sessionId=b5adb7dfca69441f9bbfe1d6dff04613
+2025-12-03 21:50:45 | INFO     | app.crew_pipeline.mcp_tools | 📝 Waiting for messages to send...
+2025-12-03 21:50:45 | INFO     | app.crew_pipeline.mcp_tools | 📮 Sending client message: method=None, id=None
+2025-12-03 21:50:45 | INFO     | app.crew_pipeline.mcp_tools | ✅ Client message sent successfully: 200, response length: 292
+2025-12-03 21:50:45 | INFO     | app.crew_pipeline.mcp_tools | 📦 Parsing POST response as JSON-RPC message...
+2025-12-03 21:50:45 | INFO     | app.crew_pipeline.mcp_tools | 📮 Sending client message: method=None, id=None
+2025-12-03 21:50:45 | INFO     | app.crew_pipeline.mcp_tools | ✅ Client message sent successfully: 202, response length: 0
+2025-12-03 21:50:45 | INFO     | app.crew_pipeline.mcp_tools | 📮 Sending client message: method=None, id=None
+2025-12-03 21:50:45 | INFO     | app.crew_pipeline.mcp_tools | ✅ Client message sent successfully: 200, response length: 1025
+2025-12-03 21:50:45 | INFO     | app.crew_pipeline.mcp_tools | 📦 Parsing POST response as JSON-RPC message...
+2025-12-03 21:50:45 | INFO     | app.crew_pipeline.mcp_tools | 📮 Sending client message: method=None, id=None
+2025-12-03 21:50:45 | INFO     | app.crew_pipeline.mcp_tools | ✅ Client message sent successfully: 200, response length: 13043
+2025-12-03 21:50:45 | INFO     | app.crew_pipeline.mcp_tools | 📦 Parsing POST response as JSON-RPC message...
+2025-12-03 21:50:45 | INFO     | app.crew_pipeline.mcp_tools | ✅ MCP tool airports.nearest exécuté avec succès
+2025-12-03 21:50:50 | INFO     | root | OpenAI API usage: {'prompt_tokens': 10809, 'completion_tokens': 161, 'total_tokens': 10970}
+2025-12-03 21:50:50 | INFO     | app.crew_pipeline.mcp_tools | 🔧 Using override endpoint URL: https://travliaq-mcp-production.up.railway.app/mcp?sessionId=b5adb7dfca69441f9bbfe1d6dff04613
+2025-12-03 21:50:50 | INFO     | app.crew_pipeline.mcp_tools | 📡 Starting SSE event loop...
+2025-12-03 21:50:50 | INFO     | app.crew_pipeline.mcp_tools | 📤 Starting post_writer with endpoint: https://travliaq-mcp-production.up.railway.app/mcp?sessionId=b5adb7dfca69441f9bbfe1d6dff04613
+2025-12-03 21:50:50 | INFO     | app.crew_pipeline.mcp_tools | 📝 Waiting for messages to send...
+2025-12-03 21:50:50 | INFO     | app.crew_pipeline.mcp_tools | 📮 Sending client message: method=None, id=None
+2025-12-03 21:50:50 | INFO     | app.crew_pipeline.mcp_tools | ✅ Client message sent successfully: 200, response length: 292
+2025-12-03 21:50:50 | INFO     | app.crew_pipeline.mcp_tools | 📦 Parsing POST response as JSON-RPC message...
+2025-12-03 21:50:50 | INFO     | app.crew_pipeline.mcp_tools | 📮 Sending client message: method=None, id=None
+2025-12-03 21:50:50 | INFO     | app.crew_pipeline.mcp_tools | ✅ Client message sent successfully: 202, response length: 0
+2025-12-03 21:50:50 | INFO     | app.crew_pipeline.mcp_tools | 📮 Sending client message: method=None, id=None
+2025-12-03 21:51:50 | INFO     | app.crew_pipeline.mcp_tools | ✅ Client message sent successfully: 200, response length: 1615
+2025-12-03 21:51:50 | INFO     | app.crew_pipeline.mcp_tools | 📦 Parsing POST response as JSON-RPC message...
+2025-12-03 21:51:50 | INFO     | app.crew_pipeline.mcp_tools | 📮 Sending client message: method=None, id=None
+2025-12-03 21:51:50 | INFO     | app.crew_pipeline.mcp_tools | ✅ Client message sent successfully: 200, response length: 13043
+2025-12-03 21:51:50 | INFO     | app.crew_pipeline.mcp_tools | 📦 Parsing POST response as JSON-RPC message...
+2025-12-03 21:51:50 | INFO     | app.crew_pipeline.mcp_tools | ✅ MCP tool flights.prices exécuté avec succès
+2025-12-03 21:52:03 | INFO     | root | OpenAI API usage: {'prompt_tokens': 11102, 'completion_tokens': 464, 'total_tokens': 11566}
+2025-12-03 21:52:03 | INFO     | root | OpenAI: Successfully validated tool 'create_reasoning_plan'
+2025-12-03 21:52:29 | INFO     | root | OpenAI API usage: {'prompt_tokens': 6725, 'completion_tokens': 592, 'total_tokens': 7317}
+2025-12-03 21:52:29 | INFO     | app.crew_pipeline.mcp_tools | 🔧 Using override endpoint URL: https://travliaq-mcp-production.up.railway.app/mcp?sessionId=b5adb7dfca69441f9bbfe1d6dff04613
+2025-12-03 21:52:29 | INFO     | app.crew_pipeline.mcp_tools | 📡 Starting SSE event loop...
+2025-12-03 21:52:29 | INFO     | app.crew_pipeline.mcp_tools | 📤 Starting post_writer with endpoint: https://travliaq-mcp-production.up.railway.app/mcp?sessionId=b5adb7dfca69441f9bbfe1d6dff04613
+2025-12-03 21:52:29 | INFO     | app.crew_pipeline.mcp_tools | 📝 Waiting for messages to send...
+2025-12-03 21:52:29 | INFO     | app.crew_pipeline.mcp_tools | 📮 Sending client message: method=None, id=None
+2025-12-03 21:52:29 | INFO     | app.crew_pipeline.mcp_tools | ✅ Client message sent successfully: 200, response length: 292
+2025-12-03 21:52:29 | INFO     | app.crew_pipeline.mcp_tools | 📦 Parsing POST response as JSON-RPC message...
+2025-12-03 21:52:29 | INFO     | app.crew_pipeline.mcp_tools | 📮 Sending client message: method=None, id=None
+2025-12-03 21:52:29 | INFO     | app.crew_pipeline.mcp_tools | ✅ Client message sent successfully: 202, response length: 0
+2025-12-03 21:52:29 | INFO     | app.crew_pipeline.mcp_tools | 📮 Sending client message: method=None, id=None
+2025-12-03 21:52:29 | INFO     | app.crew_pipeline.mcp_tools | ✅ Client message sent successfully: 200, response length: 790
+2025-12-03 21:52:29 | INFO     | app.crew_pipeline.mcp_tools | 📦 Parsing POST response as JSON-RPC message...
+2025-12-03 21:52:29 | INFO     | app.crew_pipeline.mcp_tools | ✅ MCP tool places.overview exécuté avec succès
+2025-12-03 21:52:42 | INFO     | root | OpenAI API usage: {'prompt_tokens': 6826, 'completion_tokens': 494, 'total_tokens': 7320}
+2025-12-03 21:52:42 | INFO     | root | OpenAI: Successfully validated tool 'create_reasoning_plan'
+2025-12-03 21:52:55 | INFO     | root | OpenAI API usage: {'prompt_tokens': 5307, 'completion_tokens': 504, 'total_tokens': 5811}
+2025-12-03 21:53:07 | INFO     | root | OpenAI API usage: {'prompt_tokens': 6070, 'completion_tokens': 508, 'total_tokens': 6578}
+2025-12-03 21:53:07 | INFO     | root | OpenAI: Successfully validated tool 'create_reasoning_plan'
+2025-12-03 21:57:02 | INFO     | root | OpenAI API usage: {'prompt_tokens': 13735, 'completion_tokens': 4595, 'total_tokens': 18330}
+2025-12-03 21:57:03 | WARNING  | app.crew_pipeline.mcp_tools | ⚠️ Erreur pour geo.text_to_place (tentative 1/3): unhandled errors in a TaskGroup (1 sub-exception)
+2025-12-03 21:57:04 | WARNING  | app.crew_pipeline.mcp_tools | ⚠️ Erreur pour geo.text_to_place (tentative 2/3): unhandled errors in a TaskGroup (1 sub-exception)
+2025-12-03 21:57:06 | WARNING  | app.crew_pipeline.mcp_tools | ⚠️ Erreur pour geo.text_to_place (tentative 3/3): unhandled errors in a TaskGroup (1 sub-exception)
+2025-12-03 21:57:06 | ERROR    | app.crew_pipeline.mcp_tools | ❌ MCP tool geo.text_to_place a échoué définitivement
+2025-12-03 21:58:20 | INFO     | root | OpenAI API usage: {'prompt_tokens': 13837, 'completion_tokens': 3676, 'total_tokens': 17513}
+2025-12-03 21:58:20 | WARNING  | app.crew_pipeline.mcp_tools | ⚠️ Erreur pour places.overview (tentative 1/3): unhandled errors in a TaskGroup (1 sub-exception)
+2025-12-03 21:58:21 | WARNING  | app.crew_pipeline.mcp_tools | ⚠️ Erreur pour places.overview (tentative 2/3): unhandled errors in a TaskGroup (1 sub-exception)
+2025-12-03 21:58:23 | WARNING  | app.crew_pipeline.mcp_tools | ⚠️ Erreur pour places.overview (tentative 3/3): unhandled errors in a TaskGroup (1 sub-exception)
+2025-12-03 21:58:23 | ERROR    | app.crew_pipeline.mcp_tools | ❌ MCP tool places.overview a échoué définitivement
+2025-12-03 21:58:26 | INFO     | root | OpenAI API usage: {'prompt_tokens': 13922, 'completion_tokens': 105, 'total_tokens': 14027}
+2025-12-03 21:58:26 | WARNING  | app.crew_pipeline.mcp_tools | ⚠️ Erreur pour geo.text_to_place (tentative 1/3): unhandled errors in a TaskGroup (1 sub-exception)
+2025-12-03 21:58:27 | WARNING  | app.crew_pipeline.mcp_tools | ⚠️ Erreur pour geo.text_to_place (tentative 2/3): unhandled errors in a TaskGroup (1 sub-exception)
+2025-12-03 21:58:30 | WARNING  | app.crew_pipeline.mcp_tools | ⚠️ Erreur pour geo.text_to_place (tentative 3/3): unhandled errors in a TaskGroup (1 sub-exception)
+2025-12-03 21:58:30 | ERROR    | app.crew_pipeline.mcp_tools | ❌ MCP tool geo.text_to_place a échoué définitivement
+2025-12-03 21:58:33 | INFO     | root | OpenAI API usage: {'prompt_tokens': 18042, 'completion_tokens': 117, 'total_tokens': 18159}
+2025-12-03 21:58:33 | WARNING  | app.crew_pipeline.mcp_tools | ⚠️ Erreur pour geo.text_to_place (tentative 1/3): unhandled errors in a TaskGroup (1 sub-exception)
+2025-12-03 21:58:34 | WARNING  | app.crew_pipeline.mcp_tools | ⚠️ Erreur pour geo.text_to_place (tentative 2/3): unhandled errors in a TaskGroup (1 sub-exception)
+2025-12-03 21:58:37 | WARNING  | app.crew_pipeline.mcp_tools | ⚠️ Erreur pour geo.text_to_place (tentative 3/3): unhandled errors in a TaskGroup (1 sub-exception)
+2025-12-03 21:58:37 | ERROR    | app.crew_pipeline.mcp_tools | ❌ MCP tool geo.text_to_place a échoué définitivement
+2025-12-03 21:58:40 | INFO     | root | OpenAI API usage: {'prompt_tokens': 18146, 'completion_tokens': 98, 'total_tokens': 18244}
+2025-12-03 21:58:40 | WARNING  | app.crew_pipeline.mcp_tools | ⚠️ Erreur pour geo.text_to_place (tentative 1/3): unhandled errors in a TaskGroup (1 sub-exception)
+2025-12-03 21:58:41 | WARNING  | app.crew_pipeline.mcp_tools | ⚠️ Erreur pour geo.text_to_place (tentative 2/3): unhandled errors in a TaskGroup (1 sub-exception)
+2025-12-03 21:58:43 | WARNING  | app.crew_pipeline.mcp_tools | ⚠️ Erreur pour geo.text_to_place (tentative 3/3): unhandled errors in a TaskGroup (1 sub-exception)
+2025-12-03 21:58:43 | ERROR    | app.crew_pipeline.mcp_tools | ❌ MCP tool geo.text_to_place a échoué définitivement
+2025-12-03 21:58:46 | INFO     | root | OpenAI API usage: {'prompt_tokens': 18248, 'completion_tokens': 90, 'total_tokens': 18338}
