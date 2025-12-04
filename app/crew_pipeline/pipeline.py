@@ -400,37 +400,115 @@ class CrewPipeline:
             "validated_return_dates": return_dates,
         }
 
-        # Ajouter les agents conditionnellement
-        flight_task: Optional[Task] = None
-        if trip_intent.assist_flights:
-            flight_task = Task(name="flights_research", agent=flight_specialist, **tasks_config["flights_research"])
-            phase2_tasks.append(flight_task)
-            phase2_agents.append(flight_specialist)
+        # 🆕 STEP 1: Générer plan de structure ET templates AVANT Phase 2
+        trip_structure_plan = {}
+        step_templates_yaml = None
+        tasks_structure = []
 
-        lodging_task: Optional[Task] = None
-        if trip_intent.assist_accommodation:
-            lodging_task = Task(name="accommodation_research", agent=accommodation_specialist, **tasks_config["accommodation_research"])
-            phase2_tasks.append(lodging_task)
-            phase2_agents.append(accommodation_specialist)
-
-        # 🆕 Agent de planification structurelle (NOUVEAU - avant itinerary_design)
-        structure_task: Optional[Task] = None
-        itinerary_task: Optional[Task] = None
         if trip_intent.assist_activities:
-            # Étape 1 : Planifier la structure du séjour (rythme, zones, mix d'activités)
+            logger.info("📋 Step 1/3: Executing plan_trip_structure...")
+
+            # Exécuter plan_trip_structure SEUL
             structure_task = Task(
                 name="plan_trip_structure",
                 agent=trip_structure_planner,
                 **tasks_config["plan_trip_structure"]
             )
-            phase2_tasks.append(structure_task)
-            phase2_agents.append(trip_structure_planner)
 
-            # Étape 2 : Concevoir l'itinéraire détaillé en suivant le plan structurel
+            crew_structure = self._crew_builder(
+                agents=[trip_structure_planner],
+                tasks=[structure_task],
+                verbose=self._verbose,
+                process=Process.sequential,
+            )
+
+            output_structure = crew_structure.kickoff(inputs=inputs_phase2)
+            tasks_structure, parsed_structure = self._collect_tasks_output(
+                output_structure,
+                should_save,
+                run_dir,
+                phase_label="PHASE2_RESEARCH"
+            )
+
+            # Extraire trip_structure_plan
+            trip_structure_plan = parsed_structure.get("plan_trip_structure", {}).get("structural_plan", {})
+
+            # 🆕 STEP 2: Générer templates MAINTENANT (avant Phase 2)
+            if trip_structure_plan and trip_structure_plan.get("daily_distribution"):
+                logger.info("🏗️ Step 2/3: Generating step templates with GPS and images...")
+
+                try:
+                    step_template_generator = StepTemplateGenerator(mcp_tools=mcp_tools)
+                    step_templates = step_template_generator.generate_templates(
+                        trip_structure_plan=trip_structure_plan,
+                        destination=destination,
+                        destination_country=destination_country or "",
+                        trip_code=builder.trip_json["code"],
+                    )
+
+                    logger.info(f"✅ {len(step_templates)} step templates generated with GPS and images")
+
+                    # Enrichir builder avec templates
+                    for template in step_templates:
+                        if not template.get("is_summary"):
+                            step_num = template.get("step_number")
+                            if step_num:
+                                builder.set_step_gps(
+                                    step_number=step_num,
+                                    latitude=template.get("latitude", 0),
+                                    longitude=template.get("longitude", 0),
+                                )
+                                if template.get("main_image"):
+                                    builder.set_step_image(
+                                        step_number=step_num,
+                                        image_url=template.get("main_image"),
+                                    )
+                                if template.get("step_type"):
+                                    builder.set_step_type(
+                                        step_number=step_num,
+                                        step_type=template.get("step_type"),
+                                    )
+
+                    logger.info("✅ Builder enriched with GPS and images from templates")
+
+                    # Mettre à jour current_trip_json pour Phase 2
+                    current_trip_json_yaml = builder.get_current_state_yaml()
+                    inputs_phase2["current_trip_json"] = current_trip_json_yaml
+
+                    # Ajouter step_templates aux inputs (pour que l'agent les voie)
+                    step_templates_yaml = yaml.dump(step_templates, allow_unicode=True, sort_keys=False)
+                    inputs_phase2["step_templates"] = step_templates_yaml
+
+                    logger.info("✅ inputs_phase2 updated with enriched trip JSON and templates")
+
+                except Exception as e:
+                    logger.error(f"❌ StepTemplateGenerator failed: {e}")
+                    logger.warning("⚠️ Continuing without templates, Agent 6 will generate from scratch")
+            else:
+                logger.warning("⚠️ No trip_structure_plan found, skipping template generation")
+
+        # 🆕 STEP 3: Construire Phase 2 avec les autres tâches (Flights, Accommodation, Itinerary)
+        logger.info("🚀 Step 3/3: Executing Phase 2 (Flights, Accommodation, Itinerary Design)...")
+
+        phase2_tasks: List[Task] = []
+        phase2_agents: List[Agent] = []
+
+        # Ajouter Flights et Accommodation
+        if trip_intent.assist_flights:
+            flight_task = Task(name="flights_research", agent=flight_specialist, **tasks_config["flights_research"])
+            phase2_tasks.append(flight_task)
+            phase2_agents.append(flight_specialist)
+
+        if trip_intent.assist_accommodation:
+            lodging_task = Task(name="accommodation_research", agent=accommodation_specialist, **tasks_config["accommodation_research"])
+            phase2_tasks.append(lodging_task)
+            phase2_agents.append(accommodation_specialist)
+
+        # Ajouter Itinerary Design (maintenant les templates sont disponibles)
+        if trip_intent.assist_activities and step_templates_yaml:
             itinerary_task = Task(
                 name="itinerary_design",
                 agent=itinerary_designer,
-                context=[structure_task],  # 🔗 Dépend du plan structurel
                 **tasks_config["itinerary_design"]
             )
             phase2_tasks.append(itinerary_task)
@@ -439,6 +517,11 @@ class CrewPipeline:
         # Lancer Phase 2 seulement si au moins un service demandé
         parsed_phase2 = {}
         tasks_phase2 = []
+
+        # Ajouter les résultats de plan_trip_structure déjà obtenus
+        if trip_intent.assist_activities and trip_structure_plan:
+            parsed_phase2["plan_trip_structure"] = {"structural_plan": trip_structure_plan}
+
         if phase2_tasks:
             crew_phase2 = self._crew_builder(
                 agents=phase2_agents,
@@ -447,57 +530,11 @@ class CrewPipeline:
                 process=Process.sequential,
             )
             output_phase2 = crew_phase2.kickoff(inputs=inputs_phase2)
-            tasks_phase2, parsed_phase2 = self._collect_tasks_output(output_phase2, should_save, run_dir, phase_label="PHASE2_RESEARCH")
+            tasks_phase2_new, parsed_phase2_new = self._collect_tasks_output(output_phase2, should_save, run_dir, phase_label="PHASE2_RESEARCH")
 
-            # 🆕 SCRIPT 1: Générer templates de steps (GPS + images pré-remplies)
-            if "plan_trip_structure" in parsed_phase2 and trip_intent.assist_activities:
-                logger.info("🏗️ Generating step templates with GPS and images...")
-                
-                trip_structure_plan = parsed_phase2["plan_trip_structure"].get("structural_plan", {})
-                
-                if trip_structure_plan and trip_structure_plan.get("daily_distribution"):
-                    try:
-                        # Initialiser générateur
-                        step_template_generator = StepTemplateGenerator(mcp_tools=mcp_tools)
-                        
-                        # Générer templates
-                        step_templates = step_template_generator.generate_templates(
-                            trip_structure_plan=trip_structure_plan,
-                            destination=destination,
-                            destination_country=destination_country or "",
-                            trip_code=builder.trip_json["code"],
-                        )
-                        
-                        logger.info(f"✅ {len(step_templates)} step templates generated with GPS and images")
-                        
-                        # Enrichir builder avec templates
-                        for template in step_templates:
-                            if not template.get("is_summary"):
-                                step_num = template.get("step_number")
-                                if step_num:
-                                    builder.set_step_gps(
-                                        step_number=step_num,
-                                        latitude=template.get("latitude", 0),
-                                        longitude=template.get("longitude", 0),
-                                    )
-                                    if template.get("main_image"):
-                                        builder.set_step_image(
-                                            step_number=step_num,
-                                            image_url=template.get("main_image"),
-                                        )
-                                    if template.get("step_type"):
-                                        builder.set_step_type(
-                                            step_number=step_num,
-                                            step_type=template.get("step_type"),
-                                        )
-                        
-                        logger.info("✅ Builder enriched with GPS and images from templates")
-                        
-                    except Exception as e:
-                        logger.error(f"❌ StepTemplateGenerator failed: {e}")
-                        logger.warning("⚠️ Continuing without templates, Agent 6 will generate from scratch")
-                else:
-                    logger.warning("⚠️ No trip_structure_plan found, skipping template generation")
+            # Fusionner avec les résultats de structure déjà obtenus
+            tasks_phase2 = tasks_structure + tasks_phase2_new if trip_intent.assist_activities else tasks_phase2_new
+            parsed_phase2.update(parsed_phase2_new)
 
             # 🆕 ENRICHISSEMENT: Mettre à jour le builder avec les résultats de PHASE2
             logger.info("🔧 Enrichissement du trip JSON avec les résultats de PHASE2...")
