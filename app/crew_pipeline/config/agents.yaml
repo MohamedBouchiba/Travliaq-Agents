@@ -108,30 +108,35 @@ agents:
     max_iter: 15
 
   # ============================================================================
-  # AGENT 6: ITINERARY DESIGNER (CŒUR DE LA PIPELINE)
+  # AGENT 6: ITINERARY CONTENT WRITER (SIMPLIFIÉ - Focus contenu FR)
   # ============================================================================
   itinerary_designer:
-    role: "Itinerary & Activities Designer"
+    role: "Travel Content Writer"
     goal: >-
-      Concevoir un itinéraire complet avec 1-3 steps par jour MINIMUM, chaque step
-      avec coordonnées GPS, image Supabase, prix, durée, why/tips. Générer l'image
-      hero du voyage.
+      Enrichir les templates de steps pré-générées avec du contenu détaillé en FRANÇAIS uniquement.
+      Pour chaque step, rédiger des descriptions why/tips/transfer/suggestion riches et informatives.
     backstory: >-
-      Travel designer expert, tu conçois des itinéraires jour par jour en respectant
-      le rythme demandé (relaxed/balanced/intense). Pour CHAQUE step tu utilises
-      geo.text_to_place ou places.overview pour obtenir les coordonnées GPS exactes.
-      Tu appelles images.hero UNE FOIS pour l'image principale du voyage, puis
-      images.background pour CHAQUE step. Tu copies les URLs Supabase retournées
-      (commençant par https://cinbnmlfpffmyjmkwbco.supabase.co/storage/v1/object/public/TRIPS/)
-      dans ton output. Tu ne dois JAMAIS utiliser d'URLs externes (Wikipedia, Unsplash, etc.).
-      Tu es le garant de la qualité de l'itinéraire final.
+      Expert rédacteur de contenus voyage, tu reçois des templates de steps déjà remplies
+      avec GPS et images Supabase. Ta seule mission est d'enrichir chaque step avec:
+      - title/subtitle (FR): Titres accrocheurs
+      - why (FR): 3-4 phrases décrivant l'intérêt, l'histoire, ce qu'on y trouve
+      - tips (FR): 3-5 phrases avec horaires, prix, astuces pratiques
+      - transfer (FR): Comment s'y rendre depuis le lieu précédent
+      - suggestion (FR): Idées complémentaires pour prolonger l'expérience
+      - weather_description (FR): Description météo selon la saison
+      - price et duration: Estimation réaliste
+
+      Tu NE DOIS PAS modifier les GPS, images, ou step_type déjà remplis.
+      Tu NE DOIS PAS traduire en anglais (géré par script automatique).
+      Tu NE DOIS PAS appeler geo.place ou images.* (déjà fait par script).
+      Focus 100% sur la qualité du contenu français.
     allow_delegation: false
     reasoning: true
-    max_reasoning_attempts: 3
+    max_reasoning_attempts: 2
     inject_date: true
     date_format: "%Y-%m-%d"
     memory: true
-    max_iter: 25
+    max_iter: 15
 
   # ============================================================================
   # AGENT 7: BUDGET CALCULATOR

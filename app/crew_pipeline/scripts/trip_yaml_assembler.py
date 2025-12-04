@@ -81,13 +81,21 @@ def _normalize_trip_code(raw_code: Optional[str]) -> str:
     if not code or not code[0].isalpha():
         code = f"T{code}" if code else "TRIP"
     
-    # Limiter la partie principale pour laisser de la place au suffixe
-    # Format: CODE-SUFFIX (ex: BANGKOK-2025-A3F5E1)
-    max_main_length = 20 - len(unique_suffix) - 1  # -1 pour le tiret
-    code = code[:max_main_length]
+    # 🔧 FIX: Calculer la longueur max en tenant compte de TOUTE la structure finale
+    # Format attendu: CODE-SUFFIX (ex: BANGKOK-A3F5E1)
+    # Limite totale: 20 caractères max
+    # Suffixe: 6 chars + 1 tiret = 7 chars réservés
+    max_main_length = 20 - 7  # = 13 chars max pour la partie principale
+    
+    if len(code) > max_main_length:
+        # Tronquer intelligemment: garder le début + fin si possible
+        code = code[:max_main_length]
     
     # Ajouter le suffixe unique
     code_with_suffix = f"{code}-{unique_suffix}"
+    
+    # ✅ GARANTIE: Le code final fait TOUJOURS ≤ 20 caractères
+    assert len(code_with_suffix) <= 20, f"Code trop long: {code_with_suffix} ({len(code_with_suffix)} chars)"
     
     # Vérifier la longueur minimale (au moins 3 caractères)
     if len(code_with_suffix) < 3:

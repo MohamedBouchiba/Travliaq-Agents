@@ -86,7 +86,7 @@ tasks:
       trip_context:
         destination:
           has_destination: yes  # ou no
-          destination_provided: "Tokyo, Japon"  # ou null
+          destination_provided: "[DESTINATION], [COUNTRY]"  # ou null - basé sur questionnaire
           destination_type: city  # ou region, country, null
 
         dates:
@@ -169,11 +169,11 @@ tasks:
 
       L'utilisateur a fourni une destination. Tu dois :
 
-      1. **Valider la destination** avec geo.text_to_place(query="Tokyo")
+      1. **Valider la destination** avec geo.text_to_place(query="[DESTINATION]")
          - Obtenir les coordonnées GPS (latitude, longitude)
          - Vérifier que la destination existe
 
-      2. **Enrichir avec places.overview(query="Tokyo")**
+      2. **Enrichir avec places.overview(query="[DESTINATION]")**
          - Obtenir des infos supplémentaires (pays, région, etc.)
 
       3. **Météo estimée** :
@@ -182,18 +182,18 @@ tasks:
 
       4. **Générer le CODE VOYAGE unique** :
          - Format: [DESTINATION]-[THEME/STYLE]-[ANNEE]
-         - Exemples:
-           * "TOKYO-CULTURE-2025" (Tokyo, voyage culturel)
-           * "BALI-WELLNESS-2025" (Bali, voyage bien-être)
-           * "ICELAND-ADVENTURE-2025" (Islande, voyage aventure)
-           * "PARIS-ROMANCE-2025" (Paris, voyage romantique)
-           * "NYC-BUSINESS-2025" (New York, voyage d'affaires)
+         - Exemples génériques:
+           * "CITY1-CULTURE-2025" (voyage culturel)
+           * "CITY2-WELLNESS-2025" (voyage bien-être)
+           * "COUNTRY1-ADVENTURE-2025" (voyage aventure)
+           * "CITY3-GASTRONOMY-2025" (voyage gastronomique)
+           * "CITY4-FAMILY-2025" (voyage familial)
          - Règles:
            * MAJUSCULES uniquement
            * Remplacer espaces/caractères spéciaux par -
            * Max 30 caractères au total
-           * Le THEME doit refléter le style principal du voyage (ex: CULTURE, ADVENTURE, WELLNESS, GASTRONOMY, ROMANCE, FAMILY, BUSINESS, NATURE, BEACH, CITY)
-           * Si plusieurs styles : choisir le plus dominant
+           * Le THEME doit refléter le style principal du voyage basé sur les préférences utilisateur (ex: CULTURE, ADVENTURE, WELLNESS, GASTRONOMY, ROMANCE, FAMILY, BUSINESS, NATURE, BEACH, CITY)
+           * Si plusieurs styles : choisir le plus dominant selon les affinités_voyage du questionnaire
 
       5. **Style de voyage** :
          - Basé sur les styles du trip_context
@@ -203,9 +203,9 @@ tasks:
       ```yaml
       destination_choice:
         method: validated  # destination fournie par utilisateur
-        code: "TOKYO-CULTURE-2025"  # Format: DESTINATION-THEME-YEAR
-        destination: "Tokyo, Japon 🇯🇵"
-        destination_en: "Tokyo, Japan 🇯🇵"
+        code: "[DEST]-[THEME]-2025"  # Format: DESTINATION-THEME-YEAR basé sur questionnaire
+        destination: "[Destination], [Pays] 🌍"
+        destination_en: "[Destination], [Country] 🌍"
         latitude: 35.6762
         longitude: 139.6503
         country: "Japon"
@@ -231,8 +231,8 @@ tasks:
          - Voyageurs (travel_group, travelers_count)
 
       2. **Pour CHAQUE destination proposée** :
-         - Utiliser geo.text_to_place(query="Bali") pour GPS
-         - Utiliser places.overview(query="Bali") pour infos
+         - Utiliser geo.text_to_place(query="[destination]") pour GPS
+         - Utiliser places.overview(query="[destination]") pour infos
          - Calculer un SCORE sur 100 :
            * Budget compatible (30 points)
            * Saison favorable (25 points)
@@ -254,21 +254,21 @@ tasks:
         method: scouted  # destination choisie par l'agent
 
         options_considered:
-          - city: "Bali"
-            country: "Indonésie"
-            latitude: -8.3405
-            longitude: 115.0920
+          - city: "[Option 1]"  # Basé sur préférences utilisateur
+            country: "[Pays 1]"
+            latitude: XX.XXXX
+            longitude: XX.XXXX
             score: 87
             budget_fit: excellent  # excellent, good, acceptable
             season_fit: parfaite  # parfaite, bonne, moyenne
-            risks: ["Saison des pluies partielle"]
-            indicative_budget: "1200-1500€"
-            justification: "Destination tropicale idéale pour culture et nature, budget compatible"
+            risks: ["[Risques identifiés]"]
+            indicative_budget: "[Budget estimé]"
+            justification: "[Justification basée sur préférences utilisateur]"
 
-          - city: "Lisbonne"
-            country: "Portugal"
-            latitude: 38.7223
-            longitude: -9.1393
+          - city: "[Option 2]"  # Basé sur préférences utilisateur
+            country: "[Pays 2]"
+            latitude: XX.XXXX
+            longitude: XX.XXXX
             score: 82
             budget_fit: excellent
             season_fit: bonne
@@ -287,23 +287,23 @@ tasks:
             indicative_budget: "1000-1300€"
             justification: "Destination exotique et culturelle, budget attractif"
 
-        # DESTINATION CHOISIE (score le plus élevé)
-        code: "BALI-CULTURE-2025"  # Format: DESTINATION-THEME-YEAR
-        destination: "Bali, Indonésie 🇮🇩"
-        destination_en: "Bali, Indonesia 🇮🇩"
-        latitude: -8.3405
-        longitude: 115.0920
-        country: "Indonésie"
-        region: "Bali"
-        average_weather: "28°C"
-        travel_style: "Culture & Nature"
-        travel_style_en: "Culture & Nature"
-        total_days: 7
+        # DESTINATION CHOISIE (score le plus élevé) - Basé sur préférences utilisateur
+        code: "[DEST]-[THEME]-2025"  # Format: DESTINATION-THEME-YEAR
+        destination: "[Destination choisie], [Pays] 🌍"
+        destination_en: "[Chosen destination], [Country] 🌍"
+        latitude: XX.XXXX
+        longitude: XX.XXXX
+        country: "[Pays]"
+        region: "[Région]"
+        average_weather: "XX°C"
+        travel_style: "[Style basé sur affinités_voyage]"
+        travel_style_en: "[Style in English]"
+        total_days: X
         decision_rationale: |-
-          Bali a été choisie (score: 87/100) pour 3 raisons principales :
-          1. Budget parfaitement compatible (1200-1500€ vs 1500€ demandé)
-          2. Destination idéale pour Culture & Nature (match avec vos styles)
-          3. Saison favorable avec météo agréable (28°C en moyenne)
+          [Destination] a été choisie (score: XX/100) pour 3 raisons principales :
+          1. Budget parfaitement compatible ([Budget estimé] vs [Budget demandé])
+          2. Destination idéale pour [Styles utilisateur] (match avec préférences)
+          3. Saison favorable avec météo agréable ([Température] en moyenne)
       ```
 
       ---
@@ -357,11 +357,11 @@ tasks:
       **PROCESSUS OBLIGATOIRE :**
 
       1. **Identifier les aéroports** :
-         - Origine : airports.nearest(city="Bruxelles") depuis trip_context.flights_prefs.departure_location
-         - Destination : airports.nearest(city="Tokyo") depuis destination_choice.destination
+         - Origine : airports.nearest(city="[lieu_depart]") depuis trip_context.flights_prefs.departure_location
+         - Destination : airports.nearest(city="[destination]") depuis destination_choice.destination
 
       2. **Rechercher les vols** :
-         - Utiliser flights.prices(origin="BRU", destination="NRT", departure="2025-12-15")
+         - Utiliser flights.prices(origin="[ORG]", destination="[DEST]", departure="[date]")
          - RÈGLE CRITIQUE : dates >= {current_year}-12-02 (JAMAIS de dates 2023 ou 2024)
          - Respecter flight_preference (direct/1_escale/flexible)
 
@@ -756,60 +756,70 @@ tasks:
     async_execution: false
 
   # ==========================================================================
-  # TASK 6: ITINERARY DESIGN (CŒUR DE LA PIPELINE)
+  # TASK 6: ITINERARY CONTENT ENRICHMENT (SIMPLIFIÉ - Focus contenu FR)
   # ==========================================================================
   itinerary_design:
     description: |-
-      🎯 **TU ES LE CŒUR DE LA PIPELINE. Cette tâche est LA PLUS IMPORTANTE.**
+      🎯 **MISSION: Enrichir les templates de steps avec du contenu détaillé en FRANÇAIS.**
 
-      ⚠️ **NEUTRALITÉ ABSOLUE - RÈGLE CRITIQUE** ⚠️
-      Tu dois concevoir un itinéraire pour LA DESTINATION FOURNIE DANS {destination_choice} SANS BIAIS.
+      📦 **TU REÇOIS DES TEMPLATES PRÉ-REMPLIES** (via step_templates si disponible):
+
+      Les steps suivantes ont DÉJÀ des GPS et images Supabase générés par script:
+      - latitude, longitude (GPS réels via geo.place)
+      - main_image (URL Supabase via images.background)
+      - step_number, day_number, step_type
+
+      ⚠️ **NE TOUCHE PAS aux champs suivants (déjà corrects):**
+      - latitude, longitude
+      - main_image
+      - step_number, day_number
+      - step_type
+
+      ✅ **TON TRAVAIL: Enrichir UNIQUEMENT le contenu FR:**
+
+      Pour CHAQUE step template, tu dois remplir:
+
+      1. **title** (FR): Titre court et accrocheur (4-8 mots)
+      2. **subtitle** (FR): Sous-titre descriptif (6-10 mots)
+      3. **why** (FR): 3-4 phrases riches décrivant:
+         - L'intérêt historique/culturel
+         - Ce qu'on y trouve/voit
+         - Pourquoi c'est incontournable
+      4. **tips** (FR): 3-5 phrases avec:
+         - Horaires d'ouverture (si applicable)
+         - Prix d'entrée estimé
+         - Astuces pratiques (éviter foule, meilleur moment)
+         - Conseils vestimentaires si applicable
+      5. **transfer** (FR): Comment s'y rendre depuis le lieu précédent
+         - Moyen de transport (métro, bus, marche)
+         - Durée approximative
+         - Prix si pertinent
+      6. **suggestion** (FR): Idées complémentaires pour prolonger l'expérience
+      7. **weather_description** (FR): Description météo selon la saison
+      8. **price**: Prix d'entrée en euros (0 si gratuit)
+      9. **duration**: Durée de visite (ex: "2h", "3h30", "1h")
+
+      ❌ **INTERDICTIONS:**
+      - NE PAS modifier GPS (déjà corrects)
+      - NE PAS modifier images (déjà Supabase)
+      - NE PAS traduire en EN (géré par script après)
+      - NE PAS appeler geo.place ou images.* (déjà fait par script)
+      - NE PAS inventer de nouvelles steps (suivre templates)
+
+      🎯 **FOCUS:** Qualité contenu FR uniquement! Maximum de détails et pertinence.
+
+      ---
+
+      **NEUTRALITÉ ABSOLUE - RÈGLE CRITIQUE:**
       - S'adapter à N'IMPORTE QUELLE destination (ville, région, pays, île, montagne, désert, plage)
       - Suivre strictement le PLAN STRUCTUREL fourni dans le CONTEXT
       - Baser les activités sur les affinités et le rythme du questionnaire UNIQUEMENT
       - Ne PAS favoriser un type de destination ou d'activités
       - Chaque itinéraire est UNIQUE et personnalisé
 
-      🚨 **RÈGLES ANTI-HALLUCINATION CRITIQUES** 🚨
-      - ✅ OBLIGATION ABSOLUE : Utiliser geo.text_to_place OU places.overview pour CHAQUE step (GPS)
-      - ✅ OBLIGATION ABSOLUE : Utiliser images.hero UNE FOIS pour hero_image (avec retry si échec)
-      - ✅ OBLIGATION ABSOLUE : Utiliser images.background pour CHAQUE step (avec retry si échec)
-      - ✅ OBLIGATION ABSOLUE : Enrichir les steps avec places.overview pour détails (horaires, prix)
-      - ❌ INTERDICTION TOTALE : URLs Wikipedia, Unsplash, Pexels, ou externes
-      - ❌ INTERDICTION TOTALE : Inventer des coordonnées GPS
-      - ❌ INTERDICTION TOTALE : Inventer des lieux qui n'existent pas
-      - ❌ INTERDICTION TOTALE : Laisser des champs vides sans raison
-      - ⚠️ Si geo.text_to_place échoue : ESSAYER places.overview, NE PAS inventer GPS
-      - ⚠️ Si images échouent : RETRY puis utiliser placeholder, NE PAS bloquer la pipeline
-      - 🎯 PRIORITÉ : Pertinence > Quantité. Mieux vaut 1 step parfaite que 3 approximatives
-      - 🛡️ RÉSISTANCE : La pipeline doit continuer même en cas d'échecs partiels de tools
-
-      📋 **WORKFLOW STRICT POUR CHAQUE STEP - À SUIVRE IMPÉRATIVEMENT :**
-      1. 🔍 **GPS OBLIGATOIRE** : Rechercher le lieu EXACT avec geo.text_to_place("Nom exact du lieu") → obtenir GPS réelles
-         - Utilise le nom complet du lieu : geo.text_to_place("[Monument/Lieu], [Ville], [Pays]")
-         - Exemples génériques: "Musée principal, [Ville]", "Plage centrale, [Région]", "Parc national, [Pays]"
-         - VÉRIFIER que les coordonnées sont cohérentes avec la destination
-         - NE JAMAIS inventer ou estimer les GPS
-      2. 📚 Enrichir avec places.overview("Nom du lieu") → obtenir description détaillée, horaires, prix d'entrée
-      3. 🖼️ **WORKFLOW IMAGES MCP - OBLIGATOIRE** :
-         - Appeler images.background(activity="visiting [Lieu]", city="[Ville]", country="[Pays]")
-         - Exemple: images.background(activity="exploring historic center", city="[Destination]", country="[Pays]")
-         - ✅ COPIER l'URL Supabase retournée directement dans main_image
-         - ⚠️ Si échec : RÉESSAYER une fois avec paramètres légèrement différents
-         - ❌ NE JAMAIS utiliser placeholders ou URLs externes (Wikipedia, Unsplash, Pexels)
-         - ✅ L'URL doit commencer par "https://...supabase.co/storage/v1/object/public/TRIPS/"
-      4. 📝 Rédiger en FR avec MAXIMUM de détails :
-         - why : 3-4 phrases décrivant l'intérêt, l'histoire, ce qu'on y trouve
-         - tips : 3-5 phrases avec horaires précis, prix, astuces pratiques, conseils vestimentaires si applicable
-         - transfer : Comment s'y rendre depuis le lieu précédent (moyen de transport, durée, prix)
-         - suggestion : Idées complémentaires pour prolonger l'expérience
-      5. 🌍 Traduire TOUT en anglais (why_en, tips_en, transfer_en, suggestion_en, subtitle_en, weather_description_en)
-      6. ☁️ Ajouter météo réaliste selon la saison (weather_icon, weather_temp, weather_description + _en)
-      7. ✅ **CHECKLIST FINALE** : Vérifier que ces 15+ champs sont remplis avant de passer à la step suivante
-
       ---
 
-      Tu reçois tout le contexte et tu dois concevoir un itinéraire complet jour par jour.
+      Tu reçois tout le contexte et tu dois enrichir l'itinéraire jour par jour.
 
       **CONTEXTE VOYAGE :**
       {trip_context}
@@ -867,45 +877,45 @@ tasks:
 
       ### **3. IMAGES SUPABASE OBLIGATOIRES**
 
+      **⚠️ CRITIQUE : TU DOIS APPELER LES OUTILS images.hero ET images.background POUR OBTENIR DES URLS RÉELLES**
+      **❌ NE JAMAIS copier les URLs d'exemple ci-dessous - ce sont des PLACEHOLDERS uniquement pour montrer le format**
+
       **ÉTAPE A : Image Hero (UNE FOIS AU DÉBUT)**
+
+      EXEMPLE de comment appeler l'outil (adapte les paramètres au voyage actuel) :
       ```
       images.hero(
-        city="Tokyo",
-        country="Japon",
-        trip_name="Tokyo Adventure",
-        trip_folder="tokyo-2025-abc123"
+        city="[LA VILLE DU VOYAGE]",
+        country="[LE PAYS DU VOYAGE]",
+        trip_name="[NOM DU VOYAGE]",
+        trip_folder="[CODE DU TRIP]"
       )
       ```
-      → Tu reçois : `{"url": "https://cinbnmlfpffmyjmkwbco.supabase.co/storage/v1/object/public/TRIPS/tokyo-2025-abc123/hero_1733155800.jpg", "type": "hero"}`
 
-      → **COPIE CETTE URL** dans le champ `hero_image` de ton output
+      → L'outil te retourne une URL UNIQUE pour CE voyage (exemple de format seulement) :
+      `{"url": "https://cinbnmlfpffmyjmkwbco.supabase.co/storage/v1/object/public/TRIPS/[TRIP_CODE]/hero_[TIMESTAMP].jpg", "type": "hero"}`
 
-      **ÉTAPE B : Images Background (POUR CHAQUE STEP)**
-      Pour step 1 - "Tokyo Tower" :
+      → **UTILISE L'URL RETOURNÉE PAR L'OUTIL** (pas celle de l'exemple) dans le champ `hero_image`
+
+      **ÉTAPE B : Images Background (POUR CHAQUE STEP - APPEL OBLIGATOIRE)**
+
+      Pour CHAQUE step, tu DOIS appeler images.background avec les infos de CETTE step :
       ```
       images.background(
-        activity="visiting Tokyo Tower",
-        city="Tokyo",
-        country="Japon",
-        trip_name="Tokyo Adventure",
-        trip_folder="tokyo-2025-abc123"
+        activity="[DESCRIPTION DE L'ACTIVITÉ DE CETTE STEP]",
+        city="[VILLE]",
+        country="[PAYS]",
+        trip_name="[NOM DU VOYAGE]",
+        trip_folder="[CODE DU TRIP]"
       )
       ```
-      → Tu reçois : `{"url": "https://cinbnmlfpffmyjmkwbco.supabase.co/storage/v1/object/public/TRIPS/tokyo-2025-abc123/background_1733155920.jpg", "type": "background"}`
 
-      → **COPIE CETTE URL** dans le champ `main_image` de cette step
+      → L'outil te retourne une URL UNIQUE pour cette step (exemple de format) :
+      `{"url": "https://cinbnmlfpffmyjmkwbco.supabase.co/storage/v1/object/public/TRIPS/[TRIP_CODE]/background_[TIMESTAMP].jpg", "type": "background"}`
 
-      Pour step 2 - "Senso-ji Temple" :
-      ```
-      images.background(
-        activity="exploring Senso-ji Temple",
-        city="Tokyo",
-        country="Japon",
-        trip_name="Tokyo Adventure",
-        trip_folder="tokyo-2025-abc123"
-      )
-      ```
-      → **COPIE L'URL RETOURNÉE** dans le champ `main_image` de cette step
+      → **UTILISE L'URL RETOURNÉE PAR L'OUTIL** (pas celle de l'exemple) dans `main_image` de la step
+
+      **RÉPÈTE POUR CHAQUE STEP** : appel images.background → récupère URL → utilise dans main_image
 
       **RÈGLES CRITIQUES POUR LES IMAGES :**
       - ❌ JAMAIS d'URLs Wikipedia
@@ -1060,9 +1070,12 @@ tasks:
 
       ## **EXEMPLE COMPLET D'OUTPUT ATTENDU**
 
+      **⚠️ IMPORTANT : Les URLs ci-dessous sont des PLACEHOLDERS**
+      **TU DOIS appeler images.hero et images.background pour obtenir les VRAIES URLs pour CE voyage**
+
       ```yaml
       itinerary_plan:
-        hero_image: "https://cinbnmlfpffmyjmkwbco.supabase.co/storage/v1/object/public/TRIPS/tokyo-2025-abc123/hero_1733155800.jpg"
+        hero_image: "[URL_RETOURNÉE_PAR_images.hero_POUR_CE_VOYAGE]"
 
         steps:
           # JOUR 1 - EXEMPLE ULTRA-COMPLET AVEC TOUS LES CHAMPS
@@ -1072,7 +1085,7 @@ tasks:
             title_en: "Arrival in Tokyo and Shibuya Crossing"
             subtitle: "Installation et première découverte du quartier emblématique"
             subtitle_en: "Check-in and first discovery of the iconic district"
-            main_image: "https://cinbnmlfpffmyjmkwbco.supabase.co/storage/v1/object/public/TRIPS/tokyo-2025-abc123/background_1733155900.jpg"
+            main_image: "[URL_RETOURNÉE_PAR_images.background_POUR_CETTE_STEP]"
             step_type: "activité"
             latitude: 35.6595
             longitude: 139.7004
@@ -1091,8 +1104,8 @@ tasks:
             weather_description: "Partiellement nuageux"
             weather_description_en: "Partly cloudy"
             images: [
-              "https://cinbnmlfpffmyjmkwbco.supabase.co/storage/v1/object/public/TRIPS/tokyo-2025-abc123/background_1733155900.jpg",
-              "https://cinbnmlfpffmyjmkwbco.supabase.co/storage/v1/object/public/TRIPS/tokyo-2025-abc123/background_1733155901.jpg"
+              "[URL_RETOURNÉE_PAR_OUTIL_MCP]",
+              "[URL_RETOURNÉE_PAR_OUTIL_MCP]"
             ]
 
           - step_number: 2
@@ -1101,7 +1114,7 @@ tasks:
             title_en: "Dinner in Shibuya - Traditional Izakaya"
             subtitle: "Découverte de la cuisine japonaise authentique"
             subtitle_en: "Discovery of authentic Japanese cuisine"
-            main_image: "https://cinbnmlfpffmyjmkwbco.supabase.co/storage/v1/object/public/TRIPS/tokyo-2025-abc123/background_1733155920.jpg"
+            main_image: "[URL_RETOURNÉE_PAR_OUTIL_MCP]"
             step_type: "restaurant"
             latitude: 35.6612
             longitude: 139.6988
@@ -1125,7 +1138,7 @@ tasks:
             day_number: 2
             title: "Senso-ji Temple"
             subtitle: "Le plus ancien temple de Tokyo"
-            main_image: "https://cinbnmlfpffmyjmkwbco.supabase.co/storage/v1/object/public/TRIPS/tokyo-2025-abc123/background_1733155940.jpg"
+            main_image: "[URL_RETOURNÉE_PAR_OUTIL_MCP]"
             step_type: "visite"
             latitude: 35.7147
             longitude: 139.7966
@@ -1141,7 +1154,7 @@ tasks:
             day_number: 2
             title: "Tokyo Skytree"
             subtitle: "Vue panoramique sur Tokyo"
-            main_image: "https://cinbnmlfpffmyjmkwbco.supabase.co/storage/v1/object/public/TRIPS/tokyo-2025-abc123/background_1733155960.jpg"
+            main_image: "[URL_RETOURNÉE_PAR_OUTIL_MCP]"
             step_type: "activité"
             latitude: 35.7101
             longitude: 139.8107
@@ -1156,7 +1169,7 @@ tasks:
             day_number: 3
             title: "Meiji Shrine"
             subtitle: "Sanctuaire shinto au cœur d'une forêt"
-            main_image: "https://cinbnmlfpffmyjmkwbco.supabase.co/storage/v1/object/public/TRIPS/tokyo-2025-abc123/background_1733155980.jpg"
+            main_image: "[URL_RETOURNÉE_PAR_OUTIL_MCP]"
             step_type: "visite"
             latitude: 35.6764
             longitude: 139.6993
@@ -1172,7 +1185,7 @@ tasks:
             day_number: 3
             title: "Harajuku & Takeshita Street"
             subtitle: "Quartier de la mode et de la pop culture"
-            main_image: "https://cinbnmlfpffmyjmkwbco.supabase.co/storage/v1/object/public/TRIPS/tokyo-2025-abc123/background_1733156000.jpg"
+            main_image: "[URL_RETOURNÉE_PAR_OUTIL_MCP]"
             step_type: "activité"
             latitude: 35.6702
             longitude: 139.7026
@@ -1189,7 +1202,7 @@ tasks:
             day_number: 7
             title: "Tsukiji Outer Market"
             subtitle: "Marché aux poissons et petit-déjeuner sushi"
-            main_image: "https://cinbnmlfpffmyjmkwbco.supabase.co/storage/v1/object/public/TRIPS/tokyo-2025-abc123/background_1733156100.jpg"
+            main_image: "[URL_RETOURNÉE_PAR_OUTIL_MCP]"
             step_type: "activité"
             latitude: 35.6654
             longitude: 139.7707
@@ -1205,7 +1218,7 @@ tasks:
             day_number: 7
             title: "Départ de Tokyo"
             subtitle: "Vol retour vers Bruxelles"
-            main_image: "https://cinbnmlfpffmyjmkwbco.supabase.co/storage/v1/object/public/TRIPS/tokyo-2025-abc123/background_1733156120.jpg"
+            main_image: "[URL_RETOURNÉE_PAR_OUTIL_MCP]"
             step_type: "transport"
             duration: "3h"
             price: 0
@@ -1218,7 +1231,7 @@ tasks:
             day_number: 7
             title: "Résumé du voyage"
             subtitle: "7 jours — Tokyo, Japon 🇯🇵"
-            main_image: "https://cinbnmlfpffmyjmkwbco.supabase.co/storage/v1/object/public/TRIPS/tokyo-2025-abc123/hero_1733155800.jpg"
+            main_image: "[URL_RETOURNÉE_PAR_OUTIL_MCP]"
             is_summary: true
             step_type: "récapitulatif"
             duration: "—"
@@ -1590,7 +1603,7 @@ tasks:
         destination: "Tokyo, Japon 🇯🇵"
         destination_en: "Tokyo, Japan 🇯🇵"
         total_days: 7
-        main_image: "https://cinbnmlfpffmyjmkwbco.supabase.co/storage/v1/object/public/TRIPS/tokyo-2025-abc123/hero_1733155800.jpg"
+        main_image: "[URL_RETOURNÉE_PAR_OUTIL_MCP]"
 
         flight_from: "Bruxelles"
         flight_to: "Tokyo"
@@ -1620,7 +1633,7 @@ tasks:
             day_number: 1
             title: "Arrivée à Tokyo"
             subtitle: "Installation et première découverte de Shibuya"
-            main_image: "https://cinbnmlfpffmyjmkwbco.supabase.co/storage/v1/object/public/TRIPS/tokyo-2025-abc123/background_1733155900.jpg"
+            main_image: "[URL_RETOURNÉE_PAR_OUTIL_MCP]"
             step_type: "activité"
             latitude: 35.6595
             longitude: 139.7004
@@ -1634,7 +1647,7 @@ tasks:
           - step_number: 2
             day_number: 1
             title: "Dîner à Shibuya"
-            main_image: "https://cinbnmlfpffmyjmkwbco.supabase.co/storage/v1/object/public/TRIPS/tokyo-2025-abc123/background_1733155920.jpg"
+            main_image: "[URL_RETOURNÉE_PAR_OUTIL_MCP]"
             step_type: "restaurant"
             latitude: 35.6612
             longitude: 139.6988
@@ -1649,7 +1662,7 @@ tasks:
             day_number: 7
             title: "Résumé du voyage"
             subtitle: "7 jours — Tokyo, Japon 🇯🇵"
-            main_image: "https://cinbnmlfpffmyjmkwbco.supabase.co/storage/v1/object/public/TRIPS/tokyo-2025-abc123/hero_1733155800.jpg"
+            main_image: "[URL_RETOURNÉE_PAR_OUTIL_MCP]"
             is_summary: true
             step_type: "récapitulatif"
             duration: "—"

@@ -25,6 +25,9 @@ from app.crew_pipeline.scripts import (
     validate_trip_schema,
 )
 from app.crew_pipeline.scripts.incremental_trip_builder import IncrementalTripBuilder
+from app.crew_pipeline.scripts.step_template_generator import StepTemplateGenerator
+from app.crew_pipeline.scripts.translation_service import TranslationService
+from app.crew_pipeline.scripts.step_validator import StepValidator
 from app.services.supabase_service import supabase_service
 
 logger = logging.getLogger(__name__)
@@ -335,10 +338,17 @@ class CrewPipeline:
             "Unknown Destination"
         )
 
+        destination_country = (
+            destination_choice.get("country") or
+            destination_choice.get("destination_country") or
+            normalized_questionnaire.get("country") or
+            ""
+        )
+
         destination_en = destination_choice.get("destination_en") or destination
 
         # 🔧 DEBUG: Logger la destination extraite
-        logger.info(f"📍 Destination extraite: {destination}")
+        logger.info(f"📍 Destination extraite: {destination}, Country: {destination_country}")
         logger.debug(f"🔍 destination_choice keys: {list(destination_choice.keys())}")
 
         # Extraire la date de départ
@@ -439,9 +449,162 @@ class CrewPipeline:
             output_phase2 = crew_phase2.kickoff(inputs=inputs_phase2)
             tasks_phase2, parsed_phase2 = self._collect_tasks_output(output_phase2, should_save, run_dir, phase_label="PHASE2_RESEARCH")
 
+            # 🆕 SCRIPT 1: Générer templates de steps (GPS + images pré-remplies)
+            if "plan_trip_structure" in parsed_phase2 and trip_intent.assist_activities:
+                logger.info("🏗️ Generating step templates with GPS and images...")
+                
+                trip_structure_plan = parsed_phase2["plan_trip_structure"].get("structural_plan", {})
+                
+                if trip_structure_plan and trip_structure_plan.get("daily_distribution"):
+                    try:
+                        # Initialiser générateur
+                        step_template_generator = StepTemplateGenerator(mcp_tools=mcp_tools)
+                        
+                        # Générer templates
+                        step_templates = step_template_generator.generate_templates(
+                            trip_structure_plan=trip_structure_plan,
+                            destination=destination,
+                            destination_country=destination_country or "",
+                            trip_code=builder.trip_json["code"],
+                        )
+                        
+                        logger.info(f"✅ {len(step_templates)} step templates generated with GPS and images")
+                        
+                        # Enrichir builder avec templates
+                        for template in step_templates:
+                            if not template.get("is_summary"):
+                                step_num = template.get("step_number")
+                                if step_num:
+                                    builder.set_step_gps(
+                                        step_number=step_num,
+                                        latitude=template.get("latitude", 0),
+                                        longitude=template.get("longitude", 0),
+                                    )
+                                    if template.get("main_image"):
+                                        builder.set_step_image(
+                                            step_number=step_num,
+                                            image_url=template.get("main_image"),
+                                        )
+                                    if template.get("step_type"):
+                                        builder.set_step_type(
+                                            step_number=step_num,
+                                            step_type=template.get("step_type"),
+                                        )
+                        
+                        logger.info("✅ Builder enriched with GPS and images from templates")
+                        
+                    except Exception as e:
+                        logger.error(f"❌ StepTemplateGenerator failed: {e}")
+                        logger.warning("⚠️ Continuing without templates, Agent 6 will generate from scratch")
+                else:
+                    logger.warning("⚠️ No trip_structure_plan found, skipping template generation")
+
             # 🆕 ENRICHISSEMENT: Mettre à jour le builder avec les résultats de PHASE2
             logger.info("🔧 Enrichissement du trip JSON avec les résultats de PHASE2...")
             self._enrich_builder_from_phase2(builder, parsed_phase2)
+
+            # 🆕 SCRIPT 2: Traduire contenu FR → EN
+            if trip_intent.assist_activities:
+                logger.info("🌍 Translating itinerary content FR → EN...")
+                
+                # Récupérer steps depuis builder
+                current_trip = builder.trip_json
+                steps_to_translate = current_trip.get("steps", [])
+                
+                if steps_to_translate:
+                    try:
+                        # Initialiser service de traduction
+                        translation_service = TranslationService(llm=self._llm)
+                        
+                        # Traduire toutes les steps
+                        translated_steps = translation_service.translate_steps(steps_to_translate)
+                        
+                        # Mettre à jour le builder avec steps traduites
+                        for step in translated_steps:
+                            step_num = step.get("step_number")
+                            
+                            if step_num and step_num != 99:  # Skip summary
+                                builder.set_step_title(
+                                    step_number=step_num,
+                                    title=step.get("title", ""),
+                                    title_en=step.get("title_en", ""),
+                                    subtitle=step.get("subtitle", ""),
+                                    subtitle_en=step.get("subtitle_en", ""),
+                                )
+                                
+                                builder.set_step_content(
+                                    step_number=step_num,
+                                    why=step.get("why", ""),
+                                    why_en=step.get("why_en", ""),
+                                    tips=step.get("tips", ""),
+                                    tips_en=step.get("tips_en", ""),
+                                    transfer=step.get("transfer", ""),
+                                    transfer_en=step.get("transfer_en", ""),
+                                    suggestion=step.get("suggestion", ""),
+                                    suggestion_en=step.get("suggestion_en", ""),
+                                )
+                                
+                                # Météo si disponible
+                                if step.get("weather_description_en"):
+                                    builder.set_step_weather(
+                                        step_number=step_num,
+                                        icon=step.get("weather_icon", ""),
+                                        temp=step.get("weather_temp", ""),
+                                        description=step.get("weather_description", ""),
+                                        description_en=step.get("weather_description_en", ""),
+                                    )
+                        
+                        logger.info(f"✅ {len(translated_steps)} steps translated FR → EN")
+                        
+                    except Exception as e:
+                        logger.error(f"❌ TranslationService failed: {e}")
+                        logger.warning("⚠️ Continuing without translations")
+                else:
+                    logger.warning("⚠️ No steps found for translation")
+
+            # 🆕 SCRIPT 3: Valider et corriger steps automatiquement
+            if trip_intent.assist_activities:
+                logger.info("🔍 Validating all steps...")
+                
+                # Récupérer steps depuis builder
+                current_trip = builder.trip_json
+                steps_to_validate = current_trip.get("steps", [])
+                
+                if steps_to_validate:
+                    try:
+                        # Initialiser validateur
+                        validator = StepValidator(mcp_tools=mcp_tools, llm=self._llm)
+                        
+                        # Valider et auto-fix
+                        validated_steps, validation_report = validator.validate_all_steps(
+                            steps=steps_to_validate,
+                            auto_fix=True,  # Auto-correction activée
+                            destination=destination,
+                            destination_country=destination_country or "",
+                            trip_code=current_trip.get("code", ""),
+                        )
+                        
+                        # Logger rapport
+                        logger.info(
+                            f"✅ Validation: {validation_report['valid_steps']}/{validation_report['total_steps']} valid, "
+                            f"{validation_report['fixes_applied']} auto-fixed"
+                        )
+                        
+                        if validation_report["invalid_steps"] > 0:
+                            logger.warning(f"⚠️ {validation_report['invalid_steps']} steps still invalid after auto-fix")
+                            for detail in validation_report.get("details", []):
+                                logger.warning(f"  Step {detail.get('step_number')}: {detail.get('errors_after', detail.get('errors', []))}")
+                        
+                        # Remplacer steps dans builder par versions validées
+                        builder.trip_json["steps"] = validated_steps
+                        
+                        logger.info("✅ Steps validation complete, builder updated")
+                        
+                    except Exception as e:
+                        logger.error(f"❌ StepValidator failed: {e}")
+                        logger.warning("⚠️ Continuing without validation")
+                else:
+                    logger.warning("⚠️ No steps to validate")
 
         # 6. Phase 3 - Budget + Assembly
         budget_task = Task(name="budget_calculation", agent=budget_calculator, **tasks_config["budget_calculation"])
@@ -496,8 +659,10 @@ class CrewPipeline:
 
         # Validation Schema
         is_valid, schema_error = False, "No trip payload generated"
-        if "trip" in trip_payload and isinstance(trip_payload.get("trip"), dict):
-            is_valid, schema_error = validate_trip_schema(trip_payload.get("trip", {}))
+        
+        # 🔧 FIX: trip_payload est maintenant l'objet trip direct (plus de wrapper "trip")
+        if isinstance(trip_payload, dict) and "destination" in trip_payload:
+            is_valid, schema_error = validate_trip_schema(trip_payload)
         elif "error" in trip_payload:
             schema_error = trip_payload.get("error_message", "Agent returned error")
 
@@ -518,8 +683,8 @@ class CrewPipeline:
             "supabase_trip_id": None,
         }
 
-        trip_core = trip_payload.get("trip")
-        if trip_core:
+        trip_core = trip_payload  # 🔧 FIX: trip_core EST trip_payload
+        if trip_core and isinstance(trip_core, dict) and "destination" in trip_core:
             try:
                 if is_valid:
                     trip_id = supabase_service.insert_trip_from_json(trip_core)
@@ -625,69 +790,77 @@ class CrewPipeline:
                         continue  # Skip summary step
 
                     # Titre
-                    title = step_data.get("title", "")
-                    if title:
-                        builder.set_step_title(
+                    try:
+                        title = step_data.get("title", "")
+                        if title:
+                            builder.set_step_title(
+                                step_number=step_number,
+                                title=title,
+                                title_en=step_data.get("title_en", title),
+                                subtitle=step_data.get("subtitle", ""),
+                                subtitle_en=step_data.get("subtitle_en", ""),
+                            )
+
+                        # Image (critique - garantie via MCP si manquante)
+                        image_url = step_data.get("main_image", "") or step_data.get("image", "")
+                        builder.set_step_image(step_number=step_number, image_url=image_url)
+
+                        # GPS
+                        latitude = step_data.get("latitude")
+                        longitude = step_data.get("longitude")
+                        if latitude and longitude:
+                            builder.set_step_gps(
+                                step_number=step_number,
+                                latitude=float(latitude),
+                                longitude=float(longitude),
+                            )
+
+                        # Contenu
+                        builder.set_step_content(
                             step_number=step_number,
-                            title=title,
-                            title_en=step_data.get("title_en", title),
-                            subtitle=step_data.get("subtitle", ""),
-                            subtitle_en=step_data.get("subtitle_en", ""),
+                            why=step_data.get("why", ""),
+                            why_en=step_data.get("why_en", ""),
+                            tips=step_data.get("tips", ""),
+                            tips_en=step_data.get("tips_en", ""),
+                            transfer=step_data.get("transfer", ""),
+                            transfer_en=step_data.get("transfer_en", ""),
+                            suggestion=step_data.get("suggestion", ""),
+                            suggestion_en=step_data.get("suggestion_en", ""),
                         )
 
-                    # Image (critique - garantie via MCP si manquante)
-                    image_url = step_data.get("main_image", "") or step_data.get("image", "")
-                    builder.set_step_image(step_number=step_number, image_url=image_url)
+                        # Météo
+                        weather_icon = step_data.get("weather_icon", "")
+                        weather_temp = step_data.get("weather_temp", "")
+                        if weather_icon or weather_temp:
+                            builder.set_step_weather(
+                                step_number=step_number,
+                                icon=weather_icon,
+                                temp=weather_temp,
+                                description=step_data.get("weather_description", ""),
+                                description_en=step_data.get("weather_description_en", ""),
+                            )
 
-                    # GPS
-                    latitude = step_data.get("latitude")
-                    longitude = step_data.get("longitude")
-                    if latitude and longitude:
-                        builder.set_step_gps(
-                            step_number=step_number,
-                            latitude=float(latitude),
-                            longitude=float(longitude),
-                        )
+                        # Prix et durée
+                        price = step_data.get("price", 0)
+                        duration = step_data.get("duration", "")
+                        if price or duration:
+                            builder.set_step_price_duration(
+                                step_number=step_number,
+                                price=float(price) if price else 0,
+                                duration=duration,
+                            )
 
-                    # Contenu
-                    builder.set_step_content(
-                        step_number=step_number,
-                        why=step_data.get("why", ""),
-                        why_en=step_data.get("why_en", ""),
-                        tips=step_data.get("tips", ""),
-                        tips_en=step_data.get("tips_en", ""),
-                        transfer=step_data.get("transfer", ""),
-                        transfer_en=step_data.get("transfer_en", ""),
-                        suggestion=step_data.get("suggestion", ""),
-                        suggestion_en=step_data.get("suggestion_en", ""),
-                    )
+                        # Type
+                        step_type = step_data.get("step_type", "")
+                        if step_type:
+                            builder.set_step_type(step_number=step_number, step_type=step_type)
 
-                    # Météo
-                    weather_icon = step_data.get("weather_icon", "")
-                    weather_temp = step_data.get("weather_temp", "")
-                    if weather_icon or weather_temp:
-                        builder.set_step_weather(
-                            step_number=step_number,
-                            icon=weather_icon,
-                            temp=weather_temp,
-                            description=step_data.get("weather_description", ""),
-                            description_en=step_data.get("weather_description_en", ""),
-                        )
-
-                    # Prix et durée
-                    price = step_data.get("price", 0)
-                    duration = step_data.get("duration", "")
-                    if price or duration:
-                        builder.set_step_price_duration(
-                            step_number=step_number,
-                            price=float(price) if price else 0,
-                            duration=duration,
-                        )
-
-                    # Type
-                    step_type = step_data.get("step_type", "")
-                    if step_type:
-                        builder.set_step_type(step_number=step_number, step_type=step_type)
+                    except ValueError as ve:
+                        logger.warning(f"⚠️ Skipping step {step_number}: {ve}")
+                        continue
+                    except Exception as e:
+                        logger.error(f"❌ Error processing step {step_number}: {e}")
+                        continue
 
                 logger.info(f"✅ Builder enrichi avec {len(steps)} steps depuis PHASE2")
 

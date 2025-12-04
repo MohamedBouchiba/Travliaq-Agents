@@ -138,7 +138,7 @@ class IncrementalTripBuilder:
                 "transfer_en": "",
                 "suggestion": "",
                 "suggestion_en": "",
-                "weather_icon": "",
+                "weather_icon": None,
                 "weather_temp": "",
                 "weather_description": "",
                 "weather_description_en": "",
@@ -168,7 +168,7 @@ class IncrementalTripBuilder:
             "transfer_en": "",
             "suggestion": "",
             "suggestion_en": "",
-            "weather_icon": "",
+            "weather_icon": None,
             "weather_temp": "",
             "weather_description": "",
             "weather_description_en": "",
@@ -316,15 +316,11 @@ class IncrementalTripBuilder:
         else:
             # Appel MCP direct en fallback
             logger.warning(f"⚠️ Step {step_number}: Image invalide/vide, appel MCP...")
-            city = self.trip_json["destination"].split(',')[0].strip()  # 🔧 FIX: Accès direct
-            country = self.trip_json["destination"].split(',')[-1].strip() if ',' in self.trip_json["destination"] else city
+            destination = self.trip_json["destination"]
+            step_title = step.get("title") or f"Activity {step_number}"
+            prompt = f"{step_title} in {destination}"
 
-            mcp_image = self._call_mcp_images_background(
-                query=step.get("title") or f"Activity {step_number}",
-                city=city,
-                country=country,
-                step_number=step_number,
-            )
+            mcp_image = self._call_mcp_images_background(prompt=prompt)
 
             if mcp_image and "supabase.co" in mcp_image:
                 step["main_image"] = mcp_image
@@ -464,12 +460,12 @@ class IncrementalTripBuilder:
 
     def get_json(self) -> Dict[str, Any]:
         """
-        Retourner le JSON complet wrappé dans {"trip": ...}.
+        Retourner le JSON complet (sans wrapper).
 
         Returns:
-            Dict avec structure {"trip": {...}} pour la base de données
+            Dict avec la structure du trip
         """
-        return {"trip": self.trip_json}  # 🔧 FIX: Wrapper dans {"trip": ...}
+        return self.trip_json  # 🔧 FIX: Pas de wrapper "trip"
 
     def get_current_state_yaml(self) -> str:
         """
@@ -582,8 +578,14 @@ class IncrementalTripBuilder:
         return day
 
     def _generate_code(self, destination: str) -> str:
-        """Générer un code unique pour le trip."""
-        clean_dest = re.sub(r'[^A-Z0-9]', '', destination.upper().split(',')[0])[:15]
+        """Générer un code unique pour le trip (max 20 chars)."""
+        # Pattern: DEST-YYYY-UUID (ex: AMSTERDA-2025-A1B2C3)
+        # DEST: max 8 chars
+        # YYYY: 4 chars
+        # UUID: 6 chars
+        # Separators: 2 chars
+        # Total: 8+4+6+2 = 20 chars
+        clean_dest = re.sub(r'[^A-Z0-9]', '', destination.upper().split(',')[0])[:8]
         year = datetime.utcnow().year
         unique_id = str(uuid.uuid4())[:6].upper()
         code = f"{clean_dest}-{year}-{unique_id}"
@@ -593,16 +595,15 @@ class IncrementalTripBuilder:
     def _generate_hero_image_via_mcp(self) -> str:
         """Générer l'image hero via MCP si elle est manquante."""
         try:
-            city = self.trip_json["destination"].split(',')[0].strip()
-            country = self.trip_json["destination"].split(',')[-1].strip() if ',' in self.trip_json["destination"] else city
+            destination = self.trip_json["destination"]
             trip_code = self.trip_json["code"]
+            prompt = f"hero image for {destination}, spectacular, travel photography"
 
             for tool in self.mcp_tools:
                 if hasattr(tool, 'name') and tool.name == "images.hero":
                     result = tool.func(
-                        city=city,
-                        country=country,
                         trip_code=trip_code,
+                        prompt=prompt,
                     )
                     if result and "supabase.co" in result:
                         logger.info(f"✅ Hero image générée via MCP: {result[:80]}")
@@ -617,10 +618,7 @@ class IncrementalTripBuilder:
 
     def _call_mcp_images_background(
         self,
-        query: str,
-        city: str,
-        country: str,
-        step_number: int,
+        prompt: str,
     ) -> Optional[str]:
         """Appeler images.background MCP directement."""
         try:
@@ -629,11 +627,8 @@ class IncrementalTripBuilder:
             for tool in self.mcp_tools:
                 if hasattr(tool, 'name') and tool.name == "images.background":
                     result = tool.func(
-                        query=query,
-                        city=city,
-                        country=country,
                         trip_code=trip_code,
-                        step_number=step_number,
+                        prompt=prompt,
                     )
                     return result
         except Exception as e:
