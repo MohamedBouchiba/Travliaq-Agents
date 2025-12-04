@@ -863,6 +863,17 @@ tasks:
       - AJOUTE le contenu manquant : title, title_en, subtitle, subtitle_en, why, why_en, tips, tips_en, etc.
       - Si aucun template n'est fourni ci-dessus, génère les steps depuis le plan structurel
 
+      ⚠️ **NOMBRE DE STEPS À CRÉER :**
+      - UNIQUEMENT les steps des templates ci-dessus (si fournis)
+      - PLUS la step 99 (summary) qui existe déjà - à remplir uniquement
+      - ❌ NE JAMAIS créer de steps supplémentaires au-delà des templates
+      - ❌ NE JAMAIS créer une nouvelle step récapitulative (step 99 existe déjà)
+
+      ⚠️ **IMAGE HERO DU TRIP (TOUJOURS OBLIGATOIRE) :**
+      - Les templates NE contiennent PAS l'image hero du trip global
+      - Tu DOIS TOUJOURS appeler images.hero pour générer hero_image
+      - Même si les templates contiennent les main_image des steps, hero_image est séparée
+
       ---
 
       ## **RÈGLES ABSOLUES - À RESPECTER IMPÉRATIVEMENT**
@@ -892,13 +903,14 @@ tasks:
       **⚠️ CRITIQUE : TU DOIS APPELER LES OUTILS images.hero ET images.background POUR OBTENIR DES URLS RÉELLES**
       **❌ NE JAMAIS copier les URLs d'exemple ci-dessous - ce sont des PLACEHOLDERS uniquement pour montrer le format**
 
-      **ÉTAPE A : Image Hero (SEULEMENT SI PAS DE TEMPLATES)**
+      **ÉTAPE A : Image Hero (OBLIGATOIRE - TOUJOURS APPELER)**
 
-      ⚠️ **Si des templates sont fournis dans {step_templates} ci-dessus** :
-      - SKIP cette étape - les images sont déjà générées
-      - COPIE les main_image depuis les templates
+      ⚠️ **IMPORTANT : L'image HERO doit TOUJOURS être générée, même si des templates sont fournis !**
 
-      ⚠️ **Si AUCUN template fourni** (la variable {step_templates} est vide), appelle images.hero :
+      Les templates contiennent les images des STEPS (activités), mais PAS l'image HERO du trip.
+      L'image hero est l'image de présentation du voyage complet.
+
+      **Tu DOIS appeler images.hero dans TOUS les cas :**
       ```
       images.hero(
         city="[LA VILLE DU VOYAGE]",
@@ -1012,10 +1024,14 @@ tasks:
 
       ### **5. STEP RÉCAPITULATIVE FINALE**
 
-      TOUJOURS ajouter une dernière step de type "récapitulatif" :
-      - is_summary: true
-      - step_number : dernier numéro
-      - day_number : dernier jour
+      ⚠️ **IMPORTANT : NE PAS créer de NOUVELLE step récapitulative !**
+
+      Une step summary (step_number: 99, is_summary: true) EXISTE DÉJÀ dans le trip JSON.
+      Tu dois UNIQUEMENT REMPLIR les champs de cette step 99 existante :
+
+      - step_number : 99 (DÉJÀ EXISTANT - NE PAS MODIFIER)
+      - day_number : 0 (DÉJÀ EXISTANT - NE PAS MODIFIER)
+      - is_summary : true (DÉJÀ EXISTANT - NE PAS MODIFIER)
       - title : "Résumé du voyage"
       - subtitle : "[X] jours — [Destination]"
       - main_image : réutiliser hero_image
@@ -1246,15 +1262,16 @@ tasks:
             tips: "Arrivez 3h avant le vol international. Narita Express : 3000¥, 60 min."
             transfer: "Train Narita Express depuis Tokyo Station"
 
-          # STEP RÉCAPITULATIVE (OBLIGATOIRE)
-          - step_number: 15
-            day_number: 7
+          # STEP RÉCAPITULATIVE (step 99 DÉJÀ EXISTANTE - À REMPLIR)
+          # ⚠️ NE PAS CRÉER UNE NOUVELLE STEP - REMPLIR LA STEP 99 EXISTANTE
+          - step_number: 99
+            day_number: 0
             title: "Résumé du voyage"
             subtitle: "7 jours — Tokyo, Japon 🇯🇵"
             main_image: "[URL_RETOURNÉE_PAR_OUTIL_MCP]"
             is_summary: true
-            step_type: "récapitulatif"
-            duration: "—"
+            step_type: "summary"
+            duration: ""
             price: 0
             summary_stats:
               - type: days
@@ -1283,9 +1300,10 @@ tasks:
       **CHECKLIST FINALE ULTRA-STRICTE AVANT DE SOUMETTRE TON OUTPUT :**
 
       📋 **STRUCTURE GLOBALE :**
-      - ✅ hero_image présent en haut avec URL Supabase (pas Wikipedia/Unsplash)
+      - ✅ hero_image OBLIGATOIRE en haut - URL Supabase via images.hero (TOUJOURS appeler, même avec templates)
       - ✅ 1-3 steps par jour pour CHAQUE jour du voyage
-      - ✅ Step récapitulative finale avec is_summary: true et summary_stats (4-8 items)
+      - ✅ Step 99 (EXISTANTE) remplie avec title, subtitle, summary_stats (4-8 items)
+      - ⚠️ NE PAS créer de nouvelle step récapitulative - step 99 existe déjà !
 
       📋 **CHAQUE STEP (hors récap) DOIT AVOIR - LISTE COMPLÈTE :**
       - ✅ step_number, day_number, main_image (URL Supabase) - COPIÉS depuis templates
@@ -1525,11 +1543,10 @@ tasks:
       - flight_duration : depuis flight_quotes.outbound.duration
       - flight_type : depuis flight_quotes.summary.type
       - hotel_name : depuis lodging_quotes.recommended.hotel_name
-      - hotel_rating : depuis lodging_quotes.recommended.hotel_rating **CONVERTI en échelle 0-5**
-        * ⚠️ IMPORTANT : Booking.com utilise échelle 0-10, mais le schéma Trip accepte 0-5
-        * FORMULE : hotel_rating_final = hotel_rating_booking / 2
-        * Exemple : 10.0 → 5.0, 8.5 → 4.25, 9.2 → 4.6
-        * Arrondir à 1 décimale (ex: 4.25 → 4.3)
+      - hotel_rating : depuis lodging_quotes.recommended.hotel_rating **UTILISER TEL QUEL (échelle 0-10)**
+        * ⚠️ IMPORTANT : Le schéma Trip accepte 0-10 (même échelle que Booking.com)
+        * NE PAS diviser par 2 ou convertir
+        * Exemple : 8.7 → 8.7, 9.2 → 9.2, 10.0 → 10.0
       - total_price : depuis budget_summary.totals.display
       - total_budget : depuis budget_summary.totals.display
       - average_weather : depuis destination_choice.average_weather
@@ -1573,6 +1590,9 @@ tasks:
       - images (array)
 
       ✅ **Step récapitulative (is_summary: true) :**
+      - **title DOIT être présent et non vide** : utiliser "Résumé du voyage" (FR) ou depuis itinerary_plan
+      - **title_en** : utiliser "Trip Summary" (EN) ou depuis itinerary_plan
+      - **day_number**: 0 (zéro - représente fin du voyage)
       - summary_stats DOIT contenir 4-8 items
       - Si moins de 4 : AJOUTER des stats calculées (days, budget, people, activities)
       - Si plus de 8 : TRONQUER à 8

@@ -913,9 +913,60 @@ class CrewPipeline:
             )
             logger.warning("   - ⚠️ Despite 100% structure completeness, content quality may be insufficient")
 
+        # 🛡️ SAFETY 1: Remove duplicate summary steps (keep only step 99)
+        if isinstance(trip_payload, dict) and "steps" in trip_payload:
+            summary_steps = [s for s in trip_payload["steps"] if s.get("is_summary")]
+
+            if len(summary_steps) > 1:
+                logger.warning(f"⚠️ Detected {len(summary_steps)} summary steps - removing duplicates (keeping step 99)")
+
+                # Find step 99
+                step_99 = next((s for s in summary_steps if s.get("step_number") == 99), None)
+
+                if not step_99:
+                    # No step 99? Keep the first summary and change its step_number to 99
+                    step_99 = summary_steps[0]
+                    step_99["step_number"] = 99
+                    step_99["day_number"] = 0
+                    logger.warning("⚠️ No step 99 found, converted first summary step to step 99")
+
+                # Merge data from other summary steps into step 99 if they have better data
+                for other_summary in summary_steps:
+                    if other_summary.get("step_number") == 99:
+                        continue
+
+                    # Merge non-empty fields into step 99
+                    for field in ["title", "subtitle", "main_image", "summary_stats"]:
+                        if not step_99.get(field) and other_summary.get(field):
+                            step_99[field] = other_summary[field]
+                            logger.debug(f"  Merged {field} from duplicate summary step {other_summary.get('step_number')}")
+
+                # Remove all summary steps except step 99
+                trip_payload["steps"] = [
+                    s for s in trip_payload["steps"]
+                    if not s.get("is_summary") or s.get("step_number") == 99
+                ]
+
+                logger.info(f"✅ Removed {len(summary_steps) - 1} duplicate summary steps, kept step 99")
+
+        # 🛡️ SAFETY 2: Ensure all steps have non-empty titles (especially summary step)
+        if isinstance(trip_payload, dict) and "steps" in trip_payload:
+            for step in trip_payload["steps"]:
+                # Fix empty titles in summary steps
+                if step.get("is_summary") and (not step.get("title") or step.get("title") == ""):
+                    step["title"] = "Résumé du voyage"
+                    step["title_en"] = "Trip Summary"
+                    logger.warning(f"⚠️ Fixed empty title in summary step (step_number: {step.get('step_number')})")
+
+                # Warn about any other steps with empty titles (shouldn't happen but log it)
+                elif not step.get("is_summary") and (not step.get("title") or step.get("title") == ""):
+                    logger.error(
+                        f"❌ Step {step.get('step_number')} has empty title - this will fail schema validation"
+                    )
+
         # Validation Schema
         is_valid, schema_error = False, "No trip payload generated"
-        
+
         # 🔧 FIX: trip_payload est maintenant l'objet trip direct (plus de wrapper "trip")
         if isinstance(trip_payload, dict) and "destination" in trip_payload:
             is_valid, schema_error = validate_trip_schema(trip_payload)
@@ -1047,8 +1098,9 @@ class CrewPipeline:
 
                 # Extraire hero image
                 hero_image = itinerary_plan.get("hero_image") or itinerary_plan.get("main_image", "")
-                if hero_image:
-                    builder.set_hero_image(hero_image)
+                # 🔧 FIX: Appeler set_hero_image même si vide pour déclencher génération MCP
+                # Le builder a un fallback qui génère via images.hero si URL vide
+                builder.set_hero_image(hero_image)
 
                 # Extraire les steps
                 for step_data in steps:
@@ -1196,9 +1248,16 @@ class CrewPipeline:
                 source_value = source_step.get(field)
                 target_value = target_step.get(field)
 
-                # Si target est vide/None/0/"" et source a une valeur, prendre source
-                if not target_value and source_value:
-                    target_step[field] = source_value
+                # IMPORTANT: Ne jamais écraser un titre existant avec un titre vide
+                # Special handling for required fields like title
+                if field in ["title", "title_en", "subtitle", "subtitle_en"]:
+                    # Only overwrite if target is empty AND source is non-empty
+                    if (not target_value or target_value == "") and source_value and source_value != "":
+                        target_step[field] = source_value
+                else:
+                    # Si target est vide/None/0/"" et source a une valeur, prendre source
+                    if not target_value and source_value:
+                        target_step[field] = source_value
 
             # Merger images array (additionner sans doublons)
             source_images = source_step.get("images", [])

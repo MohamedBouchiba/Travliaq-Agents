@@ -599,15 +599,33 @@ class IncrementalTripBuilder:
             trip_code = self.trip_json["code"]
             prompt = f"hero image for {destination}, spectacular, travel photography"
 
-            for tool in self.mcp_tools:
-                if hasattr(tool, 'name') and tool.name == "images.hero":
-                    result = tool.func(
-                        trip_code=trip_code,
-                        prompt=prompt,
-                    )
-                    if result and "supabase.co" in result:
-                        logger.info(f"✅ Hero image générée via MCP: {result[:80]}")
-                        return result
+            # 🔧 FIX: Si mcp_tools est un manager (MCPToolsManager), utiliser call_tool
+            if hasattr(self.mcp_tools, 'call_tool'):
+                result = self.mcp_tools.call_tool(
+                    "images.hero",
+                    trip_code=trip_code,
+                    prompt=prompt,
+                )
+                # MCPToolsManager retourne dict avec 'url' ou string directe
+                if isinstance(result, dict) and result.get("url"):
+                    url = result["url"]
+                    if url and "supabase.co" in url:
+                        logger.info(f"✅ Hero image générée via MCP: {url[:80]}")
+                        return url
+                elif isinstance(result, str) and "supabase.co" in result:
+                    logger.info(f"✅ Hero image générée via MCP: {result[:80]}")
+                    return result
+            else:
+                # Fallback: itérer sur liste de tools
+                for tool in self.mcp_tools:
+                    if hasattr(tool, 'name') and tool.name == "images.hero":
+                        result = tool.func(
+                            trip_code=trip_code,
+                            prompt=prompt,
+                        )
+                        if result and "supabase.co" in result:
+                            logger.info(f"✅ Hero image générée via MCP: {result[:80]}")
+                            return result
         except Exception as e:
             logger.error(f"❌ Erreur génération hero image via MCP: {e}")
 

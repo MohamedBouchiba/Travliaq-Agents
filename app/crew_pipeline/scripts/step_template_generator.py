@@ -133,15 +133,14 @@ class StepTemplateGenerator:
                     step_number += 1
                 else:
                     logger.warning(f"⚠️ Échec génération template step {step_number}, skip")
-        
-        # Ajouter step summary (récapitulative)
-        summary_template = self._generate_summary_step(
-            step_number=99,
-            total_days=max((t["day_number"] for t in templates), default=1) if templates else 1,
-        )
-        templates.append(summary_template)
-        
-        logger.info(f"✅ {len(templates)} templates générés ({len(templates)-1} activités + 1 summary)")
+
+        # 🔧 FIX: Ne PAS créer summary step ici - IncrementalTripBuilder l'a déjà créée (step 99)
+        # L'Agent 6 (Itinerary Designer) remplira le contenu de la step 99 existante
+        # Ancien code qui créait duplicate:
+        # summary_template = self._generate_summary_step(step_number=99, total_days=...)
+        # templates.append(summary_template)
+
+        logger.info(f"✅ {len(templates)} templates générés (activités seulement, summary step déjà existante)")
         self.templates_generated = templates
         
         return templates
@@ -325,8 +324,10 @@ class StepTemplateGenerator:
             if isinstance(result, str):
                 logger.warning(f"      ⚠️ images.background returned error string: {result[:100]}")
             elif result and isinstance(result, dict) and result.get("url"):
-                logger.debug(f"      ✅ Image generated: {result['url'][:60]}...")
-                return result["url"]
+                # 🔧 FIX: Validate and correct URL folder to match trip_code
+                url = self._validate_and_fix_image_url(result["url"], trip_code)
+                logger.debug(f"      ✅ Image generated: {url[:60]}...")
+                return url
         except Exception as e:
             logger.warning(f"      ⚠️ images.background failed attempt 1: {e}")
         
@@ -345,20 +346,74 @@ class StepTemplateGenerator:
             if isinstance(result, str):
                 logger.warning(f"      ⚠️ images.background returned error string: {result[:100]}")
             elif result and isinstance(result, dict) and result.get("url"):
-                logger.debug(f"      ✅ Image generated (generic): {result['url'][:60]}...")
-                return result["url"]
+                # 🔧 FIX: Validate and correct URL folder to match trip_code
+                url = self._validate_and_fix_image_url(result["url"], trip_code)
+                logger.debug(f"      ✅ Image generated (generic): {url[:60]}...")
+                return url
         except Exception as e:
             logger.warning(f"      ⚠️ images.background failed attempt 2: {e}")
         
         logger.warning(f"      ⚠️ No image generated, will be empty in template")
         return None
-    
+
+    def _validate_and_fix_image_url(self, url: str, expected_trip_code: str) -> str:
+        """
+        Valider et corriger l'URL Supabase pour s'assurer qu'elle utilise le bon trip_code.
+
+        Bug identifié: MCP tool peut retourner URLs avec mauvais folder:
+        - Correct: TRIPS/DOHA-2025-B84A49/background_*.jpg
+        - Incorrect: TRIPS/DOHA_2026/background_*.jpg
+
+        Args:
+            url: URL retournée par images.background
+            expected_trip_code: Le code trip réel (ex: "DOHA-2025-B84A49")
+
+        Returns:
+            URL corrigée avec le bon folder
+        """
+        if not url or "/TRIPS/" not in url:
+            return url
+
+        # Extraire le folder actuel de l'URL
+        # Format: .../TRIPS/{folder}/background_*.jpg
+        parts = url.split("/TRIPS/")
+        if len(parts) != 2:
+            return url
+
+        base_url = parts[0] + "/TRIPS/"
+        remainder = parts[1]  # Ex: "DOHA_2026/background_2025.jpg" ou "DOHA-2025-B84A49/background_*.jpg"
+
+        # Extraire le folder actuel et le filename
+        path_parts = remainder.split("/", 1)
+        if len(path_parts) != 2:
+            return url
+
+        current_folder = path_parts[0]
+        filename = path_parts[1]
+
+        # Vérifier si le folder est correct
+        if current_folder != expected_trip_code:
+            logger.warning(
+                f"      🔧 Fixing image URL folder: '{current_folder}' → '{expected_trip_code}'"
+            )
+            # Reconstruire URL avec le bon folder
+            corrected_url = f"{base_url}{expected_trip_code}/{filename}"
+            return corrected_url
+
+        return url
+
     def _generate_summary_step(
         self,
         step_number: int,
         total_days: int,
     ) -> Dict[str, Any]:
-        """Générer step summary (récapitulative)."""
+        """
+        Générer step summary (récapitulative).
+
+        ⚠️ DEPRECATED: Cette méthode n'est plus utilisée.
+        IncrementalTripBuilder crée déjà la step 99 (summary) dans initialize_structure.
+        Garder pour référence uniquement.
+        """
         return {
             "step_number": step_number,
             "day_number": 0,
