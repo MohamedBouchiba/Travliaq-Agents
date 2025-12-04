@@ -810,9 +810,10 @@ class CrewPipeline:
                     logger.warning("⚠️ No steps found for translation")
 
             # 🆕 SCRIPT 3: Valider et corriger steps automatiquement
+            validation_report = None  # Track validation results for later reporting
             if trip_intent.assist_activities:
                 logger.info("🔍 Validating all steps...")
-                
+
                 # Récupérer steps depuis builder
                 current_trip = builder.trip_json
                 steps_to_validate = current_trip.get("steps", [])
@@ -903,6 +904,14 @@ class CrewPipeline:
         logger.info(f"   - Steps avec GPS: {completeness['steps_with_gps']}")
         if completeness['missing_critical']:
             logger.warning(f"   - ⚠️ Champs critiques manquants: {completeness['missing_critical']}")
+
+        # Warn if validation found invalid steps
+        if validation_report and validation_report.get("invalid_steps", 0) > 0:
+            logger.warning(
+                f"   - ⚠️ Content validation: {validation_report['invalid_steps']}/{validation_report['total_steps']} steps "
+                f"have validation errors (see warnings above for details)"
+            )
+            logger.warning("   - ⚠️ Despite 100% structure completeness, content quality may be insufficient")
 
         # Validation Schema
         is_valid, schema_error = False, "No trip payload generated"

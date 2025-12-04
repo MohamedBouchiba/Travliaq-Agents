@@ -163,6 +163,17 @@ def main(argv: Optional[list[str]] = None) -> int:
                 persona_analysis.pop("raw_response", None)
 
         print(json.dumps(printable, indent=2, ensure_ascii=False))
+
+        # Check schema validation status
+        validation = result.get("validation", {})
+        schema_valid = validation.get("schema_valid", True)
+
+        if not schema_valid:
+            schema_error = validation.get("schema_error", "Unknown error")
+            LOGGER.error(f"❌ Pipeline completed but schema validation FAILED: {schema_error}")
+            LOGGER.warning("⚠️ Trip JSON is invalid and may not work correctly")
+            return 1
+
         LOGGER.info("✅ Pipeline exécutée avec succès")
         return 0
     except Exception as exc:  # pragma: no cover - garde-fou CLI
