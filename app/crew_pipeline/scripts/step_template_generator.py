@@ -214,7 +214,7 @@ class StepTemplateGenerator:
             "images": [],
             
             # Météo (Agent 6 complétera)
-            "weather_icon": null,
+            "weather_icon": None,
             "weather_temp": "",
             "weather_description": "",
             "weather_description_en": "",
@@ -373,7 +373,7 @@ class StepTemplateGenerator:
             "transfer_en": "",
             "suggestion": "",
             "suggestion_en": "",
-            "weather_icon": null,
+            "weather_icon": None,
             "weather_temp": "",
             "weather_description": "",
             "weather_description_en": "",

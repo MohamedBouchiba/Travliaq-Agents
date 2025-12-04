@@ -36,6 +36,38 @@ logger = logging.getLogger(__name__)
 _logging_initialized = False
 
 
+class MCPToolsManager:
+    """
+    Wrapper pour les outils MCP qui expose une méthode call_tool().
+    Permet à StepTemplateGenerator d'appeler les outils par nom.
+    """
+
+    def __init__(self, tools_list: List[Any]):
+        self.tools = {tool.name: tool for tool in tools_list}
+
+    def call_tool(self, tool_name: str, **kwargs) -> Any:
+        """
+        Appelle un outil MCP par son nom.
+
+        Args:
+            tool_name: Nom de l'outil (ex: "geo.place")
+            **kwargs: Arguments à passer à l'outil
+
+        Returns:
+            Résultat de l'outil
+
+        Raises:
+            ValueError: Si l'outil n'existe pas
+        """
+        if tool_name not in self.tools:
+            raise ValueError(f"Tool '{tool_name}' not found. Available: {list(self.tools.keys())}")
+
+        tool = self.tools[tool_name]
+
+        # Appeler la méthode _run de BaseTool avec les arguments
+        return tool._run(**kwargs)
+
+
 PLACEHOLDER_MARKERS = {"your_key_here", "your_key*here", "changeme"}
 
 
@@ -431,14 +463,16 @@ class CrewPipeline:
             )
 
             # Extraire trip_structure_plan
-            trip_structure_plan = parsed_structure.get("plan_trip_structure", {}).get("structural_plan", {})
+            trip_structure_plan = parsed_structure.get("plan_trip_structure", {}).get("trip_structure_plan", {})
 
             # 🆕 STEP 2: Générer templates MAINTENANT (avant Phase 2)
             if trip_structure_plan and trip_structure_plan.get("daily_distribution"):
                 logger.info("🏗️ Step 2/3: Generating step templates with GPS and images...")
 
                 try:
-                    step_template_generator = StepTemplateGenerator(mcp_tools=mcp_tools)
+                    # Créer un manager pour les outils MCP
+                    mcp_manager = MCPToolsManager(mcp_tools)
+                    step_template_generator = StepTemplateGenerator(mcp_tools=mcp_manager)
                     step_templates = step_template_generator.generate_templates(
                         trip_structure_plan=trip_structure_plan,
                         destination=destination,
@@ -914,8 +948,10 @@ class CrewPipeline:
 
         Extrait les données de:
         - budget_calculation → set_prices()
+        - final_assembly → remplacer complètement le trip avec les données de l'agent
         """
         try:
+            # 1. Enrichir avec les prix depuis budget_calculation
             budget_calculation = parsed_phase3.get("budget_calculation", {})
             if budget_calculation:
                 # Extraire les prix
@@ -947,6 +983,17 @@ class CrewPipeline:
                 )
 
                 logger.info(f"✅ Builder enrichi avec le budget depuis PHASE3")
+
+            # 2. 🆕 CRITIQUE: Remplacer le trip avec les données de final_assembly
+            final_assembly = parsed_phase3.get("final_assembly", {})
+            if final_assembly and "trip" in final_assembly:
+                assembled_trip = final_assembly["trip"]
+                logger.info(f"🔧 Remplacement du trip avec les données de final_assembly...")
+
+                # Remplacer le trip_data du builder avec celui assemblé par l'agent
+                builder.trip_data = assembled_trip
+
+                logger.info(f"✅ Trip remplacé avec {len(assembled_trip.get('steps', []))} steps depuis final_assembly")
 
         except Exception as e:
             logger.error(f"❌ Erreur lors de l'enrichissement depuis PHASE3: {e}", exc_info=True)
@@ -1246,12 +1293,32 @@ class CrewPipeline:
         """Nettoie et parse une chaîne contenant potentiellement du YAML."""
         if not content:
             return None
-            
-        # Nettoyage des balises markdown ```yaml ... ```
-        cleaned = re.sub(r"^```yaml\s*", "", content.strip())
+
+        content = content.strip()
+
+        # Cas 1: Extraire le contenu d'un bloc ```yaml ... ```
+        yaml_block_match = re.search(r"```yaml\s*\n(.*?)\n```", content, re.DOTALL)
+        if yaml_block_match:
+            yaml_content = yaml_block_match.group(1).strip()
+            try:
+                return yaml.safe_load(yaml_content)
+            except yaml.YAMLError:
+                logger.warning("⚠️ YAML invalide dans le bloc markdown")
+
+        # Cas 2: Extraire le contenu d'un bloc ``` ... ``` (sans 'yaml')
+        code_block_match = re.search(r"```\s*\n(.*?)\n```", content, re.DOTALL)
+        if code_block_match:
+            code_content = code_block_match.group(1).strip()
+            try:
+                return yaml.safe_load(code_content)
+            except yaml.YAMLError:
+                logger.warning("⚠️ YAML invalide dans le bloc de code")
+
+        # Cas 3: Pas de bloc markdown, nettoyer et parser directement
+        cleaned = re.sub(r"^```yaml\s*", "", content)
         cleaned = re.sub(r"^```\s*", "", cleaned)
         cleaned = re.sub(r"\s*```$", "", cleaned)
-        
+
         try:
             return yaml.safe_load(cleaned)
         except yaml.YAMLError:
