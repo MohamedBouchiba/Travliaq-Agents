@@ -54,7 +54,7 @@ class MCPToolsManager:
             **kwargs: Arguments à passer à l'outil
 
         Returns:
-            Résultat de l'outil
+            Résultat de l'outil (parsé depuis JSON si nécessaire)
 
         Raises:
             ValueError: Si l'outil n'existe pas
@@ -65,7 +65,28 @@ class MCPToolsManager:
         tool = self.tools[tool_name]
 
         # Appeler la méthode _run de BaseTool avec les arguments
-        return tool._run(**kwargs)
+        result = tool._run(**kwargs)
+
+        # Si le résultat est une string JSON, la parser
+        if isinstance(result, str):
+            try:
+                parsed_result = json.loads(result)
+
+                # 🆕 Si c'est la nouvelle structure MCP standardisée {success, results, ...}
+                # extraire le champ "results"
+                if isinstance(parsed_result, dict) and "results" in parsed_result:
+                    return parsed_result["results"]
+
+                return parsed_result
+            except (json.JSONDecodeError, ValueError):
+                # Pas du JSON valide, retourner tel quel
+                return result
+
+        # Si le résultat est déjà un dict Python avec la structure standardisée
+        if isinstance(result, dict) and "results" in result:
+            return result["results"]
+
+        return result
 
 
 PLACEHOLDER_MARKERS = {"your_key_here", "your_key*here", "changeme"}
@@ -312,9 +333,11 @@ class CrewPipeline:
 
         # 2. Outils MCP
         mcp_tools: List[Any] = []
+        mcp_manager: Optional[MCPToolsManager] = None
         if settings.mcp_server_url:
             try:
                 mcp_tools = get_mcp_tools(settings.mcp_server_url)
+                mcp_manager = MCPToolsManager(mcp_tools)
                 logger.info(f"✅ {len(mcp_tools)} outils MCP chargés.")
             except Exception as e:
                 logger.warning(f"⚠️ Erreur chargement MCP: {e}")
@@ -397,7 +420,7 @@ class CrewPipeline:
             destination_en=destination_en,
             start_date=start_date,
             rhythm=rhythm,
-            mcp_tools=mcp_tools,
+            mcp_tools=mcp_manager if mcp_manager else mcp_tools,
         )
 
         logger.info(f"✅ Structure JSON initialisée: {builder.trip_json['code']}")  # 🔧 FIX: Accès direct
@@ -464,6 +487,91 @@ class CrewPipeline:
 
             # Extraire trip_structure_plan
             trip_structure_plan = parsed_structure.get("plan_trip_structure", {}).get("trip_structure_plan", {})
+
+            # 🆕 Ajuster le nombre de steps dans le builder selon le plan
+            if trip_structure_plan:
+                planned_total_days = trip_structure_plan.get("total_days")
+                planned_total_steps = trip_structure_plan.get("total_steps_planned")
+
+                if planned_total_days and planned_total_steps:
+                    current_steps = [s for s in builder.trip_json.get("steps", []) if not s.get("is_summary")]
+                    current_count = len(current_steps)
+
+                    if planned_total_steps != current_count:
+                        logger.warning(
+                            f"⚠️ Step count mismatch: builder has {current_count} steps, "
+                            f"plan requires {planned_total_steps} steps. Adjusting..."
+                        )
+
+                        # Mettre à jour total_days
+                        builder.trip_json["total_days"] = planned_total_days
+
+                        # Ajuster les steps
+                        if planned_total_steps > current_count:
+                            # Ajouter des steps manquantes
+                            summary_step = None
+                            if builder.trip_json["steps"] and builder.trip_json["steps"][-1].get("is_summary"):
+                                summary_step = builder.trip_json["steps"].pop()
+
+                            # Créer un mapping step_number -> day_number depuis daily_distribution
+                            step_to_day = {}
+                            daily_dist = trip_structure_plan.get("daily_distribution", [])
+                            step_counter = 1
+                            for day_info in daily_dist:
+                                day_num = day_info.get("day", 1)
+                                steps_count = day_info.get("steps_count", 1)
+                                for _ in range(steps_count):
+                                    step_to_day[step_counter] = day_num
+                                    step_counter += 1
+
+                            for i in range(current_count + 1, planned_total_steps + 1):
+                                day_number = step_to_day.get(i, ((i - 1) // 3) + 1)  # Fallback si pas trouvé
+                                builder.trip_json["steps"].append({
+                                    "step_number": i,
+                                    "day_number": day_number,
+                                    "title": "",
+                                    "title_en": "",
+                                    "subtitle": "",
+                                    "subtitle_en": "",
+                                    "main_image": None,
+                                    "step_type": "",
+                                    "is_summary": False,
+                                    "latitude": 0,
+                                    "longitude": 0,
+                                    "why": "",
+                                    "why_en": "",
+                                    "tips": "",
+                                    "tips_en": "",
+                                    "transfer": "",
+                                    "transfer_en": "",
+                                    "suggestion": "",
+                                    "suggestion_en": "",
+                                    "weather_icon": None,
+                                    "weather_temp": "",
+                                    "weather_description": "",
+                                    "weather_description_en": "",
+                                    "price": 0,
+                                    "duration": "",
+                                    "images": []
+                                })
+
+                            # Remettre le summary à la fin
+                            if summary_step:
+                                builder.trip_json["steps"].append(summary_step)
+
+                            logger.info(f"✅ Added {planned_total_steps - current_count} steps to match plan")
+                        elif planned_total_steps < current_count:
+                            # Retirer des steps en trop (garder summary)
+                            summary_step = None
+                            if builder.trip_json["steps"] and builder.trip_json["steps"][-1].get("is_summary"):
+                                summary_step = builder.trip_json["steps"].pop()
+
+                            builder.trip_json["steps"] = builder.trip_json["steps"][:planned_total_steps]
+
+                            if summary_step:
+                                builder.trip_json["steps"].append(summary_step)
+
+                            logger.info(f"✅ Removed {current_count - planned_total_steps} steps to match plan")
 
             # 🆕 STEP 2: Générer templates MAINTENANT (avant Phase 2)
             if trip_structure_plan and trip_structure_plan.get("daily_distribution"):
@@ -644,7 +752,7 @@ class CrewPipeline:
                 if steps_to_validate:
                     try:
                         # Initialiser validateur
-                        validator = StepValidator(mcp_tools=mcp_tools, llm=self._llm)
+                        validator = StepValidator(mcp_tools=mcp_manager if mcp_manager else mcp_tools, llm=self._llm)
                         
                         # Valider et auto-fix
                         validated_steps, validation_report = validator.validate_all_steps(
@@ -1305,14 +1413,17 @@ class CrewPipeline:
             except yaml.YAMLError:
                 logger.warning("⚠️ YAML invalide dans le bloc markdown")
 
-        # Cas 2: Extraire le contenu d'un bloc ``` ... ``` (sans 'yaml')
-        code_block_match = re.search(r"```\s*\n(.*?)\n```", content, re.DOTALL)
-        if code_block_match:
-            code_content = code_block_match.group(1).strip()
+        # Cas 2: Extraire TOUS les blocs ``` ... ``` et tester chacun
+        code_blocks = re.findall(r"```\s*\n(.*?)\n```", content, re.DOTALL)
+        for code_content in reversed(code_blocks):  # Tester du dernier au premier
+            code_content = code_content.strip()
             try:
-                return yaml.safe_load(code_content)
+                parsed = yaml.safe_load(code_content)
+                # Vérifier que c'est un dict valide (pas juste du texte)
+                if isinstance(parsed, dict) and len(parsed) > 0:
+                    return parsed
             except yaml.YAMLError:
-                logger.warning("⚠️ YAML invalide dans le bloc de code")
+                continue  # Essayer le bloc suivant
 
         # Cas 3: Pas de bloc markdown, nettoyer et parser directement
         cleaned = re.sub(r"^```yaml\s*", "", content)

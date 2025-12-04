@@ -94,7 +94,7 @@ class IncrementalTripBuilder:
             "destination": destination,
             "destination_en": destination_en,
             "total_days": total_days,
-            "main_image": "",
+            "main_image": None,
             "flight_from": "",
             "flight_to": "",
             "flight_duration": "",
@@ -125,7 +125,7 @@ class IncrementalTripBuilder:
                 "title_en": "",
                 "subtitle": "",
                 "subtitle_en": "",
-                "main_image": "",
+                "main_image": None,
                 "step_type": "",
                 "is_summary": False,
                 "latitude": 0,
@@ -155,7 +155,7 @@ class IncrementalTripBuilder:
             "title_en": "Trip Summary",
             "subtitle": "Votre voyage en un coup d'œil",
             "subtitle_en": "Your trip at a glance",
-            "main_image": "",
+            "main_image": None,
             "step_type": "summary",
             "is_summary": True,
             "latitude": 0,
@@ -624,9 +624,19 @@ class IncrementalTripBuilder:
         try:
             trip_code = self.trip_json["code"]
 
+            # Si mcp_tools est un manager, utiliser call_tool
+            if hasattr(self.mcp_tools, 'call_tool'):
+                result = self.mcp_tools.call_tool(
+                    "images.background",
+                    trip_code=trip_code,
+                    prompt=prompt,
+                )
+                return result
+
+            # Sinon fallback sur l'ancienne méthode (liste d'outils)
             for tool in self.mcp_tools:
                 if hasattr(tool, 'name') and tool.name == "images.background":
-                    result = tool.func(
+                    result = tool._run(
                         trip_code=trip_code,
                         prompt=prompt,
                     )

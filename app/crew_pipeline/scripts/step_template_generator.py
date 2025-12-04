@@ -360,7 +360,7 @@ class StepTemplateGenerator:
             "title_en": "Trip Summary",
             "subtitle": "Votre voyage en un coup d'œil",
             "subtitle_en": "Your trip at a glance",
-            "main_image": "",
+            "main_image": None,
             "step_type": "summary",
             "is_summary": True,
             "latitude": 0,
