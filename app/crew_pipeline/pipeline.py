@@ -590,6 +590,74 @@ class CrewPipeline:
 
                     logger.info(f"✅ {len(step_templates)} step templates generated with GPS and images")
 
+                    # 🆕 Ajuster le builder si le nombre de templates > nombre de steps
+                    activity_templates = [t for t in step_templates if not t.get("is_summary")]
+                    max_step_num = max([t.get("step_number", 0) for t in activity_templates]) if activity_templates else 0
+
+                    if max_step_num > 0:
+                        current_steps = [s for s in builder.trip_json.get("steps", []) if not s.get("is_summary")]
+                        current_max = len(current_steps)
+
+                        if max_step_num > current_max:
+                            logger.warning(
+                                f"⚠️ Templates require {max_step_num} steps, but builder has {current_max}. "
+                                f"Adding {max_step_num - current_max} steps..."
+                            )
+
+                            # Retirer le summary temporairement
+                            summary_step = None
+                            if builder.trip_json["steps"] and builder.trip_json["steps"][-1].get("is_summary"):
+                                summary_step = builder.trip_json["steps"].pop()
+
+                            # Créer mapping day_number depuis daily_distribution
+                            step_to_day = {}
+                            daily_dist = trip_structure_plan.get("daily_distribution", [])
+                            step_counter = 1
+                            for day_info in daily_dist:
+                                day_num = day_info.get("day", 1)
+                                steps_count = day_info.get("steps_count", 1)
+                                for _ in range(steps_count):
+                                    step_to_day[step_counter] = day_num
+                                    step_counter += 1
+
+                            # Ajouter les steps manquantes
+                            for i in range(current_max + 1, max_step_num + 1):
+                                day_number = step_to_day.get(i, ((i - 1) // 3) + 1)
+                                builder.trip_json["steps"].append({
+                                    "step_number": i,
+                                    "day_number": day_number,
+                                    "title": "",
+                                    "title_en": "",
+                                    "subtitle": "",
+                                    "subtitle_en": "",
+                                    "main_image": None,
+                                    "step_type": "",
+                                    "is_summary": False,
+                                    "latitude": 0,
+                                    "longitude": 0,
+                                    "why": "",
+                                    "why_en": "",
+                                    "tips": "",
+                                    "tips_en": "",
+                                    "transfer": "",
+                                    "transfer_en": "",
+                                    "suggestion": "",
+                                    "suggestion_en": "",
+                                    "weather_icon": None,
+                                    "weather_temp": "",
+                                    "weather_description": "",
+                                    "weather_description_en": "",
+                                    "price": 0,
+                                    "duration": "",
+                                    "images": []
+                                })
+
+                            # Remettre le summary
+                            if summary_step:
+                                builder.trip_json["steps"].append(summary_step)
+
+                            logger.info(f"✅ Added {max_step_num - current_max} steps to match templates")
+
                     # Enrichir builder avec templates
                     for template in step_templates:
                         if not template.get("is_summary"):
@@ -932,29 +1000,41 @@ class CrewPipeline:
             if flights_research:
                 flight_quotes = flights_research.get("flight_quotes", {})
                 if flight_quotes:
+                    # Extract from nested "summary" structure (expected format)
+                    summary = flight_quotes.get("summary", {})
                     builder.set_flight_info(
-                        flight_from=flight_quotes.get("departure", "") or flight_quotes.get("from", ""),
-                        flight_to=flight_quotes.get("arrival", "") or flight_quotes.get("to", ""),
-                        duration=flight_quotes.get("duration", ""),
-                        flight_type=flight_quotes.get("type", "") or flight_quotes.get("flight_type", ""),
-                        price=str(flight_quotes.get("price", "")) or str(flight_quotes.get("estimated_price", "")),
+                        flight_from=summary.get("from", "") or flight_quotes.get("from", ""),
+                        flight_to=summary.get("to", "") or flight_quotes.get("to", ""),
+                        duration=summary.get("duration", "") or flight_quotes.get("duration", ""),
+                        flight_type=summary.get("type", "") or flight_quotes.get("type", ""),
+                        price=summary.get("price", "") or str(flight_quotes.get("price", "")),
                     )
+                    logger.info(f"✅ Vol info set: {summary.get('from', '')} → {summary.get('to', '')}")
 
             # 2. ACCOMMODATION
             accommodation_research = parsed_phase2.get("accommodation_research", {})
             if accommodation_research:
                 lodging_quotes = accommodation_research.get("lodging_quotes", {})
                 if lodging_quotes:
+                    # Extract from nested "recommended" structure (expected format)
+                    recommended = lodging_quotes.get("recommended", {})
                     builder.set_hotel_info(
-                        hotel_name=lodging_quotes.get("name", "") or lodging_quotes.get("hotel_name", ""),
-                        hotel_rating=float(lodging_quotes.get("rating", 0) or lodging_quotes.get("note", 0) or 0),
-                        price=str(lodging_quotes.get("price", "")) or str(lodging_quotes.get("estimated_price", "")),
+                        hotel_name=recommended.get("hotel_name", "") or lodging_quotes.get("hotel_name", ""),
+                        hotel_rating=float(recommended.get("hotel_rating", 0) or lodging_quotes.get("rating", 0) or 0),
+                        price=recommended.get("price_display", "") or str(recommended.get("total_price", "")) or str(lodging_quotes.get("price", "")),
                     )
+                    logger.info(f"✅ Hébergement set: {recommended.get('hotel_name', '')} ({recommended.get('hotel_rating', 0)}★)")
 
             # 3. ITINERARY (le plus important - remplir toutes les steps)
             itinerary_design = parsed_phase2.get("itinerary_design", {})
             if itinerary_design:
                 itinerary_plan = itinerary_design.get("itinerary_plan", {})
+
+                # DEBUG: Log what the agent returned
+                steps = itinerary_plan.get("steps", [])
+                logger.info(f"📊 Agent itinerary_design returned {len(steps)} steps")
+                for i, s in enumerate(steps[:3]):  # Log first 3 steps
+                    logger.debug(f"  Step {i+1}: title='{s.get('title', '')}', has_gps={bool(s.get('latitude'))}, has_image={bool(s.get('main_image'))}")
 
                 # Extraire hero image
                 hero_image = itinerary_plan.get("hero_image") or itinerary_plan.get("main_image", "")
@@ -962,7 +1042,6 @@ class CrewPipeline:
                     builder.set_hero_image(hero_image)
 
                 # Extraire les steps
-                steps = itinerary_plan.get("steps", [])
                 for step_data in steps:
                     step_number = step_data.get("step_number")
                     if not step_number or step_data.get("is_summary", False):
@@ -1046,6 +1125,86 @@ class CrewPipeline:
         except Exception as e:
             logger.error(f"❌ Erreur lors de l'enrichissement depuis PHASE2: {e}", exc_info=True)
 
+    def _merge_trip_data(self, target: Dict[str, Any], source: Dict[str, Any]) -> None:
+        """
+        Merger intelligemment les données de source dans target.
+
+        Règles:
+        - Ne jamais écraser un champ non-vide avec un champ vide
+        - Pour les steps, merger step par step en gardant les données existantes
+        - Pour summary_stats, utiliser celles de source si target n'en a pas
+        """
+        # Merger les champs scalaires du trip
+        scalar_fields = [
+            "destination", "destination_en", "total_days", "main_image",
+            "flight_from", "flight_to", "flight_duration", "flight_type",
+            "hotel_name", "hotel_rating", "total_price", "total_budget",
+            "average_weather", "travel_style", "travel_style_en",
+            "start_date", "travelers",
+            "price_flights", "price_hotels", "price_transport", "price_activities"
+        ]
+
+        for field in scalar_fields:
+            source_value = source.get(field)
+            target_value = target.get(field)
+
+            # Si target est vide/None/0/"" et source a une valeur, prendre source
+            if not target_value and source_value:
+                target[field] = source_value
+
+        # Merger les steps
+        source_steps = source.get("steps", [])
+        target_steps = target.get("steps", [])
+
+        if not source_steps:
+            return  # Rien à merger
+
+        # Créer un mapping step_number -> step pour un accès rapide
+        target_steps_map = {s.get("step_number"): s for s in target_steps if s.get("step_number")}
+
+        for source_step in source_steps:
+            step_num = source_step.get("step_number")
+
+            if step_num not in target_steps_map:
+                # Step n'existe pas dans target, l'ajouter
+                target_steps.append(source_step)
+                continue
+
+            # Step existe, merger les champs
+            target_step = target_steps_map[step_num]
+
+            step_fields = [
+                "title", "title_en", "subtitle", "subtitle_en",
+                "main_image", "step_type", "is_summary",
+                "latitude", "longitude",
+                "why", "why_en", "tips", "tips_en",
+                "transfer", "transfer_en", "suggestion", "suggestion_en",
+                "weather_icon", "weather_temp", "weather_description", "weather_description_en",
+                "price", "duration", "day_number"
+            ]
+
+            for field in step_fields:
+                source_value = source_step.get(field)
+                target_value = target_step.get(field)
+
+                # Si target est vide/None/0/"" et source a une valeur, prendre source
+                if not target_value and source_value:
+                    target_step[field] = source_value
+
+            # Merger images array (additionner sans doublons)
+            source_images = source_step.get("images", [])
+            target_images = target_step.get("images", [])
+            if source_images:
+                for img in source_images:
+                    if img not in target_images:
+                        target_images.append(img)
+
+            # Merger summary_stats (remplacer complètement si target n'en a pas)
+            if source_step.get("summary_stats") and not target_step.get("summary_stats"):
+                target_step["summary_stats"] = source_step["summary_stats"]
+
+        target["steps"] = target_steps
+
     def _enrich_builder_from_phase3(
         self,
         builder: IncrementalTripBuilder,
@@ -1092,16 +1251,16 @@ class CrewPipeline:
 
                 logger.info(f"✅ Builder enrichi avec le budget depuis PHASE3")
 
-            # 2. 🆕 CRITIQUE: Remplacer le trip avec les données de final_assembly
+            # 2. 🆕 MERGER les données de final_assembly (sans écraser Phase 2)
             final_assembly = parsed_phase3.get("final_assembly", {})
             if final_assembly and "trip" in final_assembly:
                 assembled_trip = final_assembly["trip"]
-                logger.info(f"🔧 Remplacement du trip avec les données de final_assembly...")
+                logger.info(f"🔧 Merge des données de final_assembly avec le trip existant...")
 
-                # Remplacer le trip_data du builder avec celui assemblé par l'agent
-                builder.trip_data = assembled_trip
+                # MERGER intelligemment au lieu de remplacer
+                self._merge_trip_data(builder.trip_json, assembled_trip)
 
-                logger.info(f"✅ Trip remplacé avec {len(assembled_trip.get('steps', []))} steps depuis final_assembly")
+                logger.info(f"✅ Trip enrichi avec les données de final_assembly")
 
         except Exception as e:
             logger.error(f"❌ Erreur lors de l'enrichissement depuis PHASE3: {e}", exc_info=True)

@@ -32,7 +32,7 @@
     "flight_duration": { "type": ["string", "null"] },
     "flight_type": { "type": ["string", "null"] },
     "hotel_name": { "type": ["string", "null"] },
-    "hotel_rating": { "type": ["number", "null"], "minimum": 0, "maximum": 5 },
+    "hotel_rating": { "type": ["number", "null"], "minimum": 0, "maximum": 10 },
     "total_price": { "type": ["string", "null"] },
     "total_budget": { "type": ["string", "null"] },
     "average_weather": { "type": ["string", "null"] },

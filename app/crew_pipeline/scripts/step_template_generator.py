@@ -320,8 +320,11 @@ class StepTemplateGenerator:
                 trip_code=trip_code,
                 prompt=prompt_specific,
             )
-            
-            if result and result.get("url"):
+
+            # Handle error strings (MCP tool may return error message as string)
+            if isinstance(result, str):
+                logger.warning(f"      ⚠️ images.background returned error string: {result[:100]}")
+            elif result and isinstance(result, dict) and result.get("url"):
                 logger.debug(f"      ✅ Image generated: {result['url'][:60]}...")
                 return result["url"]
         except Exception as e:
@@ -337,8 +340,11 @@ class StepTemplateGenerator:
                 trip_code=trip_code,
                 prompt=prompt_generic,
             )
-            
-            if result and result.get("url"):
+
+            # Handle error strings (MCP tool may return error message as string)
+            if isinstance(result, str):
+                logger.warning(f"      ⚠️ images.background returned error string: {result[:100]}")
+            elif result and isinstance(result, dict) and result.get("url"):
                 logger.debug(f"      ✅ Image generated (generic): {result['url'][:60]}...")
                 return result["url"]
         except Exception as e:

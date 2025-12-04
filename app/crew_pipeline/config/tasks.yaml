@@ -762,20 +762,20 @@ tasks:
     description: |-
       🎯 **MISSION: Enrichir les templates de steps avec du contenu détaillé en FRANÇAIS.**
 
-      📦 **TU REÇOIS DES TEMPLATES PRÉ-REMPLIES** (via step_templates si disponible):
+      📦 **TU REÇOIS DES TEMPLATES PRÉ-REMPLIES** (fournies plus bas dans {step_templates}):
 
       Les steps suivantes ont DÉJÀ des GPS et images Supabase générés par script:
       - latitude, longitude (GPS réels via geo.place)
       - main_image (URL Supabase via images.background)
       - step_number, day_number, step_type
 
-      ⚠️ **NE TOUCHE PAS aux champs suivants (déjà corrects):**
-      - latitude, longitude
-      - main_image
-      - step_number, day_number
-      - step_type
+      ⚠️ **COPIE CES CHAMPS DEPUIS LES TEMPLATES (ne les modifie pas):**
+      - latitude, longitude → COPIE tels quels
+      - main_image → COPIE telle quelle
+      - step_number, day_number → COPIE tels quels
+      - step_type → COPIE tel quel
 
-      ✅ **TON TRAVAIL: Enrichir UNIQUEMENT le contenu FR:**
+      ✅ **TON TRAVAIL: COPIER les templates et AJOUTER le contenu FR:**
 
       Pour CHAQUE step template, tu dois remplir:
 
@@ -800,11 +800,11 @@ tasks:
       9. **duration**: Durée de visite (ex: "2h", "3h30", "1h")
 
       ❌ **INTERDICTIONS:**
-      - NE PAS modifier GPS (déjà corrects)
-      - NE PAS modifier images (déjà Supabase)
-      - NE PAS traduire en EN (géré par script après)
-      - NE PAS appeler geo.place ou images.* (déjà fait par script)
-      - NE PAS inventer de nouvelles steps (suivre templates)
+      - NE PAS modifier GPS des templates (déjà corrects)
+      - NE PAS modifier images des templates (déjà Supabase)
+      - NE PAS traduire en EN (géré par script après - donc title_en peut être vide ou copie de title)
+      - NE PAS appeler geo.place ou images.* si templates fournis (déjà fait par script)
+      - NE PAS inventer de nouvelles steps (copier le nombre exact depuis templates)
 
       🎯 **FOCUS:** Qualité contenu FR uniquement! Maximum de détails et pertinence.
 
@@ -853,6 +853,18 @@ tasks:
 
       ---
 
+      **📦 TEMPLATES PRÉ-GÉNÉRÉS (À UTILISER COMME BASE) :**
+
+      {step_templates}
+
+      ⚠️ **IMPORTANT : UTILISE CES TEMPLATES COMME BASE !**
+      - Les templates ci-dessus contiennent DÉJÀ : step_number, day_number, latitude, longitude, main_image, step_type
+      - COPIE ces champs EXACTEMENT tels quels dans ton output (ne les modifie PAS)
+      - AJOUTE le contenu manquant : title, title_en, subtitle, subtitle_en, why, why_en, tips, tips_en, etc.
+      - Si aucun template n'est fourni ci-dessus, génère les steps depuis le plan structurel
+
+      ---
+
       ## **RÈGLES ABSOLUES - À RESPECTER IMPÉRATIVEMENT**
 
       ### **1. NOMBRE DE STEPS PAR JOUR (FLEXIBLE)**
@@ -880,9 +892,13 @@ tasks:
       **⚠️ CRITIQUE : TU DOIS APPELER LES OUTILS images.hero ET images.background POUR OBTENIR DES URLS RÉELLES**
       **❌ NE JAMAIS copier les URLs d'exemple ci-dessous - ce sont des PLACEHOLDERS uniquement pour montrer le format**
 
-      **ÉTAPE A : Image Hero (UNE FOIS AU DÉBUT)**
+      **ÉTAPE A : Image Hero (SEULEMENT SI PAS DE TEMPLATES)**
 
-      EXEMPLE de comment appeler l'outil (adapte les paramètres au voyage actuel) :
+      ⚠️ **Si des templates sont fournis dans {step_templates} ci-dessus** :
+      - SKIP cette étape - les images sont déjà générées
+      - COPIE les main_image depuis les templates
+
+      ⚠️ **Si AUCUN template fourni** (la variable {step_templates} est vide), appelle images.hero :
       ```
       images.hero(
         city="[LA VILLE DU VOYAGE]",
@@ -897,9 +913,13 @@ tasks:
 
       → **UTILISE L'URL RETOURNÉE PAR L'OUTIL** (pas celle de l'exemple) dans le champ `hero_image`
 
-      **ÉTAPE B : Images Background (POUR CHAQUE STEP - APPEL OBLIGATOIRE)**
+      **ÉTAPE B : Images Background (SEULEMENT SI PAS DE TEMPLATES)**
 
-      Pour CHAQUE step, tu DOIS appeler images.background avec les infos de CETTE step :
+      ⚠️ **Si des templates sont fournis dans {step_templates} ci-dessus** :
+      - SKIP cette étape - les images sont déjà générées
+      - COPIE les main_image depuis les templates
+
+      ⚠️ **Si AUCUN template fourni**, appelle images.background pour CHAQUE step :
       ```
       images.background(
         activity="[DESCRIPTION DE L'ACTIVITÉ DE CETTE STEP]",
@@ -1268,17 +1288,18 @@ tasks:
       - ✅ Step récapitulative finale avec is_summary: true et summary_stats (4-8 items)
 
       📋 **CHAQUE STEP (hors récap) DOIT AVOIR - LISTE COMPLÈTE :**
-      - ✅ step_number, day_number, title, title_en, main_image (URL Supabase)
-      - ✅ subtitle (FR) + subtitle_en (EN) - OBLIGATOIRE
-      - ✅ latitude + longitude (sauf transport/récap) - GPS VÉRIFIÉS avec geo.text_to_place
-      - ✅ why (3-4 PHRASES détaillées FR) + why_en (3-4 PHRASES EN) - OBLIGATOIRE
-      - ✅ tips (3-5 PHRASES ultra-détaillées avec horaires/prix/astuces FR) + tips_en (3-5 PHRASES EN) - OBLIGATOIRE
+      - ✅ step_number, day_number, main_image (URL Supabase) - COPIÉS depuis templates
+      - ✅ title (FR - 4-8 mots) + title_en (EN - temporaire: copie de title ou vide) - OBLIGATOIRE
+      - ✅ subtitle (FR) + subtitle_en (EN - temporaire: copie ou vide) - OBLIGATOIRE
+      - ✅ latitude + longitude (sauf transport/récap) - COPIÉS depuis templates
+      - ✅ why (3-4 PHRASES détaillées FR) + why_en (temporaire: vide ou copie) - OBLIGATOIRE
+      - ✅ tips (3-5 PHRASES ultra-détaillées avec horaires/prix/astuces FR) + tips_en (temporaire: vide ou copie) - OBLIGATOIRE
       - ✅ duration PRÉCISE (ex: "2h30", "3h", "Demi-journée") + price RÉALISTE (nombre) - OBLIGATOIRE
-      - ✅ step_type (activité/visite/restaurant/transport/hébergement/loisir) - OBLIGATOIRE
+      - ✅ step_type (activité/visite/restaurant/transport/hébergement/loisir) - COPIÉ depuis templates
       - ✅ weather_icon (emoji 🌤️ ☀️ ⛅ 🌧️) + weather_temp (ex: "22°C") - OBLIGATOIRE
-      - ✅ weather_description (FR: "Ensoleillé", "Partiellement nuageux") + weather_description_en (EN: "Sunny", "Partly cloudy") - OBLIGATOIRE
-      - ✅ transfer (comment y aller FR) + transfer_en (EN) - FORTEMENT RECOMMANDÉ
-      - ✅ suggestion (suggestions complémentaires FR) + suggestion_en (EN) - RECOMMANDÉ
+      - ✅ weather_description (FR: "Ensoleillé", "Partiellement nuageux") + weather_description_en (temporaire: vide ou copie) - OBLIGATOIRE
+      - ✅ transfer (comment y aller FR) + transfer_en (temporaire: vide ou copie) - FORTEMENT RECOMMANDÉ
+      - ✅ suggestion (suggestions complémentaires FR) + suggestion_en (temporaire: vide ou copie) - RECOMMANDÉ
 
       🚨 **SI UNE STEP MANQUE UN DE CES CHAMPS OBLIGATOIRES → RECOMMENCE CETTE STEP**
 
