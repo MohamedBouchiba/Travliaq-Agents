@@ -28,6 +28,7 @@ from app.crew_pipeline.scripts.incremental_trip_builder import IncrementalTripBu
 from app.crew_pipeline.scripts.step_template_generator import StepTemplateGenerator
 from app.crew_pipeline.scripts.translation_service import TranslationService
 from app.crew_pipeline.scripts.step_validator import StepValidator
+from app.crew_pipeline.scripts.post_processing_enrichment import PostProcessingEnricher
 from app.services.supabase_service import supabase_service
 
 logger = logging.getLogger(__name__)
@@ -1182,6 +1183,31 @@ class CrewPipeline:
                         continue
 
                 logger.info(f"✅ Builder enrichi avec {len(steps)} steps depuis PHASE2")
+
+                # 🎨 POST-PROCESSING: Régénérer images + traductions automatiques
+                logger.info("🎨 Step 2.5/3: Post-processing enrichment (images + translations)...")
+                try:
+                    mcp_manager = MCPToolsManager(mcp_tools)
+                    enricher = PostProcessingEnricher(mcp_tools=mcp_manager)
+
+                    # Récupérer le trip JSON actuel depuis le builder
+                    trip_json = builder.get_json()
+
+                    # Enrichir avec images améliorées et traductions
+                    enriched_trip = enricher.enrich_trip(
+                        trip_json=trip_json,
+                        regenerate_images=True,  # Régénérer images avec prompts enrichis
+                        translate_fields=True,   # Traduire FR → EN automatiquement
+                    )
+
+                    # Mettre à jour le builder avec le trip enrichi
+                    builder.trip_json = enriched_trip
+
+                    logger.info("✅ Post-processing enrichment complete")
+
+                except Exception as pe:
+                    logger.warning(f"⚠️ Post-processing enrichment failed: {pe}")
+                    logger.warning("   Continuing with original data...")
 
         except Exception as e:
             logger.error(f"❌ Erreur lors de l'enrichissement depuis PHASE2: {e}", exc_info=True)

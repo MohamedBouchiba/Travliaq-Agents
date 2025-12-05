@@ -898,80 +898,34 @@ tasks:
       - NE JAMAIS inventer de coordonnées GPS
       - Si tool échoue : signaler l'erreur et essayer un autre nom
 
-      ### **3. IMAGES SUPABASE OBLIGATOIRES**
+      ### **3. IMAGES ET TRADUCTIONS (SIMPLIFIÉES - AUTOMATISATION)**
 
-      **⚠️ CRITIQUE : TU DOIS APPELER LES OUTILS images.hero ET images.background POUR OBTENIR DES URLS RÉELLES**
-      **❌ NE JAMAIS copier les URLs d'exemple ci-dessous - ce sont des PLACEHOLDERS uniquement pour montrer le format**
+      **✅ BONNE NOUVELLE : Les images et traductions sont LARGEMENT AUTOMATISÉES !**
 
-      **ÉTAPE A : Image Hero (OBLIGATOIRE - TOUJOURS APPELER)**
+      **🖼️ Images background des steps :**
+      - ✅ **DÉJÀ GÉNÉRÉES** dans les templates ci-dessus ({step_templates})
+      - Tu dois juste **COPIER exactement** le champ `main_image` depuis chaque template
+      - ❌ **NE PAS** appeler images.background (déjà fait automatiquement par le système)
+      - ✅ Après ton travail, un script Python **régénérera les images avec des prompts enrichis** basés sur ton contenu (title + why)
 
-      ⚠️ **IMPORTANT : L'image HERO doit TOUJOURS être générée, même si des templates sont fournis !**
+      **🎨 Image hero du trip :**
+      - ✅ Tu DOIS appeler `images.hero` UNE SEULE FOIS pour le trip complet
+      - Paramètres : `city`, `country`, `trip_name`, `trip_folder` (code du trip)
+      - Utilise l'URL retournée dans le champ `hero_image` en haut de ton output
+      - Si l'appel échoue, laisse vide (un fallback sera utilisé)
 
-      Les templates contiennent les images des STEPS (activités), mais PAS l'image HERO du trip.
-      L'image hero est l'image de présentation du voyage complet.
+      **🌍 Traductions EN (title_en, why_en, tips_en, subtitle_en, etc.) :**
+      - 📝 **TOTALEMENT OPTIONNEL** : Tu peux laisser TOUS les champs EN vides
+      - ✅ Un script Python avec `translate_en` traduira **AUTOMATIQUEMENT** FR → EN après ton travail
+      - 🎯 **CONCENTRE-TOI UNIQUEMENT sur la QUALITÉ du contenu FRANÇAIS**
+      - Les champs EN seront traduits parfaitement après coup
 
-      **Tu DOIS appeler images.hero dans TOUS les cas :**
-      ```
-      images.hero(
-        city="[LA VILLE DU VOYAGE]",
-        country="[LE PAYS DU VOYAGE]",
-        trip_name="[NOM DU VOYAGE]",
-        trip_folder="[CODE DU TRIP]"
-      )
-      ```
-
-      → L'outil te retourne une URL UNIQUE pour CE voyage (exemple de format seulement) :
-      `{"url": "https://cinbnmlfpffmyjmkwbco.supabase.co/storage/v1/object/public/TRIPS/[TRIP_CODE]/hero_[TIMESTAMP].jpg", "type": "hero"}`
-
-      → **UTILISE L'URL RETOURNÉE PAR L'OUTIL** (pas celle de l'exemple) dans le champ `hero_image`
-
-      **ÉTAPE B : Images Background (SEULEMENT SI PAS DE TEMPLATES)**
-
-      ⚠️ **Si des templates sont fournis dans {step_templates} ci-dessus** :
-      - SKIP cette étape - les images sont déjà générées
-      - COPIE les main_image depuis les templates
-
-      ⚠️ **Si AUCUN template fourni**, appelle images.background pour CHAQUE step :
-      ```
-      images.background(
-        activity="[DESCRIPTION DE L'ACTIVITÉ DE CETTE STEP]",
-        city="[VILLE]",
-        country="[PAYS]",
-        trip_name="[NOM DU VOYAGE]",
-        trip_folder="[CODE DU TRIP]"
-      )
-      ```
-
-      → L'outil te retourne une URL UNIQUE pour cette step (exemple de format) :
-      `{"url": "https://cinbnmlfpffmyjmkwbco.supabase.co/storage/v1/object/public/TRIPS/[TRIP_CODE]/background_[TIMESTAMP].jpg", "type": "background"}`
-
-      → **UTILISE L'URL RETOURNÉE PAR L'OUTIL** (pas celle de l'exemple) dans `main_image` de la step
-
-      **RÉPÈTE POUR CHAQUE STEP** : appel images.background → récupère URL → utilise dans main_image
-
-      **RÈGLES CRITIQUES POUR LES IMAGES :**
-      - ❌ JAMAIS d'URLs Wikipedia
-      - ❌ JAMAIS d'URLs Unsplash
-      - ❌ JAMAIS d'URLs Pexels ou autre source externe
-      - ✅ TOUJOURS utiliser les URLs retournées par images.hero et images.background
-      - ✅ URLs commencent par "https://cinbnmlfpffmyjmkwbco.supabase.co/storage/v1/object/public/TRIPS/"
-
-      **GESTION DES ERREURS IMAGES (WORKFLOW STRICT) :**
-      - ⚠️ Si images.hero échoue :
-        * RETRY une fois avec des paramètres légèrement différents
-        * RETRY une deuxième fois avec paramètres encore plus simples
-        * Si échec persistant après 3 tentatives : LAISSER LE CHAMP VIDE (ne pas mettre de placeholder)
-        * ✅ L'assembleur Python utilisera un fallback Unsplash SEULEMENT en dernier recours
-      - ⚠️ Si images.background échoue pour UNE step :
-        * RETRY une fois avec description simplifiée (ex: "Tokyo Tower" au lieu de "visiting Tokyo Tower at sunset")
-        * RETRY une deuxième fois avec juste le nom du lieu (ex: "Tokyo")
-        * Si échec persistant : LAISSER LE CHAMP main_image VIDE ou null
-        * ❌ NE JAMAIS mettre de placeholders "FAILED" ou URLs externes
-      - 🎯 **PRINCIPE : TOUJOURS UTILISER LES OUTILS MCP**
-        * Les URLs Supabase sont le workflow correct et OBLIGATOIRE
-        * Réessayer autant que nécessaire avant d'abandonner
-        * Ne laisser vide qu'en dernier recours après multiples tentatives
-        * En cas d'échec massif d'images : compléter l'itinéraire avec données GPS/texte valides
+      **📋 Ce qui te reste à faire (simplifié) :**
+      1. ✅ Appeler `images.hero` pour l'image principale du trip (gérer les erreurs gracieusement)
+      2. ✅ Copier les `main_image` depuis les templates pour chaque step (ne pas modifier)
+      3. ✅ Remplir un contenu FRANÇAIS de haute qualité (title, why, tips, subtitle)
+      4. ✅ **IGNORER** les champs EN (ou copie FR si tu veux, mais inutile car traduit auto)
+      5. ✅ Copier latitude/longitude depuis les templates (ne pas modifier)
 
       ### **4. STRUCTURE DE CHAQUE STEP - CHAMPS DÉTAILLÉS**
 
@@ -986,36 +940,34 @@ tasks:
 
       **Champs OBLIGATOIRES (100% des steps hors transport/récap)** :
       - subtitle : sous-titre descriptif (FR) - OBLIGATOIRE
-      - subtitle_en : sous-titre en anglais (EN) - OBLIGATOIRE
-      - latitude : GPS (depuis geo.text_to_place ou places.overview) - OBLIGATOIRE
-      - longitude : GPS (depuis geo.text_to_place ou places.overview) - OBLIGATOIRE
+      - latitude : GPS (depuis templates) - COPIER depuis templates
+      - longitude : GPS (depuis templates) - COPIER depuis templates
       - why : pourquoi visiter - 3-4 PHRASES détaillées et informatives (FR) - OBLIGATOIRE
-      - why_en : version anglaise du why - 3-4 PHRASES (EN) - OBLIGATOIRE
       - tips : conseils pratiques ULTRA-DÉTAILLÉS - 3-5 PHRASES avec horaires, prix, astuces (FR) - OBLIGATOIRE
-      - tips_en : version anglaise des tips - 3-5 PHRASES (EN) - OBLIGATOIRE
       - duration : durée estimée PRÉCISE (ex: "2h30", "3h", "Demi-journée") - OBLIGATOIRE
       - price : prix estimé RÉALISTE en euros (nombre, ex: 15, 25, 0 pour gratuit) - OBLIGATOIRE
-      - step_type : activité/visite/restaurant/transport/hébergement/loisir - OBLIGATOIRE
+      - step_type : activité/visite/restaurant/transport/hébergement/loisir - COPIER depuis templates
       - weather_icon : emoji météo (🌤️, ☀️, ⛅, 🌧️) - OBLIGATOIRE
       - weather_temp : température estimée (ex: "22°C") - OBLIGATOIRE
       - weather_description : description météo en français (ex: "Ensoleillé", "Partiellement nuageux") - OBLIGATOIRE
-      - weather_description_en : description météo en anglais (ex: "Sunny", "Partly cloudy") - OBLIGATOIRE
+
+      **Champs OPTIONNELS - Auto-traduits après (laisser vides si tu veux)** :
+      - title_en : auto-traduit depuis title
+      - subtitle_en : auto-traduit depuis subtitle
+      - why_en : auto-traduit depuis why
+      - tips_en : auto-traduit depuis tips
+      - weather_description_en : auto-traduit depuis weather_description
 
       **Champs RECOMMANDÉS (50% des steps)** :
       - transfer : comment se rendre depuis step précédente (FR)
-      - transfer_en : version anglaise du transfer (EN)
       - suggestion : suggestions complémentaires (FR)
-      - suggestion_en : version anglaise des suggestions (EN)
-      - weather_description : description météo (FR, ex: "Ensoleillé")
-      - weather_description_en : description météo (EN, ex: "Sunny")
       - images : array d'URLs d'images supplémentaires (galerie)
 
-      🚨 **RÈGLE CRITIQUE : BILINGUE FR + EN**
+      🎯 **FOCUS : QUALITÉ CONTENU FRANÇAIS**
       Pour CHAQUE step :
-      - Si tu écris "title", tu DOIS écrire "title_en"
-      - Si tu écris "why", tu DOIS écrire "why_en"
-      - Si tu écris "tips", tu DOIS écrire "tips_en"
-      - etc.
+      - ✅ Remplis un contenu FR exceptionnel (title, why, tips, subtitle)
+      - ✅ Les champs EN seront traduits automatiquement après (ne perds pas de temps dessus)
+      - ✅ Copie les données techniques depuis templates (GPS, images, step_type)
 
       🎯 **PRIORITÉ : QUALITÉ > QUANTITÉ**
       - Mieux vaut 8 steps ultra-détaillées que 15 steps basiques
@@ -1307,17 +1259,17 @@ tasks:
 
       📋 **CHAQUE STEP (hors récap) DOIT AVOIR - LISTE COMPLÈTE :**
       - ✅ step_number, day_number, main_image (URL Supabase) - COPIÉS depuis templates
-      - ✅ title (FR - 4-8 mots) + title_en (EN - temporaire: copie de title ou vide) - OBLIGATOIRE
-      - ✅ subtitle (FR) + subtitle_en (EN - temporaire: copie ou vide) - OBLIGATOIRE
+      - ✅ title (FR - 4-8 mots) - OBLIGATOIRE (title_en = optionnel, traduit auto)
+      - ✅ subtitle (FR) - OBLIGATOIRE (subtitle_en = optionnel, traduit auto)
       - ✅ latitude + longitude (sauf transport/récap) - COPIÉS depuis templates
-      - ✅ why (3-4 PHRASES détaillées FR) + why_en (temporaire: vide ou copie) - OBLIGATOIRE
-      - ✅ tips (3-5 PHRASES ultra-détaillées avec horaires/prix/astuces FR) + tips_en (temporaire: vide ou copie) - OBLIGATOIRE
+      - ✅ why (3-4 PHRASES détaillées FR) - OBLIGATOIRE (why_en = traduit auto)
+      - ✅ tips (3-5 PHRASES ultra-détaillées avec horaires/prix/astuces FR) - OBLIGATOIRE (tips_en = traduit auto)
       - ✅ duration PRÉCISE (ex: "2h30", "3h", "Demi-journée") + price RÉALISTE (nombre) - OBLIGATOIRE
       - ✅ step_type (activité/visite/restaurant/transport/hébergement/loisir) - COPIÉ depuis templates
       - ✅ weather_icon (emoji 🌤️ ☀️ ⛅ 🌧️) + weather_temp (ex: "22°C") - OBLIGATOIRE
-      - ✅ weather_description (FR: "Ensoleillé", "Partiellement nuageux") + weather_description_en (temporaire: vide ou copie) - OBLIGATOIRE
-      - ✅ transfer (comment y aller FR) + transfer_en (temporaire: vide ou copie) - FORTEMENT RECOMMANDÉ
-      - ✅ suggestion (suggestions complémentaires FR) + suggestion_en (temporaire: vide ou copie) - RECOMMANDÉ
+      - ✅ weather_description (FR: "Ensoleillé", "Partiellement nuageux") - OBLIGATOIRE (weather_description_en = traduit auto)
+      - ✅ transfer (comment y aller FR) - FORTEMENT RECOMMANDÉ (transfer_en = traduit auto)
+      - ✅ suggestion (suggestions complémentaires FR) - RECOMMANDÉ (suggestion_en = traduit auto)
 
       🚨 **SI UNE STEP MANQUE UN DE CES CHAMPS OBLIGATOIRES → RECOMMENCE CETTE STEP**
 
