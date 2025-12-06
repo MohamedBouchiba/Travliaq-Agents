@@ -84,10 +84,28 @@ class Settings(BaseSettings):
 
     @property
     def effective_crew_output_dir(self) -> str:
-        """Returns the crew output directory - uses /tmp in production to avoid permission issues."""
-        if self.environment.lower() == "production":
+        """
+        Returns the crew output directory.
+        Uses /tmp in production or Docker to avoid permission issues.
+        Detection: if running in Docker, /app exists OR environment is production.
+        """
+        import os
+        from pathlib import Path
+        
+        # Detect Docker environment (container runs from /app)
+        is_docker = os.path.exists("/app") or os.environ.get("RAILWAY_ENVIRONMENT")
+        
+        # Use /tmp in production, Docker, or if we can't write to ./output
+        if self.environment.lower() == "production" or is_docker:
             return "/tmp/crew_runs"
-        return self.crew_output_dir
+        
+        # In development, check if we can write to output/
+        output_path = Path(self.crew_output_dir)
+        try:
+            output_path.mkdir(parents=True, exist_ok=True)
+            return self.crew_output_dir
+        except (PermissionError, OSError):
+            return "/tmp/crew_runs"
 
 
 # Instance globale
