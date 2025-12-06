@@ -1022,23 +1022,47 @@ class CrewPipeline:
         if trip_core and isinstance(trip_core, dict) and "destination" in trip_core:
             try:
                 if is_valid:
+                    # 1️⃣ Insérer le trip dans la table trips
                     trip_id = supabase_service.insert_trip_from_json(trip_core)
                     persistence["inserted_via_function"] = bool(trip_id)
                     persistence["supabase_trip_id"] = trip_id
+                    logger.info(f"✅ Trip inserted in trips table: {trip_id}")
 
-                    # 📊 Marquer le succès de la pipeline avec trip_code
+                    # 2️⃣ Créer le résumé dans trip_summaries (AVEC TOUTES LES DONNÉES)
+                    logger.info(f"📊 Creating trip summary for questionnaire {questionnaire_id[:8]}...")
+                    summary_id = supabase_service.save_trip_summary(
+                        questionnaire_id=questionnaire_id,
+                        questionnaire_data=questionnaire_data,
+                        persona_inference=persona_inference,
+                        persona_analysis={},  # Vide si pas disponible
+                        trip_json=trip_core,
+                        run_id=run_id,
+                        pipeline_status="SUCCESS",
+                    )
+                    persistence["trip_summary_id"] = summary_id
+
+                    if summary_id:
+                        logger.info(f"✅ Trip summary created in trip_summaries: {summary_id}")
+                        logger.info(f"   → trip_code: {trip_code}")
+                        logger.info(f"   → destination: {trip_core.get('destination')}")
+                        logger.info(f"   → questionnaire_id: {questionnaire_id[:8]}...")
+
+                        # 3️⃣ Envoyer l'email avec l'ID du summary (PAS questionnaire_id !)
+                        logger.info(f"📧 Sending email notification with summary_id: {summary_id[:8]}...")
+                        send_trip_summary_email_async(summary_id)
+                        logger.info(f"✅ Email notification sent successfully!")
+                    else:
+                        logger.warning(f"⚠️ Trip summary creation failed, email NOT sent")
+
+                    # 4️⃣ Tracking (optionnel, déjà fait dans save_trip_summary)
                     if questionnaire_id and trip_code:
                         tracking_service.mark_pipeline_success(
                             questionnaire_id=questionnaire_id,
                             trip_code=trip_code,
                             persona=persona_text if 'persona_text' in locals() else None,
                         )
-                        logger.info(f"✅ Pipeline SUCCESS tracked for questionnaire {questionnaire_id[:8]}... → trip {trip_code}")
 
-                        # 📧 Envoyer l'email de notification automatiquement
-                        send_trip_summary_email_async(questionnaire_id)
-                        logger.info(f"📧 Email notification sent for questionnaire {questionnaire_id[:8]}...")
-
+                # 5️⃣ Sauvegarde dans trip_recommendations (table legacy)
                 persistence["saved"] = supabase_service.save_trip_recommendation(
                     run_id=run_id,
                     questionnaire_id=self._extract_id(normalized_questionnaire),
@@ -1051,22 +1075,54 @@ class CrewPipeline:
                 )
             except Exception as exc:
                 persistence["error"] = str(exc)
-                # 📊 Marquer l'échec
+                logger.error(f"❌ Pipeline FAILED for questionnaire {questionnaire_id[:8]}...: {exc}")
+
+                # 📊 Créer un summary avec status=FAILED
                 if questionnaire_id:
+                    try:
+                        failed_summary_id = supabase_service.save_trip_summary(
+                            questionnaire_id=questionnaire_id,
+                            questionnaire_data=questionnaire_data,
+                            persona_inference=persona_inference,
+                            persona_analysis={},
+                            trip_json=trip_core if trip_core else None,
+                            run_id=run_id,
+                            pipeline_status="FAILED",
+                        )
+                        persistence["trip_summary_id"] = failed_summary_id
+                        logger.info(f"✅ Failed trip summary created: {failed_summary_id}")
+                    except Exception as e:
+                        logger.warning(f"⚠️ Could not create failed trip summary: {e}")
+
                     tracking_service.mark_pipeline_failed(
                         questionnaire_id=questionnaire_id,
                         error=str(exc),
                     )
-                    logger.error(f"❌ Pipeline FAILED tracked for questionnaire {questionnaire_id[:8]}...: {exc}")
         else:
             persistence["error"] = "missing trip payload"
-            # 📊 Marquer l'échec
+            logger.error(f"❌ Pipeline FAILED: missing trip payload")
+
+            # 📊 Créer un summary avec status=FAILED
             if questionnaire_id:
+                try:
+                    failed_summary_id = supabase_service.save_trip_summary(
+                        questionnaire_id=questionnaire_id,
+                        questionnaire_data=questionnaire_data,
+                        persona_inference=persona_inference,
+                        persona_analysis={},
+                        trip_json=None,
+                        run_id=run_id,
+                        pipeline_status="FAILED",
+                    )
+                    persistence["trip_summary_id"] = failed_summary_id
+                    logger.info(f"✅ Failed trip summary created: {failed_summary_id}")
+                except Exception as e:
+                    logger.warning(f"⚠️ Could not create failed trip summary: {e}")
+
                 tracking_service.mark_pipeline_failed(
                     questionnaire_id=questionnaire_id,
                     error="missing trip payload",
                 )
-                logger.error(f"❌ Pipeline FAILED tracked for questionnaire {questionnaire_id[:8]}...: missing trip payload")
 
         final_payload = {
             "run_id": run_id,
