@@ -604,10 +604,13 @@ class SupabaseService:
                     if title and not step.get("is_summary"):
                         activities_summary.append(title)
 
+            # 14. Trip code
+            trip_code = trip_json.get("code") if trip_json else None
+
             # ============================================================
             # INSERT ROBUSTE
             # ============================================================
-            
+
             query = """
                 INSERT INTO trip_summaries (
                     questionnaire_id, run_id, user_email, persona, summary_paragraph,
@@ -620,7 +623,7 @@ class SupabaseService:
                     average_weather,
                     main_image_url, gallery_urls,
                     steps_count, activities_summary,
-                    pipeline_status, generated_at
+                    trip_code, pipeline_status, generated_at
                 ) VALUES (
                     %s, %s, %s, %s, %s,
                     %s, %s, %s,
@@ -632,7 +635,7 @@ class SupabaseService:
                     %s,
                     %s, %s,
                     %s, %s,
-                    %s, timezone('utc', now())
+                    %s, %s, timezone('utc', now())
                 )
                 ON CONFLICT (questionnaire_id) DO UPDATE SET
                     run_id = EXCLUDED.run_id,
@@ -648,12 +651,13 @@ class SupabaseService:
                     gallery_urls = EXCLUDED.gallery_urls,
                     steps_count = EXCLUDED.steps_count,
                     activities_summary = EXCLUDED.activities_summary,
+                    trip_code = EXCLUDED.trip_code,
                     pipeline_status = EXCLUDED.pipeline_status,
                     generated_at = timezone('utc', now()),
                     updated_at = timezone('utc', now())
                 RETURNING id
             """
-            
+
             cursor.execute(query, (
                 questionnaire_id, run_id, user_email, persona, summary_paragraph,
                 destination, destination_en, country_code,
@@ -665,7 +669,7 @@ class SupabaseService:
                 average_weather,
                 main_image_url, gallery_urls,
                 steps_count, activities_summary,
-                pipeline_status,
+                trip_code, pipeline_status,
             ))
             
             result = cursor.fetchone()

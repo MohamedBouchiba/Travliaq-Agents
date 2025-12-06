@@ -30,6 +30,8 @@ from app.crew_pipeline.scripts.translation_service import TranslationService
 from app.crew_pipeline.scripts.step_validator import StepValidator
 from app.crew_pipeline.scripts.post_processing_enrichment import PostProcessingEnricher
 from app.services.supabase_service import supabase_service
+from app.services.pipeline_tracking import get_tracking_service
+from app.services.email_notification import send_trip_summary_email_async
 
 logger = logging.getLogger(__name__)
 
@@ -273,7 +275,19 @@ class CrewPipeline:
             _logging_initialized = True
 
         run_id = self._generate_run_id(questionnaire_data)
-        logger.info(f"🚀 Lancement Pipeline CrewAI (Run ID: {run_id})")
+        questionnaire_id = self._extract_id(questionnaire_data)
+        logger.info(f"🚀 Lancement Pipeline CrewAI (Run ID: {run_id}, Questionnaire: {questionnaire_id[:8] if questionnaire_id else 'N/A'}...)")
+
+        # 📊 Marquer le début de la pipeline
+        tracking_service = get_tracking_service()
+        if questionnaire_id:
+            # Calculer le persona dès le début (pour email personnalisé)
+            persona_text = persona_inference.get("persona_label", "") if persona_inference else ""
+            tracking_service.mark_pipeline_running(
+                questionnaire_id=questionnaire_id,
+                run_id=run_id,
+                persona=persona_text,
+            )
 
         # ✅ Création anticipée du dossier de run en mode développement
         should_save = settings.environment.lower() == "development"
@@ -300,6 +314,14 @@ class CrewPipeline:
         try:
             normalization = normalize_questionnaire(questionnaire_data)
         except NormalizationError as exc:
+            # 📊 Marquer l'échec de normalisation
+            if questionnaire_id:
+                tracking_service.mark_pipeline_failed(
+                    questionnaire_id=questionnaire_id,
+                    error=f"Normalization failed: {str(exc)}",
+                )
+                logger.error(f"❌ Pipeline FAILED (normalization) for questionnaire {questionnaire_id[:8]}...: {exc}")
+
             failed_payload = {
                 "run_id": run_id,
                 "status": "failed_normalization",
@@ -959,10 +981,13 @@ class CrewPipeline:
                     step["title_en"] = "Trip Summary"
                     logger.warning(f"⚠️ Fixed empty title in summary step (step_number: {step.get('step_number')})")
 
-                # Warn about any other steps with empty titles (shouldn't happen but log it)
+                # Fix empty titles in regular steps
                 elif not step.get("is_summary") and (not step.get("title") or step.get("title") == ""):
-                    logger.error(
-                        f"❌ Step {step.get('step_number')} has empty title - this will fail schema validation"
+                    day_num = step.get("day_number", "?")
+                    step["title"] = f"Activité Jour {day_num}"
+                    step["title_en"] = f"Activity Day {day_num}"
+                    logger.warning(
+                        f"⚠️ Fixed empty title in regular step {step.get('step_number')} (Day {day_num})"
                     )
 
         # Validation Schema
@@ -992,12 +1017,27 @@ class CrewPipeline:
         }
 
         trip_core = trip_payload  # 🔧 FIX: trip_core EST trip_payload
+        trip_code = trip_core.get("code") if trip_core and isinstance(trip_core, dict) else None
+
         if trip_core and isinstance(trip_core, dict) and "destination" in trip_core:
             try:
                 if is_valid:
                     trip_id = supabase_service.insert_trip_from_json(trip_core)
                     persistence["inserted_via_function"] = bool(trip_id)
                     persistence["supabase_trip_id"] = trip_id
+
+                    # 📊 Marquer le succès de la pipeline avec trip_code
+                    if questionnaire_id and trip_code:
+                        tracking_service.mark_pipeline_success(
+                            questionnaire_id=questionnaire_id,
+                            trip_code=trip_code,
+                            persona=persona_text if 'persona_text' in locals() else None,
+                        )
+                        logger.info(f"✅ Pipeline SUCCESS tracked for questionnaire {questionnaire_id[:8]}... → trip {trip_code}")
+
+                        # 📧 Envoyer l'email de notification automatiquement
+                        send_trip_summary_email_async(questionnaire_id)
+                        logger.info(f"📧 Email notification sent for questionnaire {questionnaire_id[:8]}...")
 
                 persistence["saved"] = supabase_service.save_trip_recommendation(
                     run_id=run_id,
@@ -1011,8 +1051,22 @@ class CrewPipeline:
                 )
             except Exception as exc:
                 persistence["error"] = str(exc)
+                # 📊 Marquer l'échec
+                if questionnaire_id:
+                    tracking_service.mark_pipeline_failed(
+                        questionnaire_id=questionnaire_id,
+                        error=str(exc),
+                    )
+                    logger.error(f"❌ Pipeline FAILED tracked for questionnaire {questionnaire_id[:8]}...: {exc}")
         else:
             persistence["error"] = "missing trip payload"
+            # 📊 Marquer l'échec
+            if questionnaire_id:
+                tracking_service.mark_pipeline_failed(
+                    questionnaire_id=questionnaire_id,
+                    error="missing trip payload",
+                )
+                logger.error(f"❌ Pipeline FAILED tracked for questionnaire {questionnaire_id[:8]}...: missing trip payload")
 
         final_payload = {
             "run_id": run_id,
