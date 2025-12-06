@@ -1,8 +1,9 @@
 """Routes API pour Travliaq-Agents."""
 
 import logging
+import asyncio
 from typing import Dict, Any
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, HTTPException, status, BackgroundTasks
 from pydantic import BaseModel, Field
 
 from app.services.supabase_service import supabase_service
@@ -36,6 +37,15 @@ class StatusResponse(BaseModel):
     message: str
 
 
+class PipelineStartedResponse(BaseModel):
+    """Réponse immédiate quand la pipeline est lancée en arrière-plan."""
+    status: str
+    message: str
+    questionnaire_id: str
+    persona: str
+    confidence: int
+
+
 @router.get("/health", response_model=StatusResponse)
 async def health_check():
     """
@@ -65,22 +75,56 @@ async def health_check():
         )
 
 
-@router.post("/process", response_model=TravliaqResponse)
-async def process_questionnaire(request: QuestionnaireRequest):
+def run_pipeline_sync(
+    questionnaire_data: Dict[str, Any],
+    inference_dict: Dict[str, Any],
+    questionnaire_id: str,
+):
     """
-    Traite un questionnaire complet:
-    1. Récupère depuis Supabase
-    2. Infère le persona
-    3. Retourne tout en JSON (en mémoire)
+    Exécute la pipeline CrewAI de manière synchrone.
+    Cette fonction est appelée en arrière-plan.
+    """
+    try:
+        logger.info(f"🚀 Pipeline lancée en arrière-plan pour: {questionnaire_id}")
+        
+        result = travliaq_crew_pipeline.run(
+            questionnaire_data=questionnaire_data,
+            persona_inference=inference_dict,
+            payload_metadata={
+                "questionnaire_id": questionnaire_id,
+                "status": "ok",
+            },
+        )
+        
+        logger.info(f"✅ Pipeline terminée pour: {questionnaire_id}")
+        logger.info(f"📊 Run ID: {result.get('run_id', 'N/A')}")
+        
+        # TODO: Optionnel - sauvegarder le résultat dans Supabase ou notifier via webhook
+        
+    except Exception as e:
+        logger.error(f"❌ Erreur pipeline pour {questionnaire_id}: {e}")
+        import traceback
+        traceback.print_exc()
+
+
+@router.post("/process", response_model=PipelineStartedResponse)
+async def process_questionnaire(
+    request: QuestionnaireRequest,
+    background_tasks: BackgroundTasks,
+):
+    """
+    Lance le traitement d'un questionnaire en arrière-plan.
+    
+    1. Récupère le questionnaire depuis Supabase
+    2. Infère le persona rapidement
+    3. Lance la pipeline CrewAI en arrière-plan
+    4. Retourne immédiatement OK
 
     Args:
         request: Requête contenant l'ID du questionnaire
 
     Returns:
-        Questionnaire + Inférence de persona en JSON
-
-    Raises:
-        HTTPException: Si le questionnaire n'existe pas ou erreur de traitement
+        Confirmation immédiate que la pipeline est lancée
     """
     try:
         logger.info(f"📥 Traitement questionnaire: {request.questionnaire_id}")
@@ -98,37 +142,33 @@ async def process_questionnaire(request: QuestionnaireRequest):
 
         logger.info("✅ Questionnaire récupéré")
 
-        # Étape 2: Inférer le persona
+        # Étape 2: Inférer le persona (rapide, on le fait en synchrone)
         logger.info("🧠 Inférence du persona...")
         inference_result = persona_engine.infer_persona(questionnaire_data)
         inference_dict = persona_engine.to_dict(inference_result)
 
-        logger.info(f"✅ Persona inféré: {inference_dict['persona']['principal']}")
-        logger.info(f"📊 Confiance: {inference_dict['persona']['confiance']}% ({inference_dict['persona']['niveau']})")
+        persona_name = inference_dict['persona']['principal']
+        confidence = inference_dict['persona']['confiance']
+        
+        logger.info(f"✅ Persona inféré: {persona_name}")
+        logger.info(f"📊 Confiance: {confidence}%")
 
-        # Étape 3: Analyse approfondie via CrewAI
-        logger.info("🧠 Analyse approfondie via CrewAI...")
-        persona_analysis_payload = travliaq_crew_pipeline.run(
-            questionnaire_data=questionnaire_data,
-            persona_inference=inference_dict,
-            payload_metadata={
-                "questionnaire_id": request.questionnaire_id,
-                "status": "ok",
-            },
+        # Étape 3: Lancer la pipeline en arrière-plan (non-bloquant)
+        logger.info("🚀 Lancement pipeline CrewAI en arrière-plan...")
+        background_tasks.add_task(
+            run_pipeline_sync,
+            questionnaire_data,
+            inference_dict,
+            request.questionnaire_id,
         )
 
-        logger.info("✅ Analyse CrewAI terminée")
-
-        # Retourner le tout en JSON (en mémoire)
-        return TravliaqResponse(
-            status=persona_analysis_payload.get("status", "ok"),
-            pipeline_run_id=persona_analysis_payload["run_id"],
-            questionnaire_id=persona_analysis_payload.get(
-                "questionnaire_id", request.questionnaire_id
-            ),
-            questionnaire_data=persona_analysis_payload["questionnaire_data"],
-            persona_inference=persona_analysis_payload["persona_inference"],
-            persona_analysis=persona_analysis_payload["persona_analysis"],
+        # Étape 4: Retourner immédiatement
+        return PipelineStartedResponse(
+            status="ok",
+            message="Pipeline lancée en arrière-plan",
+            questionnaire_id=request.questionnaire_id,
+            persona=persona_name,
+            confidence=confidence,
         )
 
     except HTTPException:
@@ -143,15 +183,22 @@ async def process_questionnaire(request: QuestionnaireRequest):
         )
 
 
-@router.get("/process/{questionnaire_id}", response_model=TravliaqResponse)
-async def process_questionnaire_by_path(questionnaire_id: str):
+@router.get("/process/{questionnaire_id}", response_model=PipelineStartedResponse)
+async def process_questionnaire_by_path(
+    questionnaire_id: str,
+    background_tasks: BackgroundTasks,
+):
     """
     Traite un questionnaire via path parameter (GET).
+    Lance la pipeline en arrière-plan.
 
     Args:
         questionnaire_id: UUID du questionnaire
 
     Returns:
-        Questionnaire + Inférence de persona en JSON
+        Confirmation immédiate que la pipeline est lancée
     """
-    return await process_questionnaire(QuestionnaireRequest(questionnaire_id=questionnaire_id))
+    return await process_questionnaire(
+        QuestionnaireRequest(questionnaire_id=questionnaire_id),
+        background_tasks,
+    )

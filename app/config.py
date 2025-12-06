@@ -82,6 +82,13 @@ class Settings(BaseSettings):
             f"target_session_attrs=read-write"
         )
 
+    @property
+    def effective_crew_output_dir(self) -> str:
+        """Returns the crew output directory - uses /tmp in production to avoid permission issues."""
+        if self.environment.lower() == "production":
+            return "/tmp/crew_runs"
+        return self.crew_output_dir
+
 
 # Instance globale
 settings = Settings()

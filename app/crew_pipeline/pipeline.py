@@ -206,7 +206,7 @@ class CrewPipeline:
     ) -> None:
         self._llm = llm or _build_default_llm()
         self._verbose = verbose if verbose is not None else settings.verbose
-        self._output_dir = Path(output_dir) if output_dir is not None else Path(settings.crew_output_dir)
+        self._output_dir = Path(output_dir) if output_dir is not None else Path(settings.effective_crew_output_dir)
         self._config_dir = Path(__file__).resolve().parent / "config"
         self._crew_builder = crew_builder or self._build_crew
         self._use_mock_crew = crew_builder is not None
