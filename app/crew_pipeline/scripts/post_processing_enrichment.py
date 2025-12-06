@@ -154,15 +154,27 @@ class PostProcessingEnricher:
             )
 
             # Handle different response formats
+            # 1. Check for error string
+            if isinstance(result, str) and not "supabase.co" in result and not result.startswith("http"):
+                 # Assume it's an error message if it's a string but not a URL
+                 logger.warning(f"    ⚠️ images.background returned error string: {result[:100]}")
+                 return None
+
+            # 2. Check for dict with success=False
+            if isinstance(result, dict) and result.get("success") is False:
+                error_msg = result.get("error", "Unknown error")
+                logger.warning(f"    ⚠️ images.background failed: {error_msg}")
+                return None
+
+            # 3. Check for dict with URL
             if isinstance(result, dict) and result.get("url"):
                 url = result["url"]
-
-                # Validate folder structure (use existing validation logic)
-                url = self._validate_image_url(url, trip_code)
-
-                return url
-            elif isinstance(result, str) and "supabase.co" in result:
+                return self._validate_image_url(url, trip_code)
+            
+            # 4. Check for direct URL string
+            elif isinstance(result, str) and ("supabase.co" in result or result.startswith("http")):
                 return self._validate_image_url(result, trip_code)
+            
             else:
                 logger.warning(f"    ⚠️ images.background returned unexpected format: {type(result)}")
                 return None

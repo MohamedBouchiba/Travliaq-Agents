@@ -749,7 +749,7 @@ class CrewPipeline:
 
             # 🆕 ENRICHISSEMENT: Mettre à jour le builder avec les résultats de PHASE2
             logger.info("🔧 Enrichissement du trip JSON avec les résultats de PHASE2...")
-            self._enrich_builder_from_phase2(builder, parsed_phase2)
+            self._enrich_builder_from_phase2(builder, parsed_phase2, mcp_manager)
 
             # 🆕 SCRIPT 2: Traduire contenu FR → EN
             if trip_intent.assist_activities:
@@ -1046,6 +1046,7 @@ class CrewPipeline:
         self,
         builder: IncrementalTripBuilder,
         parsed_phase2: Dict[str, Any],
+        mcp_manager: Optional[MCPToolsManager] = None,
     ) -> None:
         """
         Enrichir le builder avec les résultats de PHASE2.
@@ -1054,6 +1055,11 @@ class CrewPipeline:
         - flights_research → set_flight_info()
         - accommodation_research → set_hotel_info()
         - itinerary_design → set_step_* pour chaque step
+
+        Args:
+            builder: Le builder de trip à enrichir
+            parsed_phase2: Les résultats parsés de PHASE2
+            mcp_manager: Le manager d'outils MCP (pour post-processing)
         """
         try:
             # 1. FLIGHTS
@@ -1187,7 +1193,10 @@ class CrewPipeline:
                 # 🎨 POST-PROCESSING: Régénérer images + traductions automatiques
                 logger.info("🎨 Step 2.5/3: Post-processing enrichment (images + translations)...")
                 try:
-                    mcp_manager = MCPToolsManager(mcp_tools)
+                    if not mcp_manager:
+                        logger.warning("⚠️ MCP manager not available, skipping post-processing")
+                        return
+
                     enricher = PostProcessingEnricher(mcp_tools=mcp_manager)
 
                     # Récupérer le trip JSON actuel depuis le builder

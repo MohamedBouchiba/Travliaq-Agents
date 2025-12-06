@@ -320,14 +320,22 @@ class StepTemplateGenerator:
                 prompt=prompt_specific,
             )
 
-            # Handle error strings (MCP tool may return error message as string)
+            # 🔧 FIX: Gestion robuste des erreurs
+            # 1. Vérifier si c'est une string d'erreur
             if isinstance(result, str):
                 logger.warning(f"      ⚠️ images.background returned error string: {result[:100]}")
+            # 2. Vérifier si c'est un dict avec success=False
+            elif isinstance(result, dict) and result.get("success") is False:
+                error_msg = result.get("error", "Unknown error")
+                logger.warning(f"      ⚠️ images.background failed: {error_msg}")
+            # 3. Vérifier si c'est un dict valide avec URL
             elif result and isinstance(result, dict) and result.get("url"):
                 # 🔧 FIX: Validate and correct URL folder to match trip_code
                 url = self._validate_and_fix_image_url(result["url"], trip_code)
                 logger.debug(f"      ✅ Image generated: {url[:60]}...")
                 return url
+            else:
+                logger.warning(f"      ⚠️ images.background returned unexpected format: {type(result)}")
         except Exception as e:
             logger.warning(f"      ⚠️ images.background failed attempt 1: {e}")
         

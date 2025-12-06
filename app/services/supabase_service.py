@@ -422,6 +422,297 @@ class SupabaseService:
             if conn:
                 conn.close()
 
+    def save_trip_summary(
+        self,
+        *,
+        questionnaire_id: str,
+        questionnaire_data: Dict[str, Any],
+        persona_inference: Dict[str, Any],
+        persona_analysis: Dict[str, Any],
+        trip_json: Optional[Dict[str, Any]] = None,
+        run_id: str,
+        pipeline_status: str = "SUCCESS",
+    ) -> Optional[str]:
+        """
+        Sauvegarde un résumé du trip dans la table trip_summaries.
+        
+        Robuste: extrait les données de multiples sources avec fallbacks.
+        
+        Args:
+            questionnaire_id: UUID du questionnaire
+            questionnaire_data: Données brutes du questionnaire
+            persona_inference: Résultat de l'inférence persona
+            persona_analysis: Résultat de l'analyse CrewAI
+            trip_json: Trip JSON généré (optionnel)
+            run_id: ID d'exécution pipeline
+            pipeline_status: SUCCESS, PARTIAL, FAILED
+            
+        Returns:
+            UUID du record créé ou None si erreur
+        """
+        if not self.conn_string:
+            logger.warning("⚠️ Chaîne de connexion PostgreSQL absente, save_trip_summary ignorée")
+            return None
+
+        conn = None
+        try:
+            conn = self._get_connection()
+            cursor = conn.cursor()
+
+            # ============================================================
+            # EXTRACTION ROBUSTE DES DONNÉES
+            # ============================================================
+            
+            # 1. Email utilisateur (obligatoire)
+            user_email = questionnaire_data.get("email", "unknown@travliaq.com")
+            
+            # 2. Persona
+            persona = "Inconnu"
+            if persona_inference:
+                persona_data = persona_inference.get("persona", {})
+                if isinstance(persona_data, dict):
+                    persona = persona_data.get("principal", "Inconnu")
+                elif isinstance(persona_data, str):
+                    persona = persona_data
+            
+            # 3. Summary paragraph (le paragraphe clé!)
+            summary_paragraph = None
+            if persona_analysis:
+                # Chercher dans différentes structures possibles
+                summary_paragraph = (
+                    persona_analysis.get("narrative") or
+                    persona_analysis.get("persona_summary") or
+                    persona_analysis.get("summary") or
+                    persona_analysis.get("description")
+                )
+                # Si c'est un dict imbriqué
+                if not summary_paragraph and isinstance(persona_analysis.get("analysis"), dict):
+                    summary_paragraph = persona_analysis["analysis"].get("narrative")
+            
+            # Fallback: générer un résumé basique si pas de narrative
+            if not summary_paragraph:
+                destination = trip_json.get("destination") if trip_json else questionnaire_data.get("destination", "")
+                summary_paragraph = f"Voyage personnalisé vers {destination} pour un profil {persona}."
+            
+            # 4. Destination
+            destination = "Destination à définir"
+            destination_en = None
+            if trip_json:
+                destination = trip_json.get("destination", destination)
+                destination_en = trip_json.get("destination_en")
+            elif questionnaire_data.get("destination"):
+                destination = questionnaire_data.get("destination")
+            
+            # 5. Country code (extrait de destination)
+            country_code = None
+            if destination and "," in destination:
+                country_part = destination.split(",")[-1].strip()
+                # Mapping simplifié pays -> code
+                country_codes = {
+                    "France": "FR", "Indonésie": "ID", "Indonesia": "ID",
+                    "Italie": "IT", "Italy": "IT", "Espagne": "ES", "Spain": "ES",
+                    "Japon": "JP", "Japan": "JP", "Thaïlande": "TH", "Thailand": "TH",
+                    "États-Unis": "US", "USA": "US", "United States": "US",
+                    "Portugal": "PT", "Grèce": "GR", "Greece": "GR",
+                    "Maroc": "MA", "Morocco": "MA", "Belgique": "BE", "Belgium": "BE",
+                }
+                country_code = country_codes.get(country_part)
+            
+            # 6. Dates
+            start_date = None
+            end_date = None
+            total_days = None
+            total_nights = None
+            
+            if trip_json:
+                start_date = trip_json.get("start_date")
+                total_days = trip_json.get("total_days")
+            
+            if not start_date:
+                start_date = questionnaire_data.get("date_depart")
+            
+            if start_date and isinstance(start_date, str) and "T" in start_date:
+                start_date = start_date.split("T")[0]
+            
+            if not total_days:
+                total_days = questionnaire_data.get("nuits_exactes")
+                if total_days:
+                    total_days = int(total_days) + 1
+            
+            if total_days:
+                total_nights = total_days - 1
+                # Calculer end_date
+                if start_date:
+                    try:
+                        from datetime import datetime, timedelta
+                        start_dt = datetime.fromisoformat(start_date)
+                        end_dt = start_dt + timedelta(days=total_days - 1)
+                        end_date = end_dt.date().isoformat()
+                    except Exception:
+                        pass
+            
+            # 7. Voyageurs
+            travelers_count = questionnaire_data.get("nombre_voyageurs", 1)
+            if travelers_count:
+                travelers_count = int(travelers_count)
+            
+            travel_style = None
+            rhythm = questionnaire_data.get("rythme")
+            
+            if trip_json:
+                travel_style = trip_json.get("travel_style")
+            
+            # 8. Budget
+            total_price = None
+            price_flights = None
+            price_hotels = None
+            price_activities = None
+            budget_currency = questionnaire_data.get("devise_budget", "EUR")
+            
+            if trip_json:
+                total_price = self._parse_price(trip_json.get("total_price"))
+                price_flights = self._parse_price(trip_json.get("price_flights"))
+                price_hotels = self._parse_price(trip_json.get("price_hotels"))
+                price_activities = self._parse_price(trip_json.get("price_activities"))
+            
+            # 9. Vols
+            flight_from = trip_json.get("flight_from") if trip_json else None
+            flight_to = trip_json.get("flight_to") if trip_json else None
+            flight_duration = trip_json.get("flight_duration") if trip_json else None
+            
+            # 10. Hébergement
+            hotel_name = trip_json.get("hotel_name") if trip_json else None
+            hotel_rating = self._parse_price(trip_json.get("hotel_rating")) if trip_json else None
+            
+            # 11. Météo
+            average_weather = trip_json.get("average_weather") if trip_json else None
+            
+            # 12. Images
+            main_image_url = trip_json.get("main_image") if trip_json else None
+            gallery_urls = []
+            if trip_json and trip_json.get("steps"):
+                for step in trip_json["steps"][:5]:  # Top 5 steps
+                    if step.get("main_image"):
+                        gallery_urls.append(step["main_image"])
+            
+            # 13. Stats
+            steps_count = len(trip_json.get("steps", [])) if trip_json else 0
+            activities_summary = []
+            if trip_json and trip_json.get("steps"):
+                for step in trip_json["steps"][:5]:
+                    title = step.get("title") or step.get("title_en")
+                    if title and not step.get("is_summary"):
+                        activities_summary.append(title)
+
+            # ============================================================
+            # INSERT ROBUSTE
+            # ============================================================
+            
+            query = """
+                INSERT INTO trip_summaries (
+                    questionnaire_id, run_id, user_email, persona, summary_paragraph,
+                    destination, destination_en, country_code,
+                    start_date, end_date, total_days, total_nights,
+                    travelers_count, travel_style, rhythm,
+                    total_price, price_flights, price_hotels, price_activities, budget_currency,
+                    flight_from, flight_to, flight_duration,
+                    hotel_name, hotel_rating,
+                    average_weather,
+                    main_image_url, gallery_urls,
+                    steps_count, activities_summary,
+                    pipeline_status, generated_at
+                ) VALUES (
+                    %s, %s, %s, %s, %s,
+                    %s, %s, %s,
+                    %s, %s, %s, %s,
+                    %s, %s, %s,
+                    %s, %s, %s, %s, %s,
+                    %s, %s, %s,
+                    %s, %s,
+                    %s,
+                    %s, %s,
+                    %s, %s,
+                    %s, timezone('utc', now())
+                )
+                ON CONFLICT (questionnaire_id) DO UPDATE SET
+                    run_id = EXCLUDED.run_id,
+                    persona = EXCLUDED.persona,
+                    summary_paragraph = EXCLUDED.summary_paragraph,
+                    destination = EXCLUDED.destination,
+                    destination_en = EXCLUDED.destination_en,
+                    total_price = EXCLUDED.total_price,
+                    price_flights = EXCLUDED.price_flights,
+                    price_hotels = EXCLUDED.price_hotels,
+                    price_activities = EXCLUDED.price_activities,
+                    main_image_url = EXCLUDED.main_image_url,
+                    gallery_urls = EXCLUDED.gallery_urls,
+                    steps_count = EXCLUDED.steps_count,
+                    activities_summary = EXCLUDED.activities_summary,
+                    pipeline_status = EXCLUDED.pipeline_status,
+                    generated_at = timezone('utc', now()),
+                    updated_at = timezone('utc', now())
+                RETURNING id
+            """
+            
+            cursor.execute(query, (
+                questionnaire_id, run_id, user_email, persona, summary_paragraph,
+                destination, destination_en, country_code,
+                start_date, end_date, total_days, total_nights,
+                travelers_count, travel_style, rhythm,
+                total_price, price_flights, price_hotels, price_activities, budget_currency,
+                flight_from, flight_to, flight_duration,
+                hotel_name, hotel_rating,
+                average_weather,
+                main_image_url, gallery_urls,
+                steps_count, activities_summary,
+                pipeline_status,
+            ))
+            
+            result = cursor.fetchone()
+            conn.commit()
+            
+            summary_id = str(result[0]) if result else None
+            logger.info(f"💾 Trip summary sauvegardé: {summary_id}", extra={
+                "questionnaire_id": questionnaire_id,
+                "persona": persona,
+                "destination": destination,
+            })
+            
+            return summary_id
+            
+        except Exception as e:
+            if conn:
+                conn.rollback()
+            logger.error(f"❌ Échec save_trip_summary: {e}")
+            # Ne pas lever l'exception pour ne pas bloquer le reste du pipeline
+            return None
+        finally:
+            if conn:
+                conn.close()
+
+    def _parse_price(self, value: Any) -> Optional[float]:
+        """Parse une valeur de prix en float, robuste aux différents formats."""
+        if value is None:
+            return None
+        if isinstance(value, (int, float)):
+            return float(value)
+        if isinstance(value, str):
+            # Nettoyer: "1,234.56€" -> 1234.56
+            import re
+            cleaned = re.sub(r'[^\d.,]', '', value)
+            if not cleaned:
+                return None
+            # Gérer virgule comme séparateur décimal
+            if ',' in cleaned and '.' not in cleaned:
+                cleaned = cleaned.replace(',', '.')
+            elif ',' in cleaned and '.' in cleaned:
+                cleaned = cleaned.replace(',', '')
+            try:
+                return float(cleaned)
+            except ValueError:
+                return None
+        return None
+
 
 # Instance globale
 supabase_service = SupabaseService()

@@ -362,17 +362,25 @@ class StepValidator:
             return None
         
         try:
+            # Construct prompt from available info
+            prompt = f"{title} in {destination}, {destination_country}"
+            
             result = self.mcp_tools.call_tool(
                 "images.background",
-                activity=title,
-                city=destination,
-                country=destination_country,
-                trip_name=f"{destination} Trip",
-                trip_folder=trip_code,
+                trip_code=trip_code,
+                prompt=prompt,
             )
             
-            if result and result.get("url"):
-                return result["url"]
+            # 🔧 FIX: Handle dict result from MCP
+            if isinstance(result, dict):
+                if result.get("success") is False:
+                    logger.warning(f"⚠️ images.background failed: {result.get('error')}")
+                    return None
+                return result.get("url")
+            
+            # Handle string result
+            if isinstance(result, str) and ("supabase.co" in result or result.startswith("http")):
+                return result
                 
         except Exception as e:
             logger.warning(f"Image fix failed: {e}")

@@ -1,7 +1,6 @@
 """Routes API pour Travliaq-Agents."""
 
 import logging
-import asyncio
 from typing import Dict, Any
 from fastapi import APIRouter, HTTPException, status, BackgroundTasks
 from pydantic import BaseModel, Field
@@ -84,6 +83,11 @@ def run_pipeline_sync(
     Exécute la pipeline CrewAI de manière synchrone.
     Cette fonction est appelée en arrière-plan.
     """
+    run_id = None
+    pipeline_status = "PENDING"
+    trip_json = None
+    persona_analysis = None
+    
     try:
         logger.info(f"🚀 Pipeline lancée en arrière-plan pour: {questionnaire_id}")
         
@@ -96,15 +100,42 @@ def run_pipeline_sync(
             },
         )
         
-        logger.info(f"✅ Pipeline terminée pour: {questionnaire_id}")
-        logger.info(f"📊 Run ID: {result.get('run_id', 'N/A')}")
+        run_id = result.get('run_id', 'N/A')
+        pipeline_status = "SUCCESS"
+        trip_json = result.get("trip_json")
+        persona_analysis = result.get("persona_analysis", {})
         
-        # TODO: Optionnel - sauvegarder le résultat dans Supabase ou notifier via webhook
+        logger.info(f"✅ Pipeline terminée pour: {questionnaire_id}")
+        logger.info(f"📊 Run ID: {run_id}")
         
     except Exception as e:
         logger.error(f"❌ Erreur pipeline pour {questionnaire_id}: {e}")
+        pipeline_status = "FAILED"
         import traceback
         traceback.print_exc()
+    
+    # ✅ TOUJOURS sauvegarder le trip summary (même en cas d'échec partiel)
+    try:
+        logger.info(f"💾 Sauvegarde trip summary pour: {questionnaire_id}")
+        
+        summary_id = supabase_service.save_trip_summary(
+            questionnaire_id=questionnaire_id,
+            questionnaire_data=questionnaire_data,
+            persona_inference=inference_dict,
+            persona_analysis=persona_analysis or {},
+            trip_json=trip_json,
+            run_id=run_id or f"{questionnaire_id}-unknown",
+            pipeline_status=pipeline_status,
+        )
+        
+        if summary_id:
+            logger.info(f"✅ Trip summary sauvegardé: {summary_id}")
+        else:
+            logger.warning(f"⚠️ Trip summary non sauvegardé pour: {questionnaire_id}")
+            
+    except Exception as e:
+        logger.error(f"❌ Erreur sauvegarde trip summary: {e}")
+        # Ne pas propager l'erreur, le pipeline principal est terminé
 
 
 @router.post("/process", response_model=PipelineStartedResponse)

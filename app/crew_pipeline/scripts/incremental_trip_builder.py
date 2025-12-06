@@ -649,7 +649,19 @@ class IncrementalTripBuilder:
                     trip_code=trip_code,
                     prompt=prompt,
                 )
-                return result
+                
+                # 🔧 FIX: Handle dict result from MCP
+                if isinstance(result, dict):
+                    if result.get("success") is False:
+                        logger.warning(f"⚠️ images.background failed: {result.get('error')}")
+                        return None
+                    return result.get("url")
+                
+                # Handle string result
+                if isinstance(result, str) and ("supabase.co" in result or result.startswith("http")):
+                    return result
+                    
+                return None
 
             # Sinon fallback sur l'ancienne méthode (liste d'outils)
             for tool in self.mcp_tools:
