@@ -260,7 +260,7 @@ class StepTemplateGenerator:
             results = self.mcp_tools.call_tool("geo.place", query=query_specific, max_results=1)
             
             if results and len(results) > 0:
-                logger.debug(f"      ✅ GPS found: {results[0].get('name')}")
+                logger.debug(f"      ✅ GPS found (SPECIFIC): {results[0].get('name')} in {results[0].get('country')}")
                 return results[0]
         except Exception as e:
             logger.warning(f"      ⚠️ geo.place failed attempt 1: {e}")
@@ -361,8 +361,10 @@ class StepTemplateGenerator:
         except Exception as e:
             logger.warning(f"      ⚠️ images.background failed attempt 2: {e}")
         
-        logger.warning(f"      ⚠️ No image generated, will be empty in template")
-        return None
+        # Attempt 3: Fallback par défaut
+        DEFAULT_IMAGE = "https://images.unsplash.com/photo-1476514525535-07fb3b4ae5f1?w=1920&q=80"
+        logger.warning(f"      ⚠️ No image generated, using default fallback: {DEFAULT_IMAGE}")
+        return DEFAULT_IMAGE
 
     def _validate_and_fix_image_url(self, url: str, expected_trip_code: str) -> str:
         """
