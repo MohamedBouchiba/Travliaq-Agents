@@ -260,6 +260,183 @@ class IncrementalTripBuilder:
             step["main_image"] = generated_url
             logger.info(f"✅ Step {step_number}: Image générée via ImageGenerator") # Fixed log message
 
+    # =========================================================================
+    # SETTERS (PHASE 2 & 3)
+    # =========================================================================
+
+    def set_flight_info(self, flights_data: Dict[str, Any]) -> None:
+        """Enrichir le trip avec les infos vol."""
+        if not flights_data:
+            return
+            
+        self.trip_json["flight_from"] = flights_data.get("departure", "")
+        self.trip_json["flight_to"] = flights_data.get("arrival", "")
+        self.trip_json["flight_duration"] = flights_data.get("duration", "")
+        self.trip_json["flight_type"] = flights_data.get("type", "")
+        logger.info("✈️ Flight info updated")
+
+    def set_hotel_info(self, hotel_data: Dict[str, Any]) -> None:
+        """Enrichir le trip avec les infos hôtel."""
+        if not hotel_data:
+            return
+            
+        self.trip_json["hotel_name"] = hotel_data.get("name", "")
+        self.trip_json["hotel_rating"] = hotel_data.get("rating", 0)
+        logger.info("🏨 Hotel info updated")
+
+    def set_step_gps(self, step_number: int, latitude: float, longitude: float) -> None:
+        """Définir les coordonnées GPS d'une step."""
+        step = self._get_step(step_number)
+        if step:
+            step["latitude"] = latitude
+            step["longitude"] = longitude
+            logger.debug(f"📍 Step {step_number}: GPS updated")
+
+    def set_step_title(self, step_number: int, title: str, title_en: str = "", subtitle: str = "", subtitle_en: str = "") -> None:
+        """Définir les titres et sous-titres d'une step."""
+        step = self._get_step(step_number)
+        if step:
+            step["title"] = title
+            step["title_en"] = title_en
+            step["subtitle"] = subtitle
+            step["subtitle_en"] = subtitle_en
+            logger.debug(f"📝 Step {step_number}: Title set to '{title}'")
+
+    def set_step_content(self, step_number: int, why: str = "", why_en: str = "", tips: str = "", tips_en: str = "", 
+                         transfer: str = "", transfer_en: str = "", suggestion: str = "", suggestion_en: str = "") -> None:
+        """Définir le contenu détaillé d'une step."""
+        step = self._get_step(step_number)
+        if step:
+            step["why"] = why
+            step["why_en"] = why_en
+            step["tips"] = tips
+            step["tips_en"] = tips_en
+            step["transfer"] = transfer
+            step["transfer_en"] = transfer_en
+            step["suggestion"] = suggestion
+            step["suggestion_en"] = suggestion_en
+            logger.debug(f"📝 Step {step_number}: Content details updated")
+
+    def set_step_weather(self, step_number: int, icon: str, temp: str, description: str, description_en: str) -> None:
+        """Définir la météo pour une step."""
+        step = self._get_step(step_number)
+        if step:
+            step["weather_icon"] = icon
+            step["weather_temp"] = temp
+            step["weather_description"] = description
+            step["weather_description_en"] = description_en
+            logger.debug(f"☀️ Step {step_number}: Weather updated")
+
+    def set_step_price_duration(self, step_number: int, price: float, duration: str) -> None:
+        """Définir prix et durée d'une step."""
+        step = self._get_step(step_number)
+        if step:
+            step["price"] = price
+            step["duration"] = duration
+
+    def set_step_type(self, step_number: int, step_type: str) -> None:
+        """Définir le type d'activité."""
+        step = self._get_step(step_number)
+        if step:
+            step["step_type"] = step_type
+
+    def get_completeness_report(self) -> Dict[str, Any]:
+        """Générer un rapport de complétude du trip."""
+        steps = [s for s in self.trip_json["steps"] if not s.get("is_summary")]
+        total_steps = len(steps)
+        if total_steps == 0:
+            return {"trip_completeness": 0, "steps_with_title": "0/0", "missing_critical": ["No steps"]}
+
+        with_title = len([s for s in steps if s.get("title")])
+        with_image = len([s for s in steps if s.get("main_image")])
+        with_gps = len([s for s in steps if s.get("latitude") and s.get("longitude")])
+        
+        missing = self._find_missing_critical_fields()
+        
+        return {
+            "trip_completeness": f"{int((with_title/total_steps)*100)}%",
+            "steps_with_title": f"{with_title}/{total_steps}",
+            "steps_with_image": f"{with_image}/{total_steps}",
+            "steps_with_gps": f"{with_gps}/{total_steps}",
+            "missing_critical": missing
+        }
+
+    def set_step_details(self, step_number: int, **kwargs) -> None:
+        """
+        Mettre à jour les champs textuels d'une step.
+        """
+        step = self._get_step(step_number)
+        if not step:
+            return
+            
+        # Update allowed fields
+        allowed = ["title", "title_en", "subtitle", "subtitle_en", "why", "why_en",
+                  "tips", "tips_en", "transfer", "transfer_en", "suggestion", "suggestion_en",
+                  "weather_temp", "weather_description", "weather_description_en",
+                  "duration", "step_type"]
+                  
+        for k, v in kwargs.items():
+            if k in allowed:
+                step[k] = v
+        
+        logger.debug(f"📝 Step {step_number}: details updated")
+
+    def set_prices(self, total_price: float, flight_price: float, hotel_price: float, activities_price: float, currency: str = "EUR") -> None:
+        """Définir les prix finaux du voyage."""
+        self.trip_json["total_price"] = total_price
+        self.trip_json["price_flights"] = flight_price
+        self.trip_json["price_hotels"] = hotel_price
+        self.trip_json["price_activities"] = activities_price
+        # self.trip_json["currency"] = currency # Check if needed in schema
+        
+        # Update summary stats budget
+        self._update_stat("budget", f"{total_price} {currency}")
+        logger.info(f"💰 Prices updated: Total {total_price} {currency}")
+
+    def update_summary_stats(self) -> None:
+        """
+        Recalculer les stats du résumé (étape 99).
+        Appelé à la fin pour être sûr que tout est synchro.
+        """
+        summary_step = self._get_step(99)
+        if not summary_step:
+            return
+
+        # Days
+        self._update_stat("days", str(self.trip_json.get("total_days", 7)))
+        
+        # Budget
+        total = self.trip_json.get("total_price")
+        if total:
+            self._update_stat("budget", f"{total} EUR")
+            
+        # Travelers
+        travelers = self.questionnaire.get("nombre_voyageurs", 2)
+        self._update_stat("people", str(travelers))
+        
+        # Activities count (steps - summary)
+        steps_count = len([s for s in self.trip_json["steps"] if not s.get("is_summary")])
+        self._update_stat("activities", str(steps_count))
+
+        logger.info("📊 Summary stats updated")
+
+    def _update_stat(self, stat_type: str, value: str) -> None:
+        """Helper pour mettre à jour une stat spécifique."""
+        summary_step = self._get_step(99)
+        if not summary_step:
+            return
+            
+        stats = summary_step.get("summary_stats", [])
+        updated = False
+        for stat in stats:
+            if stat["type"] == stat_type:
+                stat["value"] = value
+                updated = True
+                break
+        
+        if not updated:
+            stats.append({"type": stat_type, "value": value})
+            
     def _get_step(self, step_number: int) -> Dict[str, Any]:
         """Récupérer une step par son numéro."""
         for step in self.trip_json["steps"]:
