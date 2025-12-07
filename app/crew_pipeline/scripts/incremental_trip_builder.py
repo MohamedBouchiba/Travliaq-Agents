@@ -325,7 +325,21 @@ class IncrementalTripBuilder:
         day = int((step_i - 1) / total_steps * total_days) + 1
         return min(day, total_days)
 
-    # DELETED: _generate_hero_image_via_mcp
+    # =========================================================================
+    # EXPORT / PUBLIC ACCESSORS
+    # =========================================================================
+
+    def get_current_state_yaml(self) -> str:
+        """Retourne l'état actuel du trip au format YAML pour les logs."""
+        try:
+            return yaml.dump(self.trip_json, allow_unicode=True, sort_keys=False)
+        except Exception as e:
+            return f"Error dumping YAML: {e}"
+
+    def get_json(self) -> Dict[str, Any]:
+        """Retourne le trip JSON final."""
+        return self.trip_json
+
     # DELETED: _call_mcp_images_background
 
     def _build_fallback_image(self, query: str, is_hero: bool = False) -> str:
