@@ -1333,12 +1333,7 @@ class CrewPipeline:
 
     def _merge_trip_data(self, target: Dict[str, Any], source: Dict[str, Any]) -> None:
         """
-        Merger intelligemment les données de source dans target.
-
-        Règles:
-        - Ne jamais écraser un champ non-vide avec un champ vide
-        - Pour les steps, merger step par step en gardant les données existantes
-        - Pour summary_stats, utiliser celles de source si target n'en a pas
+        Merger les données de source dans target (Priorité à Source pour Phase 3).
         """
         # Merger les champs scalaires du trip
         scalar_fields = [
@@ -1352,10 +1347,8 @@ class CrewPipeline:
 
         for field in scalar_fields:
             source_value = source.get(field)
-            target_value = target.get(field)
-
-            # Si target est vide/None/0/"" et source a une valeur, prendre source
-            if not target_value and source_value:
+            # Priorité à Source si valeur présente
+            if source_value not in [None, "", 0]:
                 target[field] = source_value
 
         # Merger les steps
@@ -1363,22 +1356,33 @@ class CrewPipeline:
         target_steps = target.get("steps", [])
 
         if not source_steps:
-            return  # Rien à merger
+            return
 
         # Créer un mapping step_number -> step pour un accès rapide
-        target_steps_map = {s.get("step_number"): s for s in target_steps if s.get("step_number")}
+        # Gérer les types str/int pour step_number
+        target_steps_map = {}
+        for s in target_steps:
+            sn = s.get("step_number")
+            if sn is not None:
+                target_steps_map[str(sn)] = s
+                target_steps_map[int(sn)] = s
+
+        logger.info(f"🔄 Merging {len(source_steps)} steps from Phase 3 into {len(target_steps)} existing steps")
 
         for source_step in source_steps:
             step_num = source_step.get("step_number")
-
-            if step_num not in target_steps_map:
-                # Step n'existe pas dans target, l'ajouter
-                target_steps.append(source_step)
+            if step_num is None:
                 continue
 
-            # Step existe, merger les champs
-            target_step = target_steps_map[step_num]
+            target_step = target_steps_map.get(step_num) or target_steps_map.get(str(step_num))
 
+            if not target_step:
+                # Step n'existe pas dans target, l'ajouter
+                target_steps.append(source_step)
+                logger.debug(f"  ➕ Added new step {step_num}")
+                continue
+
+            # Step existe, merger les champs (Source overwrites Target)
             step_fields = [
                 "title", "title_en", "subtitle", "subtitle_en",
                 "main_image", "step_type", "is_summary",
@@ -1391,18 +1395,20 @@ class CrewPipeline:
 
             for field in step_fields:
                 source_value = source_step.get(field)
-                target_value = target_step.get(field)
-
-                # IMPORTANT: Ne jamais écraser un titre existant avec un titre vide
-                # Special handling for required fields like title
-                if field in ["title", "title_en", "subtitle", "subtitle_en"]:
-                    # Only overwrite if target is empty AND source is non-empty
-                    if (not target_value or target_value == "") and source_value and source_value != "":
-                        target_step[field] = source_value
-                else:
-                    # Si target est vide/None/0/"" et source a une valeur, prendre source
-                    if not target_value and source_value:
-                        target_step[field] = source_value
+                
+                # Special cases: Don't overwrite good data with empty/bad data
+                if field in ["latitude", "longitude"] and (source_value == 0 or source_value is None):
+                    continue # Keep existing GPS if Source has none
+                
+                if field == "main_image" and (not source_value or "supabase" not in str(source_value)):
+                    # If Source image is empty or not supabase, check if Target has good image
+                    target_val = target_step.get("main_image")
+                    if target_val and "supabase" in str(target_val):
+                        continue # Keep existing good image
+                
+                # Default: Source wins if it has value
+                if source_value not in [None, ""]:
+                    target_step[field] = source_value
 
             # Merger images array (additionner sans doublons)
             source_images = source_step.get("images", [])
@@ -1412,8 +1418,8 @@ class CrewPipeline:
                     if img not in target_images:
                         target_images.append(img)
 
-            # Merger summary_stats (remplacer complètement si target n'en a pas)
-            if source_step.get("summary_stats") and not target_step.get("summary_stats"):
+            # Merger summary_stats
+            if source_step.get("summary_stats"):
                 target_step["summary_stats"] = source_step["summary_stats"]
 
         target["steps"] = target_steps
