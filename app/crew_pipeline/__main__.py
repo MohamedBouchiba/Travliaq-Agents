@@ -136,6 +136,14 @@ def parse_args(argv: Optional[list[str]] = None) -> argparse.Namespace:
     return parser.parse_args(argv)
 
 
+from decimal import Decimal
+
+class DecimalEncoder(json.JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, Decimal):
+            return float(obj)
+        return super(DecimalEncoder, self).default(obj)
+
 def main(argv: Optional[list[str]] = None) -> int:
     args = parse_args(argv)
     _configure_logging(args.log_level)
@@ -162,7 +170,7 @@ def main(argv: Optional[list[str]] = None) -> int:
             if isinstance(persona_analysis, dict):
                 persona_analysis.pop("raw_response", None)
 
-        print(json.dumps(printable, indent=2, ensure_ascii=False))
+        print(json.dumps(printable, indent=2, ensure_ascii=False, cls=DecimalEncoder))
 
         # Check schema validation status
         validation = result.get("validation", {})
