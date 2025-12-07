@@ -260,7 +260,70 @@ class IncrementalTripBuilder:
             step["main_image"] = generated_url
             logger.info(f"✅ Step {step_number}: Image générée via ImageGenerator") # Fixed log message
 
-    # ... (Keep other setters unchanged) ...
+    def _get_step(self, step_number: int) -> Dict[str, Any]:
+        """Récupérer une step par son numéro."""
+        for step in self.trip_json["steps"]:
+            if step["step_number"] == step_number:
+                return step
+        return None
+
+    # =========================================================================
+    # HELPERS
+    # =========================================================================
+
+    def _calculate_total_days(self, start_date_str: str) -> int:
+        """Calculer la durée totale à partir du questionnaire ou d'une estimation."""
+        # 1. Essayer durée explicite du questionnaire
+        duree = self.questionnaire.get("duree")
+        if duree:
+            match = re.search(r'(\d+)', str(duree))
+            if match:
+                return int(match.group(1))
+        
+        # 2. Essayer difference date retour - depart
+        if start_date_str:
+            end_date_str = self.questionnaire.get("date_retour")
+            if end_date_str:
+                try:
+                    start = datetime.strptime(str(start_date_str), "%Y-%m-%d")
+                    end = datetime.strptime(str(end_date_str), "%Y-%m-%d")
+                    delta = (end - start).days
+                    return max(1, delta)
+                except Exception:
+                    pass
+
+        return 7  # Valeur par défaut si tout échoue
+
+    def _calculate_steps_count(self, total_days: int, rhythm: str) -> int:
+        """Calculer le nombre de steps (activités) selon la durée et le rythme."""
+        multipliers = {
+            "relaxed": 1.5,
+            "balanced": 1.5,
+            "intense": 2.5
+        }
+        mult = multipliers.get(rhythm, 1.5)
+        return max(1, int(total_days * mult))
+
+    def _generate_code(self, destination: str) -> str:
+        """Générer un code de voyage unique."""
+        # Nettoyer destination (garder lettres/chiffres, majuscules)
+        clean_dest = re.sub(r'[^A-Z0-9]', '', destination.upper().split(',')[0])[:15]
+        year = datetime.utcnow().year
+        unique_id = str(uuid.uuid4())[:6].upper()
+        return f"{clean_dest}-{year}-{unique_id}"
+
+    def _calculate_day_number(self, step_i: int, total_steps: int, total_days: int) -> int:
+        """
+        Calculer le jour d'une step pour une distribution homogène.
+        Ex: 10 steps sur 5 jours -> 2 steps par jour
+        """
+        if total_days <= 0:
+            return 1
+        
+        # Distribution simple : step_i / (total_steps / total_days)
+        # Mais pour éviter les virgules, on mappe proportionnellement
+        day = int((step_i - 1) / total_steps * total_days) + 1
+        return min(day, total_days)
 
     # DELETED: _generate_hero_image_via_mcp
     # DELETED: _call_mcp_images_background
