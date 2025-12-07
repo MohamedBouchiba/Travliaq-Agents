@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import logging
 from typing import Any, Dict, List, Optional
+from app.crew_pipeline.scripts.image_generator import ImageGenerator
 
 logger = logging.getLogger(__name__)
 
@@ -38,6 +39,7 @@ class PostProcessingEnricher:
             mcp_tools: Instance MCPToolManager avec accès à images.*, translate_en, etc.
         """
         self.mcp_tools = mcp_tools
+        self.image_generator = ImageGenerator(mcp_tools)
 
     def enrich_trip(
         self,
@@ -146,76 +148,13 @@ class PostProcessingEnricher:
 
         logger.debug(f"    🖼️ Regenerating image with enriched prompt: '{prompt[:80]}...'")
 
-        try:
-            result = self.mcp_tools.call_tool(
-                "images.background",
-                trip_code=trip_code,
-                prompt=prompt,
-            )
+        return self.image_generator.generate_image(
+            prompt=prompt,
+            trip_code=trip_code,
+            image_type="background"
+        )
 
-            # Handle different response formats
-            # 1. Check for error string
-            if isinstance(result, str) and not "supabase.co" in result and not result.startswith("http"):
-                 # Assume it's an error message if it's a string but not a URL
-                 logger.warning(f"    ⚠️ images.background returned error string: {result[:100]}")
-                 return None
 
-            # 2. Check for dict with success=False
-            if isinstance(result, dict) and result.get("success") is False:
-                error_msg = result.get("error", "Unknown error")
-                logger.warning(f"    ⚠️ images.background failed: {error_msg}")
-                return None
-
-            # 3. Check for dict with URL
-            if isinstance(result, dict) and result.get("url"):
-                url = result["url"]
-                return self._validate_image_url(url, trip_code)
-            
-            # 4. Check for direct URL string
-            elif isinstance(result, str) and ("supabase.co" in result or result.startswith("http")):
-                return self._validate_image_url(result, trip_code)
-            
-            else:
-                logger.warning(f"    ⚠️ images.background returned unexpected format: {type(result)}")
-                return None
-
-        except Exception as e:
-            logger.warning(f"    ⚠️ Image regeneration failed: {e}")
-            return None
-
-    def _validate_image_url(self, url: str, expected_trip_code: str) -> str:
-        """
-        Valider et corriger l'URL Supabase (même logique que StepTemplateGenerator).
-
-        Args:
-            url: URL retournée par images.background
-            expected_trip_code: Code trip réel
-
-        Returns:
-            URL corrigée
-        """
-        if not url or "/TRIPS/" not in url:
-            return url
-
-        parts = url.split("/TRIPS/")
-        if len(parts) != 2:
-            return url
-
-        base_url = parts[0] + "/TRIPS/"
-        remainder = parts[1]
-
-        path_parts = remainder.split("/", 1)
-        if len(path_parts) != 2:
-            return url
-
-        current_folder = path_parts[0]
-        filename = path_parts[1]
-
-        if current_folder != expected_trip_code:
-            logger.debug(f"    🔧 Fixing URL folder: '{current_folder}' → '{expected_trip_code}'")
-            return f"{base_url}{expected_trip_code}/{filename}"
-
-        return url
 
     def _translate_step_fields(self, step: Dict[str, Any]) -> None:
         """

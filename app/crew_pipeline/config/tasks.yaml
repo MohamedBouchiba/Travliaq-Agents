@@ -869,10 +869,10 @@ tasks:
       - ❌ NE JAMAIS créer de steps supplémentaires au-delà des templates
       - ❌ NE JAMAIS créer une nouvelle step récapitulative (step 99 existe déjà)
 
-      ⚠️ **IMAGE HERO DU TRIP (TOUJOURS OBLIGATOIRE) :**
-      - Les templates NE contiennent PAS l'image hero du trip global
-      - Tu DOIS TOUJOURS appeler images.hero pour générer hero_image
-      - Même si les templates contiennent les main_image des steps, hero_image est séparée
+      ⚠️ **IMAGE HERO DU TRIP :**
+      - ✅ **GÉRÉE AUTOMATIQUEMENT** par un script après ton travail
+      - ❌ **NE PAS** appeler images.hero
+      - Tu peux laisser le champ `hero_image` vide ou mettre "placeholder"
 
       ---
 
@@ -909,10 +909,9 @@ tasks:
       - ✅ Après ton travail, un script Python **régénérera les images avec des prompts enrichis** basés sur ton contenu (title + why)
 
       **🎨 Image hero du trip :**
-      - ✅ Tu DOIS appeler `images.hero` UNE SEULE FOIS pour le trip complet
-      - Paramètres : `city`, `country`, `trip_name`, `trip_folder` (code du trip)
-      - Utilise l'URL retournée dans le champ `hero_image` en haut de ton output
-      - Si l'appel échoue, laisse vide (un fallback sera utilisé)
+      - ✅ **GÉRÉE AUTOMATIQUEMENT** par un script
+      - ❌ **NE PAS** appeler `images.hero`
+      - Laisse le champ `hero_image` vide, il sera rempli automatiquement
 
       **🌍 Traductions EN (title_en, why_en, tips_en, subtitle_en, etc.) :**
       - 📝 **TOTALEMENT OPTIONNEL** : Tu peux laisser TOUS les champs EN vides
@@ -921,7 +920,7 @@ tasks:
       - Les champs EN seront traduits parfaitement après coup
 
       **📋 Ce qui te reste à faire (simplifié) :**
-      1. ✅ Appeler `images.hero` pour l'image principale du trip (gérer les erreurs gracieusement)
+      1. ✅ Laisser `hero_image` vide (géré par script)
       2. ✅ Copier les `main_image` depuis les templates pour chaque step (ne pas modifier)
       3. ✅ Remplir un contenu FRANÇAIS de haute qualité (title, why, tips, subtitle)
       4. ✅ **IGNORER** les champs EN (ou copie FR si tu veux, mais inutile car traduit auto)
@@ -944,7 +943,7 @@ tasks:
       - longitude : GPS (depuis templates) - COPIER depuis templates
       - why : pourquoi visiter - 3-4 PHRASES détaillées et informatives (FR) - OBLIGATOIRE
       - tips : conseils pratiques ULTRA-DÉTAILLÉS - 3-5 PHRASES avec horaires, prix, astuces (FR) - OBLIGATOIRE
-      - duration : durée estimée PRÉCISE (ex: "2h30", "3h", "Demi-journée") - OBLIGATOIRE
+      - duration : durée estimée PRÉCISE (ex: "2h30", "3h", "1h") - OBLIGATOIRE
       - price : prix estimé RÉALISTE en euros (nombre, ex: 15, 25, 0 pour gratuit) - OBLIGATOIRE
       - step_type : activité/visite/restaurant/transport/hébergement/loisir - COPIER depuis templates
       - weather_icon : emoji météo (🌤️, ☀️, ⛅, 🌧️) - OBLIGATOIRE
@@ -1059,7 +1058,7 @@ tasks:
       ## **EXEMPLE COMPLET D'OUTPUT ATTENDU**
 
       **⚠️ IMPORTANT : Les URLs ci-dessous sont des PLACEHOLDERS**
-      **TU DOIS appeler images.hero et images.background pour obtenir les VRAIES URLs pour CE voyage**
+      **TU DOIS laisser hero_image vide ou placeholder car le script s'en charge**
 
       ```yaml
       itinerary_plan:
@@ -1081,7 +1080,7 @@ tasks:
             price: 0
             why: "Shibuya Crossing est l'un des passages piétons les plus emblématiques au monde, avec jusqu'à 3000 personnes traversant simultanément. C'est l'immersion parfaite dans l'énergie et le rythme trépidant de Tokyo dès votre arrivée."
             why_en: "Shibuya Crossing is one of the world's most iconic pedestrian crossings, with up to 3,000 people crossing simultaneously. It's the perfect immersion into Tokyo's energy and fast-paced rhythm from your arrival."
-            tips: "Visitez en fin d'après-midi (17h-19h) pour voir le crossing illuminé au coucher du soleil. Montez au Shibuya Sky (étage 46) pour une vue panoramique à 360° sur Tokyo (2000¥). Le Starbucks au 2ème étage du Tsutaya Building offre une vue gratuite sur le crossing."
+            tips: "Visitez en fin d'après-midi (17h-19h) pour voir le crossing illuminé au coucher de soleil. Montez au Shibuya Sky (étage 46) pour une vue panoramique à 360° sur Tokyo (2000¥). Le Starbucks au 2ème étage du Tsutaya Building offre une vue gratuite sur le crossing."
             tips_en: "Visit in late afternoon (5-7pm) to see the crossing illuminated at sunset. Go up to Shibuya Sky (46th floor) for a 360° panoramic view of Tokyo (2000¥). The Starbucks on the 2nd floor of Tsutaya Building offers a free view of the crossing."
             transfer: "30 min en Narita Express depuis l'aéroport (3220¥), puis 5 min à pied jusqu'à l'hôtel"
             transfer_en: "30 min by Narita Express from airport (3220¥), then 5 min walk to hotel"
@@ -1252,7 +1251,7 @@ tasks:
       **CHECKLIST FINALE ULTRA-STRICTE AVANT DE SOUMETTRE TON OUTPUT :**
 
       📋 **STRUCTURE GLOBALE :**
-      - ✅ hero_image OBLIGATOIRE en haut - URL Supabase via images.hero (TOUJOURS appeler, même avec templates)
+      - ✅ hero_image géré par script (ne pas appeler outil)
       - ✅ 1-3 steps par jour pour CHAQUE jour du voyage
       - ✅ Step 99 (EXISTANTE) remplie avec title, subtitle, summary_stats (4-8 items)
       - ⚠️ NE PAS créer de nouvelle step récapitulative - step 99 existe déjà !
