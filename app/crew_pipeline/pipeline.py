@@ -1022,6 +1022,10 @@ class CrewPipeline:
         if trip_core and isinstance(trip_core, dict) and "destination" in trip_core:
             try:
                 if is_valid:
+                    # 🛡️ SAFETY CHECK: Valider et réparer les données critiques avant sauvegarde
+                    self._validate_and_fix_trip_data(builder)
+                    trip_core = builder.get_json() # Refresh after fix
+
                     # 1️⃣ Insérer le trip dans la table trips
                     trip_id = supabase_service.insert_trip_from_json(trip_core)
                     persistence["inserted_via_function"] = bool(trip_id)
@@ -1039,6 +1043,7 @@ class CrewPipeline:
                         run_id=run_id,
                         pipeline_status="SUCCESS",
                     )
+
                     persistence["trip_summary_id"] = summary_id
 
                     if summary_id:
@@ -1483,6 +1488,45 @@ class CrewPipeline:
 
         except Exception as e:
             logger.error(f"❌ Erreur lors de l'enrichissement depuis PHASE3: {e}", exc_info=True)
+
+    def _validate_and_fix_trip_data(self, builder: IncrementalTripBuilder) -> None:
+        """
+        Vérifie et répare les données critiques (code, images) avant sauvegarde finale.
+        Assure la robustesse demandée par l'utilisateur.
+        """
+        trip = builder.trip_json
+        
+        # 1. 🛡️ TRIP CODE (Obligatoire)
+        if not trip.get("code"):
+            logger.warning("⚠️ CRITICAL: Trip code missing in final payload! Regenerating...")
+            dest = trip.get("destination", "TRIP")
+            import uuid
+            from datetime import datetime
+            clean_dest = "".join(c for c in dest if c.isalnum()).upper()[:10]
+            year = datetime.utcnow().year
+            uid = str(uuid.uuid4())[:6].upper()
+            trip["code"] = f"{clean_dest}-{year}-{uid}"
+            logger.info(f"✅ Trip code fixed: {trip['code']}")
+
+        # 2. 🛡️ IMAGES (Super important)
+        if not trip.get("main_image") or trip.get("main_image") == "":
+            logger.warning("⚠️ Main image missing, attempting fix...")
+            
+            # A. Try to grab valid image from any step
+            steps = trip.get("steps", [])
+            found = False
+            for s in steps:
+                img = s.get("main_image")
+                if img and "supabase.co" in img:
+                    trip["main_image"] = img
+                    logger.info(f"✅ Main image fixed using image from step {s.get('step_number')}")
+                    found = True
+                    break
+            
+            # B. If still missing, force generation/fallback mechanism
+            if not found:
+                logger.warning("⚠️ No valid image found in steps, triggering builder fallback...")
+                builder.set_hero_image("") # Will trigger MCP generation or Unsplash fallback
 
     def _create_agent(self, name: str, config: Dict[str, Any], tools: List[Any]) -> Agent:
         """Crée un agent avec sa configuration complète."""

@@ -607,6 +607,15 @@ class SupabaseService:
             # 14. Trip code
             trip_code = trip_json.get("code") if trip_json else None
 
+            # 15. Langue (NOUVEAU)
+            language = questionnaire_data.get("langue")
+            if not language:
+                # Tentative de déduction
+                if questionnaire_data.get("locale"):
+                    language = questionnaire_data.get("locale")
+                else:
+                    language = "fr" # Default
+
             # ============================================================
             # INSERT ROBUSTE
             # ============================================================
@@ -623,7 +632,7 @@ class SupabaseService:
                     average_weather,
                     main_image_url, gallery_urls,
                     steps_count, activities_summary,
-                    trip_code, pipeline_status, generated_at
+                    trip_code, pipeline_status, generated_at, language
                 ) VALUES (
                     %s, %s, %s, %s, %s,
                     %s, %s, %s,
@@ -635,7 +644,7 @@ class SupabaseService:
                     %s,
                     %s, %s,
                     %s, %s,
-                    %s, %s, timezone('utc', now())
+                    %s, %s, timezone('utc', now()), %s
                 )
                 ON CONFLICT (questionnaire_id) DO UPDATE SET
                     run_id = EXCLUDED.run_id,
@@ -653,6 +662,7 @@ class SupabaseService:
                     activities_summary = EXCLUDED.activities_summary,
                     trip_code = EXCLUDED.trip_code,
                     pipeline_status = EXCLUDED.pipeline_status,
+                    language = EXCLUDED.language,
                     generated_at = timezone('utc', now()),
                     updated_at = timezone('utc', now())
                 RETURNING id
@@ -669,7 +679,7 @@ class SupabaseService:
                 average_weather,
                 main_image_url, gallery_urls,
                 steps_count, activities_summary,
-                trip_code, pipeline_status,
+                trip_code, pipeline_status, language
             ))
             
             result = cursor.fetchone()
