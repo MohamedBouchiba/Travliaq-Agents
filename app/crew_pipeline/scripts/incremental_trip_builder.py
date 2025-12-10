@@ -46,6 +46,9 @@ class IncrementalTripBuilder:
         self.trip_json = None  # Sera créé dans initialize_structure()
         self.mcp_tools = []  # Pour appels directs si besoin
 
+        # 🆕 PERFORMANCE: Cache pour accès O(1) aux steps (au lieu de O(n))
+        self._steps_cache: Dict[int, Dict[str, Any]] = {}
+
         logger.info("🏗️ IncrementalTripBuilder créé")
 
     # =========================================================================
@@ -186,11 +189,15 @@ class IncrementalTripBuilder:
             ]
         })
 
+        # 🆕 PERFORMANCE: Construire le cache après création des steps
+        self._rebuild_steps_cache()
+
         logger.info(f"🏗️ Structure JSON initialisée: {code}")
         logger.info(f"   - Destination: {destination}")
         logger.info(f"   - Jours: {total_days}")
         logger.info(f"   - Rythme: {rhythm}")
         logger.info(f"   - Steps: {num_steps} activités + 1 summary")
+        logger.info(f"   - Cache size: {len(self._steps_cache)} entries")
 
     # =========================================================================
     # TRIP-LEVEL SETTERS (pour enrichir le trip principal)
@@ -264,25 +271,41 @@ class IncrementalTripBuilder:
     # SETTERS (PHASE 2 & 3)
     # =========================================================================
 
-    def set_flight_info(self, flights_data: Dict[str, Any]) -> None:
+    def set_flight_info(
+        self,
+        flight_from: str = "",
+        flight_to: str = "",
+        duration: str = "",
+        flight_type: str = "",
+        price: str = "",
+    ) -> None:
         """Enrichir le trip avec les infos vol."""
-        if not flights_data:
-            return
-            
-        self.trip_json["flight_from"] = flights_data.get("departure", "")
-        self.trip_json["flight_to"] = flights_data.get("arrival", "")
-        self.trip_json["flight_duration"] = flights_data.get("duration", "")
-        self.trip_json["flight_type"] = flights_data.get("type", "")
-        logger.info("✈️ Flight info updated")
+        if flight_from:
+            self.trip_json["flight_from"] = flight_from
+        if flight_to:
+            self.trip_json["flight_to"] = flight_to
+        if duration:
+            self.trip_json["flight_duration"] = duration
+        if flight_type:
+            self.trip_json["flight_type"] = flight_type
+        
+        # On ne traite pas `price` ici car set_prices() le fait mieux en Phase 3
+        logger.info(f"✈️ Flight info updated: {flight_from} -> {flight_to}")
 
-    def set_hotel_info(self, hotel_data: Dict[str, Any]) -> None:
+    def set_hotel_info(
+        self,
+        hotel_name: str = "",
+        hotel_rating: float = 0.0,
+        price: str = "",
+    ) -> None:
         """Enrichir le trip avec les infos hôtel."""
-        if not hotel_data:
-            return
+        if hotel_name:
+            self.trip_json["hotel_name"] = hotel_name
+        if hotel_rating:
+            self.trip_json["hotel_rating"] = hotel_rating
             
-        self.trip_json["hotel_name"] = hotel_data.get("name", "")
-        self.trip_json["hotel_rating"] = hotel_data.get("rating", 0)
-        logger.info("🏨 Hotel info updated")
+        # On ne traite pas `price` ici car set_prices() le fait mieux en Phase 3
+        logger.info(f"🏨 Hotel info updated: {hotel_name} ({hotel_rating})")
 
     def set_step_gps(self, step_number: int, latitude: float, longitude: float) -> None:
         """Définir les coordonnées GPS d'une step."""
@@ -436,13 +459,42 @@ class IncrementalTripBuilder:
         
         if not updated:
             stats.append({"type": stat_type, "value": value})
-            
-    def _get_step(self, step_number: int) -> Dict[str, Any]:
-        """Récupérer une step par son numéro."""
-        for step in self.trip_json["steps"]:
-            if step["step_number"] == step_number:
-                return step
-        return None
+
+    def _rebuild_steps_cache(self) -> None:
+        """
+        🆕 PERFORMANCE: Reconstruit le cache d'accès rapide aux steps.
+
+        Appelé après toute modification de self.trip_json["steps"]
+        (ajout, suppression, réorganisation).
+
+        Complexité : O(n) une fois, puis O(1) pour tous les accès.
+        """
+        self._steps_cache.clear()
+
+        if self.trip_json and "steps" in self.trip_json:
+            for step in self.trip_json["steps"]:
+                step_number = step.get("step_number")
+                if step_number is not None:
+                    self._steps_cache[step_number] = step
+
+        logger.debug(f"🔄 Steps cache rebuilt: {len(self._steps_cache)} entries")
+
+    def _get_step(self, step_number: int) -> Optional[Dict[str, Any]]:
+        """
+        🚀 PERFORMANCE: Récupérer une step par son numéro (O(1) grâce au cache).
+
+        Args:
+            step_number: Numéro de la step (1-N ou 99 pour summary)
+
+        Returns:
+            Dict de la step ou None si non trouvée
+        """
+        step = self._steps_cache.get(step_number)
+
+        if step is None:
+            logger.warning(f"⚠️ Step {step_number} not found in cache")
+
+        return step
 
     # =========================================================================
     # HELPERS

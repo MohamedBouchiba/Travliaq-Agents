@@ -582,6 +582,9 @@ class CrewPipeline:
                             if summary_step:
                                 builder.trip_json["steps"].append(summary_step)
 
+                            # 🆕 PERFORMANCE: Rebuild cache après ajout de steps
+                            builder._rebuild_steps_cache()
+
                             logger.info(f"✅ Added {planned_total_steps - current_count} steps to match plan")
                         elif planned_total_steps < current_count:
                             # Retirer des steps en trop (garder summary)
@@ -593,6 +596,9 @@ class CrewPipeline:
 
                             if summary_step:
                                 builder.trip_json["steps"].append(summary_step)
+
+                            # 🆕 PERFORMANCE: Rebuild cache après retrait de steps
+                            builder._rebuild_steps_cache()
 
                             logger.info(f"✅ Removed {current_count - planned_total_steps} steps to match plan")
 
@@ -678,6 +684,9 @@ class CrewPipeline:
                             # Remettre le summary
                             if summary_step:
                                 builder.trip_json["steps"].append(summary_step)
+
+                            # 🆕 PERFORMANCE: Rebuild cache après ajout de steps
+                            builder._rebuild_steps_cache()
 
                             logger.info(f"✅ Added {max_step_num - current_max} steps to match templates")
 
@@ -868,6 +877,9 @@ class CrewPipeline:
                         
                         # Remplacer steps dans builder par versions validées
                         builder.trip_json["steps"] = validated_steps
+
+                        # 🆕 PERFORMANCE: Rebuild cache après validation/modification de steps
+                        builder._rebuild_steps_cache()
                         
                         logger.info("✅ Steps validation complete, builder updated")
                         
@@ -1414,6 +1426,8 @@ class CrewPipeline:
                 # Default: Source wins if it has value
                 if source_value not in [None, ""]:
                     target_step[field] = source_value
+                    if field == "title":
+                        logger.debug(f"    📝 Step {step_num}: Title updated to '{source_value}'")
 
             # Merger images array (additionner sans doublons)
             source_images = source_step.get("images", [])
@@ -1445,25 +1459,35 @@ class CrewPipeline:
             # 1. Enrichir avec les prix depuis budget_calculation
             budget_calculation = parsed_phase3.get("budget_calculation", {})
             if budget_calculation:
-                # Extraire les prix
-                total_price = budget_calculation.get("total_price") or \
-                             budget_calculation.get("total_budget") or \
-                             budget_calculation.get("estimated_total", "")
+                # Handle nested structure common in agent output
+                budget_data = budget_calculation.get("budget_summary", budget_calculation)
+                totals = budget_data.get("totals", {}) if isinstance(budget_data, dict) else {}
+                breakdown = budget_data.get("breakdown", {}) if isinstance(budget_data, dict) else {}
+                
+                # Extraire les prix (supporte nesting breakdown)
+                total_price = totals.get("grand_total") or \
+                             budget_data.get("total_price") or \
+                             budget_data.get("total_budget") or \
+                             budget_data.get("estimated_total", "")
 
-                price_flights = budget_calculation.get("flight_cost") or \
-                               budget_calculation.get("flights_cost") or \
-                               budget_calculation.get("price_flights", "")
+                flights_data = breakdown.get("flights", {})
+                price_flights = flights_data.get("total") or \
+                               budget_data.get("flight_cost") or \
+                               budget_data.get("flights_cost", "")
 
-                price_hotels = budget_calculation.get("accommodation_cost") or \
-                              budget_calculation.get("lodging_cost") or \
-                              budget_calculation.get("price_hotels", "")
+                hotels_data = breakdown.get("accommodation", {})
+                price_hotels = hotels_data.get("total") or \
+                              budget_data.get("accommodation_cost") or \
+                              budget_data.get("lodging_cost", "")
 
-                price_transport = budget_calculation.get("transport_cost") or \
-                                 budget_calculation.get("local_transport_cost") or \
-                                 budget_calculation.get("price_transport", "")
+                transport_data = breakdown.get("transport_local", {})
+                price_transport = transport_data.get("total") or \
+                                 budget_data.get("transport_cost") or \
+                                 budget_data.get("local_transport_cost", "")
 
-                price_activities = budget_calculation.get("activities_cost") or \
-                                  budget_calculation.get("price_activities", "")
+                activities_data = breakdown.get("activities", {})
+                price_activities = activities_data.get("total") or \
+                                  budget_data.get("activities_cost", "")
 
                 builder.set_prices(
                     total_price=str(total_price) if total_price else "",
