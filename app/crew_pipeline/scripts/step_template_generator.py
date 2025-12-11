@@ -15,6 +15,7 @@ Gains attendus:
 from __future__ import annotations
 
 import logging
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import Any, Dict, List, Optional
 
 from app.crew_pipeline.scripts.image_generator import ImageGenerator
@@ -52,65 +53,127 @@ class StepTemplateGenerator:
         destination: str,
         destination_country: str,
         trip_code: str,
+        parallel: bool = True,
+        max_workers: int = 6,
     ) -> List[Dict[str, Any]]:
         """
         Générer templates de steps avec GPS et images pré-remplies.
+
+        Args:
+            trip_structure_plan: Plan structurel de l'Agent 5
+            destination: Destination du voyage
+            destination_country: Pays de destination
+            trip_code: Code unique du trip
+            parallel: Si True, génère en parallèle (défaut)
+            max_workers: Nombre max de threads parallèles
         """
-        logger.info(f"🏗️ Generating step templates for {destination}, {destination_country}")
-        
+        logger.info(f"🏗️ Generating step templates for {destination}, {destination_country} (parallel={parallel})")
+
         # Parser le plan structurel
         daily_distribution = trip_structure_plan.get("daily_distribution", [])
         priority_activity_types = trip_structure_plan.get("priority_activity_types", [])
         zones_coverage = trip_structure_plan.get("zones_coverage", [])
-        
+
         if not daily_distribution:
             logger.error("❌ Plan structurel manquant daily_distribution")
             return []
-        
+
         if not priority_activity_types:
             priority_activity_types = ["culture", "gastronomy", "sightseeing"]
             logger.warning(f"⚠️ Priority activity types manquants, utilisation fallback: {priority_activity_types}")
-        
+
         # Créer mapping zone -> activity types pour chaque jour
         zone_activities = self._map_zones_to_activities(zones_coverage, priority_activity_types)
-        
-        templates = []
+
+        # Construire liste de toutes les steps à générer
+        step_tasks = []
         step_number = 1
-        
-        # Générer template pour chaque step prévue
+
         for day_plan in daily_distribution:
             day = day_plan.get("day", step_number)
             steps_count = day_plan.get("steps_count", 1)
             zone = day_plan.get("zone", destination)
-            
+
             logger.info(f"📅 Jour {day}: {steps_count} steps dans zone '{zone}'")
-            
+
             for step_index in range(steps_count):
-                # Sélectionner type d'activité cyclique
                 activity_type = priority_activity_types[step_number % len(priority_activity_types)]
-                
-                # Générer template pour cette step
-                template = self._generate_single_step_template(
-                    step_number=step_number,
-                    day_number=day,
-                    zone=zone,
-                    activity_type=activity_type,
-                    destination=destination,
-                    destination_country=destination_country,
-                    trip_code=trip_code,
-                )
-                
-                if template:
-                    templates.append(template)
-                    step_number += 1
-                else:
-                    logger.warning(f"⚠️ Échec génération template step {step_number}, skip")
+
+                step_tasks.append({
+                    "step_number": step_number,
+                    "day_number": day,
+                    "zone": zone,
+                    "activity_type": activity_type,
+                    "destination": destination,
+                    "destination_country": destination_country,
+                    "trip_code": trip_code,
+                })
+                step_number += 1
+
+        # Générer templates en parallèle ou séquentiellement
+        if parallel and len(step_tasks) > 1:
+            templates = self._generate_templates_parallel(step_tasks, max_workers)
+        else:
+            templates = self._generate_templates_sequential(step_tasks)
 
         # 🔧 FIX: Ne PAS créer summary step ici - IncrementalTripBuilder l'a déjà créée (step 99)
 
         logger.info(f"✅ {len(templates)} templates générés (activités seulement, summary step déjà existante)")
         self.templates_generated = templates
-        
+
+        return templates
+
+    def _generate_templates_sequential(
+        self,
+        step_tasks: List[Dict[str, Any]]
+    ) -> List[Dict[str, Any]]:
+        """Génération séquentielle des templates (méthode originale)."""
+        templates = []
+
+        for task in step_tasks:
+            template = self._generate_single_step_template(**task)
+            if template:
+                templates.append(template)
+            else:
+                logger.warning(f"⚠️ Échec génération template step {task['step_number']}, skip")
+
+        return templates
+
+    def _generate_templates_parallel(
+        self,
+        step_tasks: List[Dict[str, Any]],
+        max_workers: int
+    ) -> List[Dict[str, Any]]:
+        """Génération parallèle des templates avec ThreadPoolExecutor."""
+        logger.info(f"⚡ Generating {len(step_tasks)} templates in parallel (max_workers={max_workers})")
+
+        templates = []
+
+        with ThreadPoolExecutor(max_workers=max_workers) as executor:
+            # Soumettre toutes les générations
+            future_to_task = {
+                executor.submit(self._generate_single_step_template, **task): task
+                for task in step_tasks
+            }
+
+            # Collecter résultats au fur et à mesure
+            for future in as_completed(future_to_task):
+                task = future_to_task[future]
+                step_num = task["step_number"]
+
+                try:
+                    template = future.result()
+                    if template:
+                        templates.append(template)
+                        logger.debug(f"  ✅ Template step {step_num} generated")
+                    else:
+                        logger.warning(f"  ⚠️ Template step {step_num} generation failed")
+                except Exception as e:
+                    logger.error(f"  ❌ Template step {step_num} generation error: {e}")
+
+        # Trier par step_number
+        templates.sort(key=lambda t: t.get("step_number", 0))
+
         return templates
     
     def _generate_single_step_template(

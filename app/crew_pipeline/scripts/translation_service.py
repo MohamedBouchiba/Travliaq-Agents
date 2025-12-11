@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import logging
 import os
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import Any, Dict, List, Optional
 
 logger = logging.getLogger(__name__)
@@ -49,17 +50,21 @@ class TranslationService:
     
     def translate_steps(
         self,
-        steps: List[Dict[str, Any]]
+        steps: List[Dict[str, Any]],
+        parallel: bool = True,
+        max_workers: int = 6
     ) -> List[Dict[str, Any]]:
         """
         Traduire tous les champs FR → EN pour toutes les steps.
-        
+
         Args:
             steps: Liste de steps avec contenu FR rempli
-        
+            parallel: Si True, traduit en parallèle (défaut)
+            max_workers: Nombre max de threads parallèles
+
         Returns:
             Steps avec champs _en complétés
-        
+
         Example:
             >>> service = TranslationService()
             >>> steps = [
@@ -73,22 +78,72 @@ class TranslationService:
             >>> translated[0]["title_en"]
             "Visit to the Eiffel Tower"
         """
-        logger.info(f"🌍 Translating {len(steps)} steps FR → EN")
-        
+        logger.info(f"🌍 Translating {len(steps)} steps FR → EN (parallel={parallel})")
+
+        # Séparer summary steps et steps normales
+        summary_steps = [s for s in steps if s.get("is_summary")]
+        normal_steps = [s for s in steps if not s.get("is_summary")]
+
+        if not normal_steps:
+            return steps
+
+        # Traduction parallèle ou séquentielle
+        if parallel and len(normal_steps) > 1:
+            translated_normal = self._translate_steps_parallel(normal_steps, max_workers)
+        else:
+            translated_normal = []
+            for step in normal_steps:
+                step_translated = self._translate_single_step(step)
+                translated_normal.append(step_translated)
+
+        # Recombiner et trier par step_number
+        all_translated = summary_steps + translated_normal
+        all_translated.sort(key=lambda s: s.get("step_number", 0))
+
+        logger.info(f"✅ {len(all_translated)} steps translated")
+
+        return all_translated
+
+    def _translate_steps_parallel(
+        self,
+        steps: List[Dict[str, Any]],
+        max_workers: int
+    ) -> List[Dict[str, Any]]:
+        """
+        Traduire steps en parallèle avec ThreadPoolExecutor.
+
+        Args:
+            steps: Steps à traduire
+            max_workers: Nombre max de threads
+
+        Returns:
+            Steps traduites
+        """
+        logger.info(f"⚡ Translating {len(steps)} steps in parallel (max_workers={max_workers})")
+
         translated_steps = []
-        
-        for step in steps:
-            # Skip summary step (déjà traduit)
-            if step.get("is_summary"):
-                translated_steps.append(step)
-                continue
-            
-            # Traduire chaque champ FR
-            step_translated = self._translate_single_step(step)
-            translated_steps.append(step_translated)
-        
-        logger.info(f"✅ {len(translated_steps)} steps translated")
-        
+
+        with ThreadPoolExecutor(max_workers=max_workers) as executor:
+            # Soumettre toutes les traductions
+            future_to_step = {
+                executor.submit(self._translate_single_step, step): step
+                for step in steps
+            }
+
+            # Collecter résultats au fur et à mesure
+            for future in as_completed(future_to_step):
+                original_step = future_to_step[future]
+                step_num = original_step.get("step_number", "?")
+
+                try:
+                    translated_step = future.result()
+                    translated_steps.append(translated_step)
+                    logger.debug(f"  ✅ Step {step_num} translated")
+                except Exception as e:
+                    logger.error(f"  ❌ Step {step_num} translation failed: {e}")
+                    # En cas d'erreur, garder step originale
+                    translated_steps.append(original_step)
+
         return translated_steps
     
     def _translate_single_step(

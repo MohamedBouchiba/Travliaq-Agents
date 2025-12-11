@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import logging
 import re
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import Any, Dict, List, Optional, Tuple
 
 logger = logging.getLogger(__name__)
@@ -208,18 +209,22 @@ class StepValidator:
         destination: str = "",
         destination_country: str = "",
         trip_code: str = "",
+        parallel: bool = True,
+        max_workers: int = 6,
     ) -> Tuple[List[Dict[str, Any]], Dict[str, Any]]:
         """
         Valider et optionnellement corriger toutes les steps.
-        
+
         Args:
             steps: Liste de steps
             auto_fix: Si True, auto-corriger erreurs
             destination, destination_country, trip_code: Pour auto-fix
-        
+            parallel: Si True, valide en parallèle (défaut)
+            max_workers: Nombre max de threads parallèles
+
         Returns:
             (steps_validées, rapport)
-        
+
         Rapport:
             {
               "total_steps": 10,
@@ -230,8 +235,27 @@ class StepValidator:
               "details": [...]
             }
         """
-        logger.info(f"🔍 Validating {len(steps)} steps (auto_fix={auto_fix})")
-        
+        logger.info(f"🔍 Validating {len(steps)} steps (auto_fix={auto_fix}, parallel={parallel})")
+
+        # Validation/fix parallèle ou séquentielle
+        if parallel and len(steps) > 1:
+            return self._validate_steps_parallel(
+                steps, auto_fix, destination, destination_country, trip_code, max_workers
+            )
+        else:
+            return self._validate_steps_sequential(
+                steps, auto_fix, destination, destination_country, trip_code
+            )
+
+    def _validate_steps_sequential(
+        self,
+        steps: List[Dict[str, Any]],
+        auto_fix: bool,
+        destination: str,
+        destination_country: str,
+        trip_code: str,
+    ) -> Tuple[List[Dict[str, Any]], Dict[str, Any]]:
+        """Validation séquentielle (méthode originale)."""
         validated_steps = []
         report = {
             "total_steps": len(steps),
@@ -241,18 +265,18 @@ class StepValidator:
             "fixes_applied": 0,
             "details": [],
         }
-        
+
         for step in steps:
             # Validation initiale
             is_valid, errors = self.validate_step(step)
-            
+
             if is_valid:
                 report["valid_steps"] += 1
                 validated_steps.append(step)
             else:
                 report["invalid_steps"] += 1
                 report["errors_count"] += len(errors)
-                
+
                 # Auto-fix si demandé
                 if auto_fix:
                     step_fixed = self.auto_fix_step(
@@ -261,10 +285,10 @@ class StepValidator:
                         destination_country=destination_country,
                         trip_code=trip_code,
                     )
-                    
+
                     # Re-valider après fix
                     is_valid_after, errors_after = self.validate_step(step_fixed)
-                    
+
                     if is_valid_after:
                         report["fixes_applied"] += 1
                         validated_steps.append(step_fixed)
@@ -282,12 +306,145 @@ class StepValidator:
                         "step_number": step.get("step_number"),
                         "errors": errors,
                     })
-        
+
         logger.info(f"✅ Validation complete: {report['valid_steps']}/{report['total_steps']} valid")
         if report["fixes_applied"] > 0:
             logger.info(f"  🔧 {report['fixes_applied']} steps auto-fixed")
-        
+
         return validated_steps, report
+
+    def _validate_steps_parallel(
+        self,
+        steps: List[Dict[str, Any]],
+        auto_fix: bool,
+        destination: str,
+        destination_country: str,
+        trip_code: str,
+        max_workers: int,
+    ) -> Tuple[List[Dict[str, Any]], Dict[str, Any]]:
+        """Validation parallèle avec ThreadPoolExecutor."""
+        logger.info(f"⚡ Validating {len(steps)} steps in parallel (max_workers={max_workers})")
+
+        validated_steps = []
+        report = {
+            "total_steps": len(steps),
+            "valid_steps": 0,
+            "invalid_steps": 0,
+            "errors_count": 0,
+            "fixes_applied": 0,
+            "details": [],
+        }
+
+        with ThreadPoolExecutor(max_workers=max_workers) as executor:
+            # Soumettre toutes les validations
+            future_to_step = {
+                executor.submit(
+                    self._validate_and_fix_single_step,
+                    step, auto_fix, destination, destination_country, trip_code
+                ): step
+                for step in steps
+            }
+
+            # Collecter résultats au fur et à mesure
+            for future in as_completed(future_to_step):
+                original_step = future_to_step[future]
+                step_num = original_step.get("step_number", "?")
+
+                try:
+                    result = future.result()
+                    validated_steps.append(result["step"])
+
+                    if result["is_valid"]:
+                        report["valid_steps"] += 1
+                    else:
+                        report["invalid_steps"] += 1
+                        report["errors_count"] += len(result.get("errors", []))
+
+                        if result.get("was_fixed"):
+                            report["fixes_applied"] += 1
+
+                        if result.get("errors_after"):
+                            report["details"].append({
+                                "step_number": step_num,
+                                "errors_before": result.get("errors", []),
+                                "errors_after": result.get("errors_after", []),
+                            })
+
+                    logger.debug(f"  ✅ Step {step_num} validated")
+
+                except Exception as e:
+                    logger.error(f"  ❌ Step {step_num} validation failed: {e}")
+                    # En cas d'erreur, garder step originale
+                    validated_steps.append(original_step)
+                    report["invalid_steps"] += 1
+
+        # Trier par step_number
+        validated_steps.sort(key=lambda s: s.get("step_number", 0))
+
+        logger.info(f"✅ Validation complete: {report['valid_steps']}/{report['total_steps']} valid")
+        if report["fixes_applied"] > 0:
+            logger.info(f"  🔧 {report['fixes_applied']} steps auto-fixed")
+
+        return validated_steps, report
+
+    def _validate_and_fix_single_step(
+        self,
+        step: Dict[str, Any],
+        auto_fix: bool,
+        destination: str,
+        destination_country: str,
+        trip_code: str,
+    ) -> Dict[str, Any]:
+        """
+        Valider et éventuellement fixer une step (pour parallélisation).
+
+        Returns:
+            {
+                "step": step_validée_ou_fixée,
+                "is_valid": bool,
+                "errors": [...],
+                "was_fixed": bool,
+                "errors_after": [...]
+            }
+        """
+        # Validation initiale
+        is_valid, errors = self.validate_step(step)
+
+        if is_valid:
+            return {
+                "step": step,
+                "is_valid": True,
+                "errors": [],
+                "was_fixed": False,
+            }
+
+        # Step invalide
+        if not auto_fix:
+            return {
+                "step": step,
+                "is_valid": False,
+                "errors": errors,
+                "was_fixed": False,
+            }
+
+        # Auto-fix
+        step_fixed = self.auto_fix_step(
+            step,
+            destination=destination,
+            destination_country=destination_country,
+            trip_code=trip_code,
+        )
+
+        # Re-valider après fix
+        is_valid_after, errors_after = self.validate_step(step_fixed)
+
+        return {
+            "step": step_fixed,
+            "is_valid": is_valid_after,
+            "errors": errors,
+            "was_fixed": True,
+            "errors_after": errors_after if not is_valid_after else [],
+        }
     
     def _is_valid_gps(self, lat: float, lon: float) -> bool:
         """Vérifier que GPS sont dans limites raisonnables."""

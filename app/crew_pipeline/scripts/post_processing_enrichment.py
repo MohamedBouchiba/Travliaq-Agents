@@ -14,6 +14,7 @@ Avantages :
 from __future__ import annotations
 
 import logging
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import Any, Dict, List, Optional
 from app.crew_pipeline.scripts.image_generator import ImageGenerator
 
@@ -46,6 +47,8 @@ class PostProcessingEnricher:
         trip_json: Dict[str, Any],
         regenerate_images: bool = True,
         translate_fields: bool = True,
+        parallel: bool = True,
+        max_workers: int = 6,
     ) -> Dict[str, Any]:
         """
         Enrichir un trip complet avec images améliorées et traductions.
@@ -54,11 +57,13 @@ class PostProcessingEnricher:
             trip_json: Trip JSON avec steps remplies par Agent 6
             regenerate_images: Si True, régénère les images avec prompts enrichis
             translate_fields: Si True, traduit automatiquement FR → EN
+            parallel: Si True, enrichit en parallèle (défaut)
+            max_workers: Nombre max de threads parallèles
 
         Returns:
             Trip JSON enrichi
         """
-        logger.info("🎨 Starting post-processing enrichment...")
+        logger.info(f"🎨 Starting post-processing enrichment (parallel={parallel})...")
 
         if not isinstance(trip_json, dict) or "steps" not in trip_json:
             logger.error("❌ Invalid trip_json structure")
@@ -68,13 +73,45 @@ class PostProcessingEnricher:
         trip_code = trip_json.get("code", "")
         destination = trip_json.get("destination", "")
 
-        enriched_count = 0
+        # Séparer summary steps et steps normales
+        summary_steps = [s for s in steps if s.get("is_summary")]
+        normal_steps = [s for s in steps if not s.get("is_summary")]
+
+        if not normal_steps:
+            logger.info("✅ No steps to enrich (only summary)")
+            return trip_json
+
+        # Enrichissement parallèle ou séquentiel
+        if parallel and len(normal_steps) > 1:
+            enriched_normal = self._enrich_steps_parallel(
+                normal_steps, trip_code, destination, regenerate_images, translate_fields, max_workers
+            )
+        else:
+            enriched_normal = self._enrich_steps_sequential(
+                normal_steps, trip_code, destination, regenerate_images, translate_fields
+            )
+
+        # Remplacer steps dans trip_json
+        trip_json["steps"] = summary_steps + enriched_normal
+        trip_json["steps"].sort(key=lambda s: s.get("step_number", 0))
+
+        enriched_count = len([s for s in enriched_normal if s.get("_enriched")])
+        logger.info(f"✅ Post-processing complete: {enriched_count}/{len(normal_steps)} steps enriched")
+
+        return trip_json
+
+    def _enrich_steps_sequential(
+        self,
+        steps: List[Dict[str, Any]],
+        trip_code: str,
+        destination: str,
+        regenerate_images: bool,
+        translate_fields: bool,
+    ) -> List[Dict[str, Any]]:
+        """Enrichissement séquentiel (méthode originale)."""
+        enriched_steps = []
 
         for step in steps:
-            # Skip summary step
-            if step.get("is_summary"):
-                continue
-
             step_number = step.get("step_number")
 
             try:
@@ -94,15 +131,90 @@ class PostProcessingEnricher:
                     self._translate_step_fields(step)
                     logger.debug(f"  ✅ Step {step_number}: Fields translated")
 
-                enriched_count += 1
+                step["_enriched"] = True
+                enriched_steps.append(step)
 
             except Exception as e:
                 logger.warning(f"  ⚠️ Step {step_number} enrichment failed: {e}")
-                continue
+                enriched_steps.append(step)
 
-        logger.info(f"✅ Post-processing complete: {enriched_count}/{len(steps)} steps enriched")
+        return enriched_steps
 
-        return trip_json
+    def _enrich_steps_parallel(
+        self,
+        steps: List[Dict[str, Any]],
+        trip_code: str,
+        destination: str,
+        regenerate_images: bool,
+        translate_fields: bool,
+        max_workers: int,
+    ) -> List[Dict[str, Any]]:
+        """Enrichissement parallèle avec ThreadPoolExecutor."""
+        logger.info(f"⚡ Enriching {len(steps)} steps in parallel (max_workers={max_workers})")
+
+        enriched_steps = []
+
+        with ThreadPoolExecutor(max_workers=max_workers) as executor:
+            # Soumettre tous les enrichissements
+            future_to_step = {
+                executor.submit(
+                    self._enrich_single_step,
+                    step, trip_code, destination, regenerate_images, translate_fields
+                ): step
+                for step in steps
+            }
+
+            # Collecter résultats au fur et à mesure
+            for future in as_completed(future_to_step):
+                original_step = future_to_step[future]
+                step_num = original_step.get("step_number", "?")
+
+                try:
+                    enriched_step = future.result()
+                    enriched_steps.append(enriched_step)
+                    logger.debug(f"  ✅ Step {step_num} enriched")
+                except Exception as e:
+                    logger.error(f"  ❌ Step {step_num} enrichment failed: {e}")
+                    # En cas d'erreur, garder step originale
+                    enriched_steps.append(original_step)
+
+        # Trier par step_number
+        enriched_steps.sort(key=lambda s: s.get("step_number", 0))
+
+        return enriched_steps
+
+    def _enrich_single_step(
+        self,
+        step: Dict[str, Any],
+        trip_code: str,
+        destination: str,
+        regenerate_images: bool,
+        translate_fields: bool,
+    ) -> Dict[str, Any]:
+        """
+        Enrichir une step (pour parallélisation).
+
+        Returns:
+            Step enrichie
+        """
+        step_copy = dict(step)
+
+        # 1. Régénérer image avec prompt enrichi
+        if regenerate_images:
+            new_image_url = self._regenerate_step_image(
+                step=step_copy,
+                trip_code=trip_code,
+                destination=destination,
+            )
+            if new_image_url:
+                step_copy["main_image"] = new_image_url
+
+        # 2. Traduire champs FR → EN
+        if translate_fields:
+            self._translate_step_fields(step_copy)
+
+        step_copy["_enriched"] = True
+        return step_copy
 
     def _regenerate_step_image(
         self,
