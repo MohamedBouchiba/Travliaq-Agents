@@ -64,28 +64,28 @@ def _extract_summary_stats(final_choice: Dict[str, Any]) -> List[Dict[str, Any]]
 
 
 def _normalize_trip_code(raw_code: Optional[str]) -> str:
-    """Normalise le code du trip pour respecter la règle `^[A-Z][A-Z0-9-]{2,19}$`."""
-    
+    """Normalise le code du trip pour respecter la règle `^[A-Z][A-Z0-9-]{2,29}$`."""
+
     import uuid
-    
+
     # Générer un suffixe unique de 6 caractères hex (garantit unicité)
     unique_suffix = uuid.uuid4().hex[:6].upper()
-    
+
     if not raw_code:
         return f"TRIP-{unique_suffix}"
-    
+
     code = str(raw_code).upper()
     code = re.sub(r"[^A-Z0-9]+", "-", code).strip("-")
-    
+
     # Assurer que le code commence par une lettre
     if not code or not code[0].isalpha():
         code = f"T{code}" if code else "TRIP"
-    
+
     # 🔧 FIX: Calculer la longueur max en tenant compte de TOUTE la structure finale
-    # Format attendu: CODE-SUFFIX (ex: BANGKOK-A3F5E1)
-    # Limite totale: 20 caractères max
+    # Format attendu: CODE-SUFFIX (ex: AMSTERDAM-2025-A3F5E1)
+    # Limite totale: 30 caractères max
     # Suffixe: 6 chars + 1 tiret = 7 chars réservés
-    max_main_length = 20 - 7  # = 13 chars max pour la partie principale
+    max_main_length = 30 - 7  # = 23 chars max pour la partie principale
     
     if len(code) > max_main_length:
         # Tronquer intelligemment: garder le début + fin si possible

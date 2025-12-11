@@ -6,6 +6,7 @@ import logging
 import os
 import re
 import json
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from pathlib import Path
@@ -23,6 +24,7 @@ from app.crew_pipeline.scripts import (
     NormalizationError,
     normalize_questionnaire,
     validate_trip_schema,
+    calculate_trip_budget,
 )
 from app.crew_pipeline.scripts.incremental_trip_builder import IncrementalTripBuilder
 from app.crew_pipeline.scripts.step_template_generator import StepTemplateGenerator
@@ -732,31 +734,7 @@ class CrewPipeline:
         # 🆕 STEP 3: Construire Phase 2 avec les autres tâches (Flights, Accommodation, Itinerary)
         logger.info("🚀 Step 3/3: Executing Phase 2 (Flights, Accommodation, Itinerary Design)...")
 
-        phase2_tasks: List[Task] = []
-        phase2_agents: List[Agent] = []
-
-        # Ajouter Flights et Accommodation
-        if trip_intent.assist_flights:
-            flight_task = Task(name="flights_research", agent=flight_specialist, **tasks_config["flights_research"])
-            phase2_tasks.append(flight_task)
-            phase2_agents.append(flight_specialist)
-
-        if trip_intent.assist_accommodation:
-            lodging_task = Task(name="accommodation_research", agent=accommodation_specialist, **tasks_config["accommodation_research"])
-            phase2_tasks.append(lodging_task)
-            phase2_agents.append(accommodation_specialist)
-
-        # Ajouter Itinerary Design (maintenant les templates sont disponibles)
-        if trip_intent.assist_activities and step_templates_yaml:
-            itinerary_task = Task(
-                name="itinerary_design",
-                agent=itinerary_designer,
-                **tasks_config["itinerary_design"]
-            )
-            phase2_tasks.append(itinerary_task)
-            phase2_agents.append(itinerary_designer)
-
-        # Lancer Phase 2 seulement si au moins un service demandé
+        # 🚀 OPTIMIZATION: Exécution parallèle des agents Phase 2
         parsed_phase2 = {}
         tasks_phase2 = []
 
@@ -764,19 +742,73 @@ class CrewPipeline:
         if trip_intent.assist_activities and trip_structure_plan:
             parsed_phase2["plan_trip_structure"] = {"structural_plan": trip_structure_plan}
 
-        if phase2_tasks:
-            crew_phase2 = self._crew_builder(
-                agents=phase2_agents,
-                tasks=phase2_tasks,
+        # Créer les crews individuels pour exécution parallèle
+        parallel_crews = []
+
+        if trip_intent.assist_flights:
+            flight_task = Task(name="flights_research", agent=flight_specialist, **tasks_config["flights_research"])
+            flight_crew = self._crew_builder(
+                agents=[flight_specialist],
+                tasks=[flight_task],
                 verbose=self._verbose,
                 process=Process.sequential,
             )
-            output_phase2 = crew_phase2.kickoff(inputs=inputs_phase2)
-            tasks_phase2_new, parsed_phase2_new = self._collect_tasks_output(output_phase2, should_save, run_dir, phase_label="PHASE2_RESEARCH")
+            parallel_crews.append(("flights_research", flight_crew))
+
+        if trip_intent.assist_accommodation:
+            lodging_task = Task(name="accommodation_research", agent=accommodation_specialist, **tasks_config["accommodation_research"])
+            accommodation_crew = self._crew_builder(
+                agents=[accommodation_specialist],
+                tasks=[lodging_task],
+                verbose=self._verbose,
+                process=Process.sequential,
+            )
+            parallel_crews.append(("accommodation_research", accommodation_crew))
+
+        if trip_intent.assist_activities and step_templates_yaml:
+            itinerary_task = Task(
+                name="itinerary_design",
+                agent=itinerary_designer,
+                **tasks_config["itinerary_design"]
+            )
+            itinerary_crew = self._crew_builder(
+                agents=[itinerary_designer],
+                tasks=[itinerary_task],
+                verbose=self._verbose,
+                process=Process.sequential,
+            )
+            parallel_crews.append(("itinerary_design", itinerary_crew))
+
+        # Lancer Phase 2 en parallèle si au moins un service demandé
+        if parallel_crews:
+            logger.info(f"⚡ Launching {len(parallel_crews)} crews in parallel...")
+
+            # Exécuter tous les crews en parallèle
+            with ThreadPoolExecutor(max_workers=len(parallel_crews)) as executor:
+                # Soumettre tous les crews
+                future_to_crew = {
+                    executor.submit(crew.kickoff, inputs_phase2): crew_name
+                    for crew_name, crew in parallel_crews
+                }
+
+                # Collecter les résultats au fur et à mesure
+                for future in as_completed(future_to_crew):
+                    crew_name = future_to_crew[future]
+                    try:
+                        output = future.result()
+                        tasks_new, parsed_new = self._collect_tasks_output(
+                            output, should_save, run_dir, phase_label=f"PHASE2_{crew_name.upper()}"
+                        )
+                        tasks_phase2.extend(tasks_new)
+                        parsed_phase2.update(parsed_new)
+                        logger.info(f"✅ {crew_name} completed")
+                    except Exception as e:
+                        logger.error(f"❌ {crew_name} failed: {e}")
+                        raise
 
             # Fusionner avec les résultats de structure déjà obtenus
-            tasks_phase2 = tasks_structure + tasks_phase2_new if trip_intent.assist_activities else tasks_phase2_new
-            parsed_phase2.update(parsed_phase2_new)
+            if trip_intent.assist_activities:
+                tasks_phase2 = tasks_structure + tasks_phase2
 
             # 🆕 ENRICHISSEMENT: Mettre à jour le builder avec les résultats de PHASE2
             logger.info("🔧 Enrichissement du trip JSON avec les résultats de PHASE2...")
@@ -889,13 +921,29 @@ class CrewPipeline:
                 else:
                     logger.warning("⚠️ No steps to validate")
 
-        # 6. Phase 3 - Budget + Assembly
-        budget_task = Task(name="budget_calculation", agent=budget_calculator, **tasks_config["budget_calculation"])
-        final_task = Task(name="final_assembly", agent=final_assembler, context=[budget_task], **tasks_config["final_assembly"])
+        # 6. Phase 3 - Budget (script) + Assembly (agent)
+
+        # 🚀 OPTIMIZATION: Budget calculation via script (no LLM needed)
+        logger.info("💰 Step 1/2: Calculating budget with deterministic script...")
+        budget_result = calculate_trip_budget(
+            parsed_phase2=parsed_phase2,
+            trip_context=trip_context,
+        )
+
+        # Save budget result
+        if should_save:
+            budget_path = run_dir / "budget_calculation.json"
+            with open(budget_path, "w", encoding="utf-8") as f:
+                json.dump(budget_result, f, indent=2, ensure_ascii=False)
+            logger.info(f"💾 Budget saved to {budget_path}")
+
+        # 🚀 OPTIMIZATION: Only final_assembly agent needed now
+        logger.info("📦 Step 2/2: Running final assembly agent...")
+        final_task = Task(name="final_assembly", agent=final_assembler, **tasks_config["final_assembly"])
 
         crew_phase3 = self._crew_builder(
-            agents=[budget_calculator, final_assembler],
-            tasks=[budget_task, final_task],
+            agents=[final_assembler],
+            tasks=[final_task],
             verbose=self._verbose,
             process=Process.sequential,
         )
@@ -904,6 +952,7 @@ class CrewPipeline:
         flight_quotes_yaml = yaml.dump(parsed_phase2.get("flights_research", {}).get("flight_quotes", {}), allow_unicode=True, sort_keys=False)
         lodging_quotes_yaml = yaml.dump(parsed_phase2.get("accommodation_research", {}).get("lodging_quotes", {}), allow_unicode=True, sort_keys=False)
         itinerary_plan_yaml = yaml.dump(parsed_phase2.get("itinerary_design", {}).get("itinerary_plan", {}), allow_unicode=True, sort_keys=False)
+        budget_summary_yaml = yaml.dump(budget_result.get("budget_summary", {}), allow_unicode=True, sort_keys=False)
 
         # 🆕 Ajouter l'état mis à jour du trip JSON
         current_trip_json_yaml = builder.get_current_state_yaml()
@@ -911,14 +960,18 @@ class CrewPipeline:
         inputs_phase3 = {
             "trip_context": trip_context_yaml,
             "destination_choice": destination_choice_yaml,
-            "current_trip_json": current_trip_json_yaml,  # 🆕 NOUVEAU
+            "current_trip_json": current_trip_json_yaml,
             "flight_quotes": flight_quotes_yaml,
             "lodging_quotes": lodging_quotes_yaml,
             "itinerary_plan": itinerary_plan_yaml,
+            "budget_summary": budget_summary_yaml,  # 🆕 Budget from script
         }
 
         output_phase3 = crew_phase3.kickoff(inputs=inputs_phase3)
         tasks_phase3, parsed_phase3 = self._collect_tasks_output(output_phase3, should_save, run_dir, phase_label="PHASE3_ASSEMBLY")
+
+        # 🆕 Merge budget result into parsed_phase3
+        parsed_phase3["budget_calculation"] = budget_result
 
         # 🆕 ENRICHISSEMENT: Mettre à jour le builder avec le budget de PHASE3
         logger.info("🔧 Enrichissement du trip JSON avec les résultats de PHASE3...")

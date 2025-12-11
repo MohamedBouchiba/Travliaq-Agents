@@ -802,11 +802,13 @@ tasks:
       ❌ **INTERDICTIONS:**
       - NE PAS modifier GPS des templates (déjà corrects)
       - NE PAS modifier images des templates (déjà Supabase)
-      - NE PAS traduire en EN (géré par script après - donc title_en peut être vide ou copie de title)
+      - ❌ NE PAS générer de contenu EN (title_en, subtitle_en, why_en, tips_en, transfer_en, suggestion_en, weather_description_en)
+      - ❌ LAISSER TOUS LES CHAMPS *_en VIDES OU NULL (la traduction est gérée par un service automatique après)
       - NE PAS appeler geo.place ou images.* si templates fournis (déjà fait par script)
       - NE PAS inventer de nouvelles steps (copier le nombre exact depuis templates)
 
       🎯 **FOCUS:** Qualité contenu FR uniquement! Maximum de détails et pertinence.
+      🚀 **OPTIMISATION:** Ne pas perdre de tokens sur la traduction EN, un service automatique s'en charge après.
 
       ---
 
@@ -1059,6 +1061,10 @@ tasks:
 
       **⚠️ IMPORTANT : Les URLs ci-dessous sont des PLACEHOLDERS**
       **TU DOIS laisser hero_image vide ou placeholder car le script s'en charge**
+
+      **🚀 OPTIMISATION CRITIQUE : N'INCLUS PAS LES CHAMPS *_en (title_en, subtitle_en, why_en, tips_en, etc.)**
+      **La traduction automatique FR→EN est faite par un service dédié après ta génération.**
+      **Ne gaspille PAS de tokens à générer du contenu EN !**
 
       ```yaml
       itinerary_plan:
@@ -1469,7 +1475,7 @@ tasks:
       {itinerary_plan}
 
       **BUDGET :**
-      (Disponible depuis la tâche précédente budget_calculation - utilise l'output de cette tâche)
+      {budget_summary}
 
       **CONTEXTE VOYAGE :**
       {trip_context}

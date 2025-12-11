@@ -9,7 +9,7 @@
   "properties": {
     "code": {
       "type": "string",
-      "pattern": "^[A-Z][A-Z0-9-]{2,19}$"
+      "pattern": "^[A-Z][A-Z0-9-]{2,29}$"
     },
     "destination": {
       "type": "string",
