@@ -11,6 +11,8 @@ import logging
 import time
 from typing import Any, Optional
 
+from app.crew_pipeline.scripts.redis_cache import get_cache
+
 logger = logging.getLogger(__name__)
 
 # Default fallback image if everything else fails
@@ -31,11 +33,12 @@ class ImageGenerator:
     def __init__(self, mcp_tools: Any):
         """
         Initialize with MCP tools access.
-        
+
         Args:
             mcp_tools: MCPToolsManager instance or list of tools
         """
         self.mcp_tools = mcp_tools
+        self.cache = get_cache(ttl_seconds=604800)  # ⚡ Cache 7 jours pour images
 
     def generate_hero_image(self, destination: str, trip_code: str) -> str:
         """
@@ -131,41 +134,51 @@ class ImageGenerator:
         return url if url else DEFAULT_TRIP_IMAGE
 
     def _generate_with_retry(
-        self, 
-        tool_name: str, 
-        trip_code: str, 
-        prompt: str, 
+        self,
+        tool_name: str,
+        trip_code: str,
+        prompt: str,
         max_retries: int = 3
     ) -> Optional[str]:
         """
-        Logique centrale de génération avec retry.
-        """
-        for attempt in range(1, max_retries + 1):
-            try:
-                logger.debug(f"   🔄 Attempt {attempt}/{max_retries} for {tool_name}...")
-                
-                # Invocation dynamique de l'outil
-                result = self._invoke_mcp_tool(tool_name, trip_code=trip_code, prompt=prompt)
-                
-                # Validation du résultat
-                if self._is_valid_url(result, trip_code):
-                    # Validation spécifique : s'assurer que l'URL contient le bon trip_code
-                    # (Correction de bug précédent où l'URL pouvait avoir le mauvais folder)
-                    final_url = self._fix_url_folder(result, trip_code)
-                    logger.info(f"   ✅ Image generated successfully: {final_url[:80]}...")
-                    return final_url
-                
-                # Si on arrive ici, le résultat était invalide (None ou erreur)
-                logger.warning(f"   ⚠️ Attempt {attempt} returned invalid result: {str(result)[:100]}")
-                
-            except Exception as e:
-                logger.warning(f"   ⚠️ Attempt {attempt} failed with exception: {e}")
-            
-            # Attendre un peu avant retry, sauf si c'est la dernière tentative
-            if attempt < max_retries:
-                time.sleep(1)
+        Logique centrale de génération avec retry ET cache Redis.
 
-        return None
+        ⚡ OPTIMISATION: Vérifie cache d'abord (7j TTL) pour éviter régénération.
+        """
+        # ⚡ CACHE: Créer clé unique basée sur prompt + tool_name
+        cache_key = f"image:{tool_name}|{prompt[:100]}"  # Limiter longueur prompt pour clé
+
+        # Fonction de génération si cache miss
+        def compute_image():
+            for attempt in range(1, max_retries + 1):
+                try:
+                    logger.debug(f"   🔄 Attempt {attempt}/{max_retries} for {tool_name}...")
+
+                    # Invocation dynamique de l'outil
+                    result = self._invoke_mcp_tool(tool_name, trip_code=trip_code, prompt=prompt)
+
+                    # Validation du résultat
+                    if self._is_valid_url(result, trip_code):
+                        # Validation spécifique : s'assurer que l'URL contient le bon trip_code
+                        # (Correction de bug précédent où l'URL pouvait avoir le mauvais folder)
+                        final_url = self._fix_url_folder(result, trip_code)
+                        logger.info(f"   ✅ Image generated successfully: {final_url[:80]}...")
+                        return final_url
+
+                    # Si on arrive ici, le résultat était invalide (None ou erreur)
+                    logger.warning(f"   ⚠️ Attempt {attempt} returned invalid result: {str(result)[:100]}")
+
+                except Exception as e:
+                    logger.warning(f"   ⚠️ Attempt {attempt} failed with exception: {e}")
+
+                # Attendre un peu avant retry, sauf si c'est la dernière tentative
+                if attempt < max_retries:
+                    time.sleep(1)
+
+            return None
+
+        # ⚡ Utiliser cache-aside pattern
+        return self.cache.get_or_compute(cache_key, compute_image)
 
     def _invoke_mcp_tool(self, tool_name: str, **kwargs) -> Any:
         """Appel bas niveau à l'outil MCP (supporte manager ou liste)."""

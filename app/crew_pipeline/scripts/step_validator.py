@@ -40,13 +40,45 @@ class StepValidator:
     def __init__(self, mcp_tools: Optional[Any] = None, llm: Optional[Any] = None):
         """
         Initialiser validateur.
-        
+
         Args:
             mcp_tools: Pour auto-fix GPS/images via MCP
             llm: Pour auto-fix traductions via LLM
         """
         self.mcp_tools = mcp_tools
         self.llm = llm
+
+    def _extract_results(self, mcp_response: Any) -> List[Dict[str, Any]]:
+        """
+        Extrait la liste de résultats d'une réponse MCP (gère 4 formats).
+
+        Formats supportés:
+        1. Liste directe: [{...}, {...}] (ancien format geo.place)
+        2. Dict avec "results": {"success": True, "results": [...]} (nouveau format geo.city)
+        3. String d'erreur: "Error: ..." (retourne [])
+        4. None (retourne [])
+
+        Returns:
+            Liste de résultats (vide si erreur ou aucun résultat)
+        """
+        if not mcp_response:
+            return []
+
+        # Format 1: Liste directe (ancien comportement)
+        if isinstance(mcp_response, list):
+            return mcp_response
+
+        # Format 2: Dict avec clé "results" (nouveau comportement)
+        if isinstance(mcp_response, dict):
+            # Vérifier si l'appel a réussi
+            if not mcp_response.get("success", True):
+                logger.debug(f"⚠️ MCP call failed: {mcp_response.get('error', 'Unknown error')}")
+                return []
+            return mcp_response.get("results", [])
+
+        # Format 3: String d'erreur ou autre type inattendu
+        logger.warning(f"⚠️ Unexpected MCP response type: {type(mcp_response).__name__}")
+        return []
     
     def validate_step(
         self,
@@ -473,31 +505,33 @@ class StepValidator:
         try:
             # Tentative 1: Chercher titre exact
             query = f"{title}, {destination}, {destination_country}"
-            results = self.mcp_tools.call_tool("geo.place", query=query, max_results=1)
-            
+            raw_response = self.mcp_tools.call_tool("geo.place", query=query, max_results=1)
+            results = self._extract_results(raw_response)
+
             if results and len(results) > 0:
                 return {
                     "latitude": results[0]["latitude"],
                     "longitude": results[0]["longitude"],
                 }
-                
+
         except Exception:
             pass
-        
+
         try:
             # Tentative 2: Fallback destination
-            results = self.mcp_tools.call_tool(
+            raw_response = self.mcp_tools.call_tool(
                 "geo.city",
                 query=f"{destination}, {destination_country}",
                 max_results=1
             )
-            
+            results = self._extract_results(raw_response)
+
             if results and len(results) > 0:
                 return {
                     "latitude": results[0]["latitude"],
                     "longitude": results[0]["longitude"],
                 }
-                
+
         except Exception:
             pass
         

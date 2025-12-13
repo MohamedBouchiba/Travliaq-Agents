@@ -404,14 +404,23 @@ class IncrementalTripBuilder:
         
         logger.debug(f"📝 Step {step_number}: details updated")
 
-    def set_prices(self, total_price: float, flight_price: float, hotel_price: float, activities_price: float, currency: str = "EUR") -> None:
+    def set_prices(
+        self,
+        total_price: float,
+        price_flights: float,
+        price_hotels: float,
+        price_transport: float = 0,
+        price_activities: float = 0,
+        currency: str = "EUR"
+    ) -> None:
         """Définir les prix finaux du voyage."""
         self.trip_json["total_price"] = total_price
-        self.trip_json["price_flights"] = flight_price
-        self.trip_json["price_hotels"] = hotel_price
-        self.trip_json["price_activities"] = activities_price
+        self.trip_json["price_flights"] = price_flights
+        self.trip_json["price_hotels"] = price_hotels
+        self.trip_json["price_transport"] = price_transport
+        self.trip_json["price_activities"] = price_activities
         # self.trip_json["currency"] = currency # Check if needed in schema
-        
+
         # Update summary stats budget
         self._update_stat("budget", f"{total_price} {currency}")
         logger.info(f"💰 Prices updated: Total {total_price} {currency}")

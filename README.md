@@ -109,7 +109,7 @@ pip install -r requirements.txt
 Pour lancer une analyse sur un questionnaire spécifique :
 
 ```bash
-python crew_pipeline_cli.py --questionnaire-id <UUID>
+".venv/Scripts/python.exe" -m crew_pipeline_cli --questionnaire-id 63a10241-48ec-4607-98d0-2736ee6f0966
 ```
 
 ### Outputs (Phase 1)

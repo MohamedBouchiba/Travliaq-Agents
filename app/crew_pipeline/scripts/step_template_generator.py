@@ -19,6 +19,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import Any, Dict, List, Optional
 
 from app.crew_pipeline.scripts.image_generator import ImageGenerator
+from app.crew_pipeline.scripts.redis_cache import get_cache
 
 logger = logging.getLogger(__name__)
 
@@ -38,14 +39,47 @@ class StepTemplateGenerator:
     
     def __init__(self, mcp_tools: Any):
         """
-        Initialiser avec accès aux outils MCP.
-        
+        Initialiser avec accès aux outils MCP et cache Redis.
+
         Args:
             mcp_tools: Instance MCPToolManager avec accès à geo.*, images.*, etc.
         """
         self.mcp_tools = mcp_tools
         self.image_gen = ImageGenerator(mcp_tools)
+        self.cache = get_cache(ttl_seconds=604800)  # ⚡ Cache 7 jours pour GPS/images
         self.templates_generated = []
+
+    def _extract_results(self, mcp_response: Any) -> List[Dict[str, Any]]:
+        """
+        Extrait la liste de résultats d'une réponse MCP (gère 4 formats).
+
+        Formats supportés:
+        1. Liste directe: [{...}, {...}] (ancien format geo.place)
+        2. Dict avec "results": {"success": True, "results": [...]} (nouveau format geo.city)
+        3. String d'erreur: "Error: ..." (retourne [])
+        4. None (retourne [])
+
+        Returns:
+            Liste de résultats (vide si erreur ou aucun résultat)
+        """
+        if not mcp_response:
+            return []
+
+        # Format 1: Liste directe (ancien comportement)
+        if isinstance(mcp_response, list):
+            return mcp_response
+
+        # Format 2: Dict avec clé "results" (nouveau comportement)
+        if isinstance(mcp_response, dict):
+            # Vérifier si l'appel a réussi
+            if not mcp_response.get("success", True):
+                logger.debug(f"      ⚠️ MCP call failed: {mcp_response.get('error', 'Unknown error')}")
+                return []
+            return mcp_response.get("results", [])
+
+        # Format 3: String d'erreur ou autre type inattendu
+        logger.warning(f"      ⚠️ Unexpected MCP response type: {type(mcp_response).__name__}")
+        return []
     
     def generate_templates(
         self,
@@ -187,40 +221,63 @@ class StepTemplateGenerator:
         trip_code: str,
     ) -> Optional[Dict[str, Any]]:
         """
-        Générer template pour UNE step avec GPS et image.
-        
+        Générer template pour UNE step avec GPS et image EN PARALLÈLE.
+
         Workflow:
-        1. Construire query geo.place optimale
-        2. Appeler geo.place pour GPS
-        3. Appeler ImageGenerator pour image Supabase
-        4. Retourner template complet
+        1. Lancer GPS (geo.place) et Image (images.background) en parallèle
+        2. Collecter résultats
+        3. Retourner template complet
         """
         logger.info(f"  🔨 Generating template step {step_number}: {activity_type} in {zone}")
-        
-        # 1. RECHERCHE GPS via geo.place
-        gps_data = self._fetch_gps_for_activity(
-            activity_type=activity_type,
-            zone=zone,
-            destination=destination,
-            destination_country=destination_country,
-        )
-        
+
+        # ⚡ OPTIMISATION: GPS + Image en parallèle (2x plus rapide)
+        with ThreadPoolExecutor(max_workers=2) as executor:
+            # Lancer GPS et Image en même temps
+            future_gps = executor.submit(
+                self._fetch_gps_for_activity,
+                activity_type=activity_type,
+                zone=zone,
+                destination=destination,
+                destination_country=destination_country,
+            )
+
+            # Lancer génération image avec query générique d'abord
+            future_image = executor.submit(
+                self.image_gen.generate_step_image,
+                step_number=step_number,
+                title=f"visiting {activity_type} in {zone}",  # Query générique
+                destination=f"{destination}, {destination_country}",
+                trip_code=trip_code,
+                activity_type=activity_type
+            )
+
+            # Attendre résultats
+            gps_data = future_gps.result()
+            image_url = future_image.result()
+
+        # 🔧 FIX: Ne PAS skipper le template si GPS échoue, utiliser fallback ville
         if not gps_data:
-            logger.error(f"    ❌ GPS fetch failed for step {step_number}")
-            return None
-        
+            logger.warning(f"    ⚠️ GPS fetch failed for step {step_number}, using city center fallback")
+            # Fallback synchrone direct sur centre ville
+            try:
+                city_query = f"{destination}, {destination_country}"
+                logger.debug(f"      🔍 Fallback: geo.city('{city_query}')")
+                raw_response = self.mcp_tools.call_tool("geo.city", query=city_query, max_results=1)
+                city_results = self._extract_results(raw_response)
+                if city_results and len(city_results) > 0:
+                    gps_data = city_results[0]
+                    logger.info(f"      ✅ Fallback GPS found: {gps_data.get('name')}")
+                else:
+                    # Dernier fallback : créer GPS factice avec coordonnées 0,0
+                    logger.error(f"      ❌ Even city fallback failed, using (0,0) coordinates")
+                    gps_data = {"latitude": 0, "longitude": 0, "name": destination}
+            except Exception as e:
+                logger.error(f"      ❌ Fallback error: {e}, using (0,0) coordinates")
+                gps_data = {"latitude": 0, "longitude": 0, "name": destination}
+
         latitude = gps_data.get("latitude", 0)
         longitude = gps_data.get("longitude", 0)
         place_name = gps_data.get("name", "")
-        
-        # 2. GÉNÉRATION IMAGE via ImageGenerator (robuste)
-        image_url = self.image_gen.generate_step_image(
-            step_number=step_number,
-            title=f"visiting {place_name}",
-            destination=f"{destination}, {destination_country}",
-            trip_code=trip_code,
-            activity_type=activity_type
-        )
         
         # 3. CRÉER TEMPLATE
         template = {
@@ -273,53 +330,67 @@ class StepTemplateGenerator:
         destination_country: str,
     ) -> Optional[Dict[str, Any]]:
         """
-        Rechercher GPS pour une activité via geo.place.
-        
+        Rechercher GPS pour une activité via geo.place AVEC CACHE Redis.
+
         Stratégie:
-        1. Essayer query spécifique: "[activity_type] [zone], [destination], [country]"
-        2. Si échec, essayer query large: "[zone], [destination]"
-        3. Si échec, fallback centre ville: "[destination], [country]"
+        1. ⚡ Vérifier cache Redis d'abord (TTL: 7 jours)
+        2. Si cache miss, rechercher via MCP:
+           - Query spécifique: "[activity_type] [zone], [destination], [country]"
+           - Query zone: "[zone], [destination]"
+           - Fallback ville: "[destination], [country]"
+        3. Cacher résultat pour 7 jours
         """
-        # Attempt 1: Query spécifique
-        query_specific = f"{activity_type} {zone}, {destination}, {destination_country}"
-        
-        try:
-            logger.debug(f"      🔍 geo.place('{query_specific}')")
-            results = self.mcp_tools.call_tool("geo.place", query=query_specific, max_results=1)
-            
-            if results and len(results) > 0:
-                logger.debug(f"      ✅ GPS found (SPECIFIC): {results[0].get('name')} in {results[0].get('country')}")
-                return results[0]
-        except Exception as e:
-            logger.warning(f"      ⚠️ geo.place failed attempt 1: {e}")
-        
-        # Attempt 2: Query zone
-        query_zone = f"{zone}, {destination}, {destination_country}"
-        
-        try:
-            logger.debug(f"      🔍 geo.place('{query_zone}')")
-            results = self.mcp_tools.call_tool("geo.place", query=query_zone, max_results=1)
-            
-            if results and len(results) > 0:
-                logger.debug(f"      ✅ GPS found (zone fallback): {results[0].get('name')}")
-                return results[0]
-        except Exception as e:
-            logger.warning(f"      ⚠️ geo.place failed attempt 2: {e}")
-        
-        # Attempt 3: Fallback centre ville
-        query_city = f"{destination}, {destination_country}"
-        
-        try:
-            logger.debug(f"      🔍 geo.city('{query_city}')")
-            results = self.mcp_tools.call_tool("geo.city", query=query_city, max_results=1)
-            
-            if results and len(results) > 0:
-                logger.debug(f"      ✅ GPS found (city fallback): {results[0].get('name')}")
-                return results[0]
-        except Exception as e:
-            logger.error(f"      ❌ All GPS attempts failed: {e}")
-        
-        return None
+        # ⚡ CACHE: Créer clé unique basée sur tous les params (hashed pour éviter caractères spéciaux)
+        cache_key = self.cache._make_key("gps", activity_type, zone, destination, destination_country)
+
+        # Fonction de calcul si cache miss
+        def compute_gps():
+            # Attempt 1: Query spécifique
+            query_specific = f"{activity_type} {zone}, {destination}, {destination_country}"
+
+            try:
+                logger.debug(f"      🔍 geo.place('{query_specific}')")
+                raw_response = self.mcp_tools.call_tool("geo.place", query=query_specific, max_results=1)
+                results = self._extract_results(raw_response)
+
+                if results and len(results) > 0:
+                    logger.debug(f"      ✅ GPS found (SPECIFIC): {results[0].get('name')} in {results[0].get('country')}")
+                    return results[0]
+            except Exception as e:
+                logger.warning(f"      ⚠️ geo.place failed attempt 1: {e}")
+
+            # Attempt 2: Query zone
+            query_zone = f"{zone}, {destination}, {destination_country}"
+
+            try:
+                logger.debug(f"      🔍 geo.place('{query_zone}')")
+                raw_response = self.mcp_tools.call_tool("geo.place", query=query_zone, max_results=1)
+                results = self._extract_results(raw_response)
+
+                if results and len(results) > 0:
+                    logger.debug(f"      ✅ GPS found (zone fallback): {results[0].get('name')}")
+                    return results[0]
+            except Exception as e:
+                logger.warning(f"      ⚠️ geo.place failed attempt 2: {e}")
+
+            # Attempt 3: Fallback centre ville
+            query_city = f"{destination}, {destination_country}"
+
+            try:
+                logger.debug(f"      🔍 geo.city('{query_city}')")
+                raw_response = self.mcp_tools.call_tool("geo.city", query=query_city, max_results=1)
+                results = self._extract_results(raw_response)
+
+                if results and len(results) > 0:
+                    logger.debug(f"      ✅ GPS found (city fallback): {results[0].get('name')}")
+                    return results[0]
+            except Exception as e:
+                logger.error(f"      ❌ All GPS attempts failed: {e}")
+
+            return None
+
+        # ⚡ Utiliser cache-aside pattern
+        return self.cache.get_or_compute(cache_key, compute_gps)
     
     def _generate_summary_step(
         self,
