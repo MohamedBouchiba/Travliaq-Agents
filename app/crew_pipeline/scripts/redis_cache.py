@@ -135,23 +135,18 @@ class RedisCache:
         try:
             ttl = ttl or self.ttl_seconds
 
-            # Upstash REST API: POST /set/{key}
-            url = urljoin(self.redis_url, f"/set/{key}")
+            # Upstash REST API: POST /setex/{key}/{seconds} with value as body
+            # This is the correct way to set a key with expiration
+            url = urljoin(self.redis_url, f"/setex/{key}/{ttl}")
             headers = {
                 "Authorization": f"Bearer {self.redis_token}",
                 "Content-Type": "application/json"
             }
 
-            # Sérialiser valeur
+            # Sérialiser valeur (sera le body directement)
             serialized = json.dumps(value, ensure_ascii=False)
 
-            # Payload avec TTL (EX = secondes)
-            payload = {
-                "value": serialized,
-                "ex": ttl
-            }
-
-            response = requests.post(url, headers=headers, json=payload, timeout=2)
+            response = requests.post(url, headers=headers, data=serialized, timeout=2)
 
             if response.status_code == 200:
                 logger.debug(f"✅ Cache SET: {key} (TTL: {ttl}s)")
