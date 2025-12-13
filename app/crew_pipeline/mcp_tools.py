@@ -235,6 +235,15 @@ class MCPToolWrapper(BaseTool):
                     f"⏱️ Timeout pour {self.tool_name} (tentative {attempt}/{self.max_retries})",
                     extra={"tool": self.tool_name, "timeout": self.timeout}
                 )
+            except BaseExceptionGroup as eg:
+                # anyio TaskGroup raises BaseExceptionGroup when tasks fail
+                # Extract first exception from the group for clearer error message
+                first_exc = eg.exceptions[0] if eg.exceptions else eg
+                last_error = f"TaskGroup error: {type(first_exc).__name__}: {str(first_exc)}"
+                logger.warning(
+                    f"⚠️ TaskGroup error pour {self.tool_name} (tentative {attempt}/{self.max_retries}): {last_error}",
+                    extra={"tool": self.tool_name, "error": last_error}
+                )
             except Exception as e:
                 last_error = str(e)
                 logger.warning(
@@ -311,6 +320,12 @@ class MCPResourceWrapper(BaseTool):
         except asyncio.TimeoutError:
             error_msg = f"Timeout après {self.timeout}s"
             logger.error(f"❌ Timeout reading resource {self.resource_uri}")
+            return f"Error reading resource {self.resource_uri}: {error_msg}"
+        except BaseExceptionGroup as eg:
+            # anyio TaskGroup raises BaseExceptionGroup when tasks fail
+            first_exc = eg.exceptions[0] if eg.exceptions else eg
+            error_msg = f"TaskGroup error: {type(first_exc).__name__}: {str(first_exc)}"
+            logger.error(f"❌ TaskGroup error reading resource {self.resource_uri}: {error_msg}")
             return f"Error reading resource {self.resource_uri}: {error_msg}"
         except Exception as e:
             error_msg = str(e)
@@ -639,6 +654,11 @@ def get_mcp_tools(server_url: str) -> List[BaseTool]:
         logger.info(f"✅ Total MCP tools and resources loaded: {len(crew_tools)}")
         return crew_tools
 
+    except BaseExceptionGroup as eg:
+        # anyio TaskGroup raises BaseExceptionGroup when tasks fail
+        first_exc = eg.exceptions[0] if eg.exceptions else eg
+        logger.error(f"TaskGroup error fetching tools from MCP server: {type(first_exc).__name__}: {str(first_exc)}")
+        return []
     except Exception as e:
         logger.error(f"Failed to fetch tools from MCP server: {e}")
         return []
