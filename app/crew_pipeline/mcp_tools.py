@@ -235,18 +235,14 @@ class MCPToolWrapper(BaseTool):
                 async with asyncio.timeout(self.timeout):
                     # Récupération des headers de session
                     headers = await _get_session_headers(self.server_url)
-                    
+
                     # Force Accept header for both SSE and POST
                     headers["Accept"] = "application/json, text/event-stream"
-                    
-                    # Construct POST endpoint URL (same as server URL but with session ID)
+
+                    # 🔧 FIX: Pas de session ID dans l'URL, seulement dans les headers
+                    # Le serveur MCP gère les sessions via headers uniquement
                     post_url = self.server_url
-                    if "Mcp-Session-Id" in headers:
-                        if "?" in post_url:
-                            post_url += f"&sessionId={headers['Mcp-Session-Id']}"
-                        else:
-                            post_url += f"?sessionId={headers['Mcp-Session-Id']}"
-                    
+
                     async with custom_sse_client(self.server_url, headers=headers, override_endpoint_url=post_url) as (read, write):
                         async with ClientSession(read, write) as session:
                             await session.initialize()
@@ -341,15 +337,11 @@ class MCPResourceWrapper(BaseTool):
                 headers = await _get_session_headers(self.server_url)
                 headers["Accept"] = "application/json, text/event-stream"
                 headers["Content-Type"] = "application/json"
-                
-                # Construct POST endpoint URL
+
+                # 🔧 FIX: Pas de session ID dans l'URL, seulement dans les headers
+                # Le serveur MCP gère les sessions via headers uniquement
                 post_url = self.server_url
-                if "Mcp-Session-Id" in headers:
-                    if "?" in post_url:
-                        post_url += f"&sessionId={headers['Mcp-Session-Id']}"
-                    else:
-                        post_url += f"?sessionId={headers['Mcp-Session-Id']}"
-                
+
                 async with custom_sse_client(self.server_url, headers=headers, override_endpoint_url=post_url) as (read, write):
                     async with ClientSession(read, write) as session:
                         await session.initialize()
@@ -612,26 +604,16 @@ def get_mcp_tools(server_url: str) -> List[BaseTool]:
         return []
 
     async def _fetch_tools():
-        # 🔧 FIX: Utiliser session du serveur pour initialisation (évite timeout)
-        headers = await _get_session_headers(server_url, use_server_session=True)
+        # 🔧 FIX: Laisser fastMCP gérer les sessions automatiquement
+        # Pas de session ID manuel pour l'initialisation
+        headers = {"Accept": "application/json, text/event-stream"}
         logger.info(f"Connecting to SSE with headers: {headers}")
-
-        # Force Accept header for both SSE and POST
-        headers["Accept"] = "application/json, text/event-stream"
-
-        # Construct POST endpoint URL (same as server URL but with session ID)
-        post_url = server_url
-        if "Mcp-Session-Id" in headers:
-            if "?" in post_url:
-                post_url += f"&sessionId={headers['Mcp-Session-Id']}"
-            else:
-                post_url += f"?sessionId={headers['Mcp-Session-Id']}"
 
         # 🔧 FIX: Timeouts augmentés pour initialisation (60s au lieu de 30s)
         async with custom_sse_client(
             server_url,
             headers=headers,
-            override_endpoint_url=post_url,
+            override_endpoint_url=server_url,  # Pas de modification d'URL
             timeout=10,
             sse_read_timeout=60
         ) as (read, write):
