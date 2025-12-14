@@ -606,11 +606,39 @@ def get_mcp_tools(server_url: str) -> List[BaseTool]:
         return []
 
     async def _fetch_tools():
-        # 🔧 WORKAROUND: Le serveur MCP est intermittent sur Railway
-        # Désactiver temporairement pour permettre à la pipeline de fonctionner
-        logger.warning("⚠️ MCP tools disabled temporarily due to server instability")
-        logger.info("Pipeline will use fallback values for geo, weather, and images")
-        return types.ListToolsResult(tools=[]), None
+        """
+        Fetch tools from MCP server using streamablehttp_client (fastMCP v2).
+        """
+        try:
+            async with streamablehttp_client(server_url) as (read, write, get_session_id):
+                logger.debug(f"MCP Session ID: {get_session_id()}")
+
+                async with ClientSession(read, write) as session:
+                    # Initialize the session
+                    init_result = await session.initialize()
+                    logger.info(f"✅ MCP Server initialized: {init_result.serverInfo.name} v{init_result.serverInfo.version}")
+                    logger.debug(f"   Protocol version: {init_result.protocolVersion}")
+
+                    # List available tools
+                    tools_result = await session.list_tools()
+                    logger.info(f"✅ Found {len(tools_result.tools)} MCP tools")
+
+                    # Note: Skip list_resources() as it causes BrokenResourceError
+                    # Resources will be discovered on-demand when needed
+                    resources_result = None
+
+                    return tools_result, resources_result
+
+        except httpx.HTTPStatusError as e:
+            logger.error(f"❌ HTTP error from MCP server: {e.response.status_code} {e.response.reason_phrase}")
+            logger.debug(f"   URL: {e.request.url}")
+            return types.ListToolsResult(tools=[]), None
+        except anyio.BrokenResourceError as e:
+            logger.error(f"❌ Stream broken during MCP communication: {e}")
+            return types.ListToolsResult(tools=[]), None
+        except Exception as e:
+            logger.error(f"❌ Unexpected error fetching MCP tools: {type(e).__name__}: {e}")
+            return types.ListToolsResult(tools=[]), None
 
     # 🔧 FIX: Gérer les erreurs de terminaison au niveau de asyncio.run()
     tools_list = None
