@@ -15,13 +15,11 @@ from pydantic import BaseModel, Field, create_model
 try:
     from mcp import ClientSession
     from mcp.client.sse import sse_client, aconnect_sse, remove_request_params, create_mcp_http_client, SSEError
-    from mcp.client.streamable_http import streamablehttp_client
     from mcp.client.session import SessionMessage
     import mcp.types as types
 except ImportError:
     ClientSession = None
     sse_client = None
-    streamablehttp_client = None
     aconnect_sse = None
     remove_request_params = None
     create_mcp_http_client = None
@@ -605,39 +603,149 @@ def get_mcp_tools(server_url: str) -> List[BaseTool]:
         logger.error("MCP library not installed. Cannot fetch tools.")
         return []
 
+    async def _parse_sse_events(lines_iter):
+        """Parse SSE events from async line iterator, handling multi-line data."""
+        import json
+
+        current_data = []
+
+        async for line in lines_iter:
+            if line.startswith("data: "):
+                # Accumulate data lines
+                current_data.append(line[6:])
+            elif line == "" and current_data:
+                # Blank line marks end of event - parse accumulated data
+                json_str = "".join(current_data)
+                current_data = []
+                try:
+                    yield json.loads(json_str)
+                except json.JSONDecodeError:
+                    pass
+
     async def _fetch_tools():
         """
-        Fetch tools from MCP server using streamablehttp_client (official SDK client for fastMCP v2).
-        This client handles SSE headers and JSON-RPC protocol correctly.
+        Fetch tools from MCP server using POST with SSE response parsing.
+
+        Railway's fastMCP server responds with SSE format even for POST requests
+        when Accept header includes text/event-stream.
         """
+        import json
+
         try:
-            # Use official SDK streamablehttp_client which handles everything correctly
-            async with streamablehttp_client(server_url) as (read, write, get_session_id):
-                logger.debug(f"Connected to MCP server, session: {get_session_id()[:16] if get_session_id() else 'N/A'}...")
+            async with httpx.AsyncClient(timeout=30.0) as client:
+                # Step 1: Initialize session
+                logger.debug(f"Initializing MCP session with POST to {server_url}")
 
-                async with ClientSession(read, write) as session:
-                    # Initialize the session
-                    init_result = await session.initialize()
-                    logger.info(f"✅ MCP Server initialized: {init_result.serverInfo.name} v{init_result.serverInfo.version}")
-                    logger.debug(f"   Protocol version: {init_result.protocolVersion}")
+                async with client.stream(
+                    "POST",
+                    server_url,
+                    json={
+                        "jsonrpc": "2.0",
+                        "method": "initialize",
+                        "params": {
+                            "protocolVersion": "2024-11-05",
+                            "capabilities": {
+                                "roots": {"listChanged": False},
+                                "sampling": {}
+                            },
+                            "clientInfo": {
+                                "name": "travliaq-pipeline",
+                                "version": "1.0.0"
+                            }
+                        },
+                        "id": 1
+                    },
+                    headers={
+                        "Content-Type": "application/json",
+                        "Accept": "application/json, text/event-stream"
+                    }
+                ) as response:
+                    response.raise_for_status()
 
-                    # List available tools
-                    tools_result = await session.list_tools()
-                    logger.info(f"✅ Found {len(tools_result.tools)} MCP tools")
+                    # Extract session ID from response headers
+                    session_id = response.headers.get("mcp-session-id")
+                    logger.debug(f"MCP session ID: {session_id}")
 
-                    # Note: Skip list_resources() as it can cause issues with some servers
-                    # Resources will be discovered on-demand when needed
-                    resources_result = None
+                    # Read SSE stream and find our response
+                    init_data = None
+                    async for event_data in _parse_sse_events(response.aiter_lines()):
+                        logger.debug(f"Parsed SSE event: {str(event_data)[:100]}")
+                        if event_data.get("id") == 1:
+                            init_data = event_data
+                            break
 
-                    return tools_result, resources_result
+                if not init_data:
+                    logger.error("❌ No initialize response received from MCP server")
+                    return types.ListToolsResult(tools=[]), None
+
+                if "error" in init_data:
+                    logger.error(f"❌ MCP initialize error: {init_data['error']}")
+                    return types.ListToolsResult(tools=[]), None
+
+                server_info = init_data.get("result", {})
+                logger.info(f"✅ MCP Server initialized: {server_info.get('serverInfo', {}).get('name', 'Unknown')}")
+
+                # Step 2: List tools - reuse session ID
+                logger.debug(f"Listing MCP tools via POST with SSE (session: {session_id})")
+
+                # Build headers with session ID
+                tools_headers = {
+                    "Content-Type": "application/json",
+                    "Accept": "application/json, text/event-stream"
+                }
+                if session_id:
+                    tools_headers["mcp-session-id"] = session_id
+
+                async with client.stream(
+                    "POST",
+                    server_url,
+                    json={
+                        "jsonrpc": "2.0",
+                        "method": "tools/list",
+                        "params": {},
+                        "id": 2
+                    },
+                    headers=tools_headers
+                ) as response:
+                    response.raise_for_status()
+
+                    # Read SSE stream and find our response
+                    tools_data = None
+                    async for event_data in _parse_sse_events(response.aiter_lines()):
+                        if event_data.get("id") == 2:
+                            tools_data = event_data
+                            break
+
+                if not tools_data:
+                    logger.error("❌ No tools/list response received from MCP server")
+                    return types.ListToolsResult(tools=[]), None
+
+                if "error" in tools_data:
+                    logger.error(f"❌ MCP tools/list error: {tools_data['error']}")
+                    return types.ListToolsResult(tools=[]), None
+
+                # Parse tools from JSON-RPC response
+                tools_list = tools_data.get("result", {}).get("tools", [])
+                logger.info(f"✅ Found {len(tools_list)} MCP tools via POST+SSE")
+
+                # Convert to MCP types.Tool objects
+                mcp_tools = []
+                for tool_dict in tools_list:
+                    mcp_tool = types.Tool(
+                        name=tool_dict["name"],
+                        description=tool_dict.get("description", ""),
+                        inputSchema=tool_dict.get("inputSchema", {"type": "object", "properties": {}})
+                    )
+                    mcp_tools.append(mcp_tool)
+
+                return types.ListToolsResult(tools=mcp_tools), None
 
         except httpx.HTTPStatusError as e:
             logger.error(f"❌ HTTP error from MCP server: {e.response.status_code} {e.response.reason_phrase}")
-            logger.debug(f"   URL: {e.request.url}")
-            logger.debug(f"   Response: {e.response.text[:500] if e.response else 'N/A'}")
-            return types.ListToolsResult(tools=[]), None
-        except anyio.BrokenResourceError as e:
-            logger.error(f"❌ Stream broken during MCP communication: {e}")
+            logger.error(f"   URL: {e.request.url}")
+            logger.error(f"   Request headers: {dict(e.request.headers)}")
+            logger.error(f"   Response headers: {dict(e.response.headers)}")
+            # Don't try to read body on streaming responses
             return types.ListToolsResult(tools=[]), None
         except Exception as e:
             logger.error(f"❌ Unexpected error fetching MCP tools: {type(e).__name__}: {e}")
