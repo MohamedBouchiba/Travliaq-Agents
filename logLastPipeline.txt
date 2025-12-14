@@ -1,20 +1,235 @@
-2025-12-14 04:32:44 | INFO     | root | ================================================================================
-2025-12-14 04:32:44 | INFO     | root | TRAVLIAQ PIPELINE - LOGS INITIALIZED
-2025-12-14 04:32:44 | INFO     | root | Log file: E:\CrewTravliaq\Travliaq-Agents\logLastPipeline.txt
-2025-12-14 04:32:44 | INFO     | root | Log level: INFO
-2025-12-14 04:32:44 | INFO     | root | Console output: Enabled
-2025-12-14 04:32:44 | INFO     | root | ================================================================================
-2025-12-14 04:32:44 | INFO     | app.crew_pipeline.pipeline | 🚀 Lancement Pipeline CrewAI (Run ID: 63a10241-48ec-4607-98d0-2736ee6f0966-2050a6d1, Questionnaire: 63a10241...)
-2025-12-14 04:32:44 | INFO     | app.crew_pipeline.mcp_tools | Fetching MCP tools from https://travliaq-mcp-production.up.railway.app/mcp...
-2025-12-14 04:32:49 | INFO     | app.crew_pipeline.mcp_tools | 🆕 Session UUID créée pour thread 1327290431216: da48ad720736435d...
-2025-12-14 04:32:49 | INFO     | app.crew_pipeline.mcp_tools | Connecting to SSE with headers: {'Mcp-Session-Id': 'da48ad720736435d9801cdb24751cb6c'}
-2025-12-14 04:33:21 | ERROR    | app.crew_pipeline.mcp_tools | ❌ Serveur MCP down (502 Bad Gateway): https://travliaq-mcp-production.up.railway.app/mcp
-   Solutions:
-   1. Vérifier logs Railway: railway logs --project travliaq-mcp
-   2. Redémarrer: railway restart --service travliaq-mcp-production
-   3. Vérifier port binding et configuration
-   Le pipeline continuera sans MCP (valeurs par défaut utilisées)
-2025-12-14 04:33:21 | INFO     | app.crew_pipeline.pipeline | ✅ 0 outils MCP chargés.
-2025-12-14 04:33:27 | INFO     | root | OpenAI API usage: {'prompt_tokens': 2698, 'completion_tokens': 391, 'total_tokens': 3089}
-2025-12-14 04:33:27 | INFO     | root | OpenAI: Successfully validated tool 'create_reasoning_plan'
-2025-12-14 04:33:38 | INFO     | root | OpenAI API usage: {'prompt_tokens': 1982, 'completion_tokens': 574, 'total_tokens': 2556}
+2025-12-14 04:49:25 | INFO     | root | ================================================================================
+2025-12-14 04:49:25 | INFO     | root | TRAVLIAQ PIPELINE - LOGS INITIALIZED
+2025-12-14 04:49:25 | INFO     | root | Log file: E:\CrewTravliaq\Travliaq-Agents\logLastPipeline.txt
+2025-12-14 04:49:25 | INFO     | root | Log level: INFO
+2025-12-14 04:49:25 | INFO     | root | Console output: Enabled
+2025-12-14 04:49:25 | INFO     | root | ================================================================================
+2025-12-14 04:49:25 | INFO     | app.crew_pipeline.pipeline | 🚀 Lancement Pipeline CrewAI (Run ID: 63a10241-48ec-4607-98d0-2736ee6f0966-ad2d0a94, Questionnaire: 63a10241...)
+2025-12-14 04:49:25 | INFO     | app.crew_pipeline.mcp_tools | Fetching MCP tools from https://travliaq-mcp-production.up.railway.app/mcp...
+2025-12-14 04:49:25 | INFO     | app.crew_pipeline.mcp_tools | Connecting to SSE with headers: {'Accept': 'application/json, text/event-stream'}
+2025-12-14 04:49:25 | ERROR    | app.crew_pipeline.mcp_tools | ❌ TaskGroup error fetching tools from MCP server: HTTPStatusError: Client error '400 Bad Request' for url 'https://travliaq-mcp-production.up.railway.app/mcp'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/400
+2025-12-14 04:49:25 | INFO     | app.crew_pipeline.pipeline | ✅ 0 outils MCP chargés.
+2025-12-14 04:49:32 | INFO     | root | OpenAI API usage: {'prompt_tokens': 2698, 'completion_tokens': 403, 'total_tokens': 3101}
+2025-12-14 04:49:32 | INFO     | root | OpenAI: Successfully validated tool 'create_reasoning_plan'
+2025-12-14 04:49:43 | INFO     | root | OpenAI API usage: {'prompt_tokens': 1982, 'completion_tokens': 580, 'total_tokens': 2562}
+2025-12-14 04:49:45 | INFO     | root | OpenAI API usage: {'prompt_tokens': 2746, 'completion_tokens': 150, 'total_tokens': 2896}
+2025-12-14 04:49:45 | INFO     | app.crew_pipeline.pipeline | 📁 PHASE1_CONTEXT - Step 1: trip_context_building → output\crew_runs\63a10241-48ec-4607-98d0-2736ee6f0966-ad2d0a94\PHASE1_CONTEXT\step_1_trip_context_building
+2025-12-14 04:49:45 | INFO     | app.crew_pipeline.pipeline | 📁 PHASE1_CONTEXT - Step 2: destination_strategy → output\crew_runs\63a10241-48ec-4607-98d0-2736ee6f0966-ad2d0a94\PHASE1_CONTEXT\step_2_destination_strategy
+2025-12-14 04:49:45 | INFO     | app.crew_pipeline.pipeline | 🏗️ Initialisation du IncrementalTripBuilder...
+2025-12-14 04:49:45 | INFO     | app.crew_pipeline.scripts.incremental_trip_builder | 🏗️ IncrementalTripBuilder créé
+2025-12-14 04:49:45 | INFO     | app.crew_pipeline.pipeline | 📍 Destination extraite: Rio de Janeiro, Brésil 🌍, Country: Brésil
+2025-12-14 04:49:45 | INFO     | app.crew_pipeline.scripts.incremental_trip_builder | 🏗️ Structure JSON initialisée: RIODEJANEIRO-2025-8785B3
+2025-12-14 04:49:45 | INFO     | app.crew_pipeline.scripts.incremental_trip_builder |    - Destination: Rio de Janeiro, Brésil 🌍
+2025-12-14 04:49:45 | INFO     | app.crew_pipeline.scripts.incremental_trip_builder |    - Jours: 21
+2025-12-14 04:49:45 | INFO     | app.crew_pipeline.scripts.incremental_trip_builder |    - Rythme: relaxed
+2025-12-14 04:49:45 | INFO     | app.crew_pipeline.scripts.incremental_trip_builder |    - Steps: 31 activités + 1 summary
+2025-12-14 04:49:45 | INFO     | app.crew_pipeline.scripts.incremental_trip_builder |    - Cache size: 32 entries
+2025-12-14 04:49:45 | INFO     | app.crew_pipeline.pipeline | ✅ Structure JSON initialisée: RIODEJANEIRO-2025-8785B3
+2025-12-14 04:49:45 | INFO     | app.crew_pipeline.pipeline | 📋 Step 1/3: Calculating trip structure with SCRIPT (no LLM)...
+2025-12-14 04:49:45 | INFO     | app.crew_pipeline.scripts.trip_structure_calculator | 🧮 Calculating trip structure for Rio de Janeiro, Brésil 🌍 (21 days)
+2025-12-14 04:49:45 | INFO     | app.crew_pipeline.scripts.trip_structure_calculator |    Rhythm: relaxed → 1.2 steps/day avg → 25 steps total
+2025-12-14 04:49:45 | INFO     | app.crew_pipeline.scripts.trip_structure_calculator | ✅ Trip structure calculated: 25 steps across 21 days
+2025-12-14 04:49:45 | INFO     | app.crew_pipeline.pipeline | ✅ Trip structure calculated by script: 25 steps
+2025-12-14 04:49:45 | INFO     | app.crew_pipeline.pipeline | 💾 Trip structure plan saved to output\crew_runs\63a10241-48ec-4607-98d0-2736ee6f0966-ad2d0a94\_trip_structure_plan.yaml
+2025-12-14 04:49:45 | WARNING  | app.crew_pipeline.pipeline | ⚠️ Step count mismatch: builder has 31 steps, plan requires 25 steps. Adjusting...
+2025-12-14 04:49:45 | INFO     | app.crew_pipeline.pipeline | ✅ Removed 6 steps to match plan
+2025-12-14 04:49:45 | INFO     | app.crew_pipeline.pipeline | 🏗️ Step 2/3: Generating step templates with GPS and images...
+2025-12-14 04:49:45 | INFO     | app.crew_pipeline.scripts.redis_cache | ✅ Redis cache enabled (TTL: 604800s = 7 days)
+2025-12-14 04:49:45 | INFO     | app.crew_pipeline.scripts.step_template_generator | 🏗️ Generating step templates for Rio de Janeiro, Brésil 🌍, Brésil (parallel=True)
+2025-12-14 04:49:45 | INFO     | app.crew_pipeline.scripts.step_template_generator | 📅 Jour 1: 1 steps dans zone 'Centre Rio de Janeiro, Brésil 🌍'
+2025-12-14 04:49:45 | INFO     | app.crew_pipeline.scripts.step_template_generator | 📅 Jour 2: 1 steps dans zone 'Centre Rio de Janeiro, Brésil 🌍'
+2025-12-14 04:49:45 | INFO     | app.crew_pipeline.scripts.step_template_generator | 📅 Jour 3: 1 steps dans zone 'Centre Rio de Janeiro, Brésil 🌍'
+2025-12-14 04:49:45 | INFO     | app.crew_pipeline.scripts.step_template_generator | 📅 Jour 4: 1 steps dans zone 'Centre Rio de Janeiro, Brésil 🌍'
+2025-12-14 04:49:45 | INFO     | app.crew_pipeline.scripts.step_template_generator | 📅 Jour 5: 1 steps dans zone 'Périphérie Rio de Janeiro, Brésil 🌍'
+2025-12-14 04:49:45 | INFO     | app.crew_pipeline.scripts.step_template_generator | 📅 Jour 6: 1 steps dans zone 'Périphérie Rio de Janeiro, Brésil 🌍'
+2025-12-14 04:49:45 | INFO     | app.crew_pipeline.scripts.step_template_generator | 📅 Jour 7: 1 steps dans zone 'Périphérie Rio de Janeiro, Brésil 🌍'
+2025-12-14 04:49:45 | INFO     | app.crew_pipeline.scripts.step_template_generator | 📅 Jour 8: 1 steps dans zone 'Périphérie Rio de Janeiro, Brésil 🌍'
+2025-12-14 04:49:45 | INFO     | app.crew_pipeline.scripts.step_template_generator | 📅 Jour 9: 1 steps dans zone 'Zone touristique'
+2025-12-14 04:49:45 | INFO     | app.crew_pipeline.scripts.step_template_generator | 📅 Jour 10: 1 steps dans zone 'Zone touristique'
+2025-12-14 04:49:45 | INFO     | app.crew_pipeline.scripts.step_template_generator | 📅 Jour 11: 1 steps dans zone 'Zone touristique'
+2025-12-14 04:49:45 | INFO     | app.crew_pipeline.scripts.step_template_generator | 📅 Jour 12: 1 steps dans zone 'Zone touristique'
+2025-12-14 04:49:45 | INFO     | app.crew_pipeline.scripts.step_template_generator | 📅 Jour 13: 1 steps dans zone 'Quartier historique'
+2025-12-14 04:49:45 | INFO     | app.crew_pipeline.scripts.step_template_generator | 📅 Jour 14: 2 steps dans zone 'Quartier historique'
+2025-12-14 04:49:45 | INFO     | app.crew_pipeline.scripts.step_template_generator | 📅 Jour 15: 1 steps dans zone 'Quartier historique'
+2025-12-14 04:49:45 | INFO     | app.crew_pipeline.scripts.step_template_generator | 📅 Jour 16: 2 steps dans zone 'Quartier historique'
+2025-12-14 04:49:45 | INFO     | app.crew_pipeline.scripts.step_template_generator | 📅 Jour 17: 1 steps dans zone 'Zone nature/plage'
+2025-12-14 04:49:45 | INFO     | app.crew_pipeline.scripts.step_template_generator | 📅 Jour 18: 1 steps dans zone 'Zone nature/plage'
+2025-12-14 04:49:45 | INFO     | app.crew_pipeline.scripts.step_template_generator | 📅 Jour 19: 2 steps dans zone 'Zone nature/plage'
+2025-12-14 04:49:45 | INFO     | app.crew_pipeline.scripts.step_template_generator | 📅 Jour 20: 2 steps dans zone 'Zone nature/plage'
+2025-12-14 04:49:45 | INFO     | app.crew_pipeline.scripts.step_template_generator | 📅 Jour 21: 1 steps dans zone 'Zone nature/plage'
+2025-12-14 04:49:45 | INFO     | app.crew_pipeline.scripts.step_template_generator | ⚡ Generating 25 templates in parallel (max_workers=6)
+2025-12-14 04:49:45 | INFO     | app.crew_pipeline.scripts.step_template_generator |   🔨 Generating template step 1: sightseeing in Centre Rio de Janeiro, Brésil 🌍
+2025-12-14 04:49:45 | INFO     | app.crew_pipeline.scripts.step_template_generator |   🔨 Generating template step 2: photography in Centre Rio de Janeiro, Brésil 🌍
+2025-12-14 04:49:45 | INFO     | app.crew_pipeline.scripts.step_template_generator |   🔨 Generating template step 3: local_cuisine in Centre Rio de Janeiro, Brésil 🌍
+2025-12-14 04:49:45 | INFO     | app.crew_pipeline.scripts.step_template_generator |   🔨 Generating template step 4: sightseeing in Centre Rio de Janeiro, Brésil 🌍
+2025-12-14 04:49:45 | INFO     | app.crew_pipeline.scripts.step_template_generator |   🔨 Generating template step 5: photography in Périphérie Rio de Janeiro, Brésil 🌍
+2025-12-14 04:49:45 | INFO     | app.crew_pipeline.scripts.step_template_generator |   🔨 Generating template step 6: local_cuisine in Périphérie Rio de Janeiro, Brésil 🌍
+2025-12-14 04:49:45 | INFO     | app.crew_pipeline.scripts.image_generator | 🖼️ Generating STEP 2 image: 'visiting photography in Centre Rio de Janeiro, Brésil 🌍'...
+2025-12-14 04:49:45 | INFO     | app.crew_pipeline.scripts.image_generator | 🖼️ Generating STEP 1 image: 'visiting sightseeing in Centre Rio de Janeiro, Brésil 🌍'...
+2025-12-14 04:49:45 | INFO     | app.crew_pipeline.scripts.image_generator | 🖼️ Generating STEP 3 image: 'visiting local_cuisine in Centre Rio de Janeiro, Brésil 🌍'...
+2025-12-14 04:49:45 | INFO     | app.crew_pipeline.scripts.image_generator | 🖼️ Generating STEP 6 image: 'visiting local_cuisine in Périphérie Rio de Janeiro, Brésil 🌍'...
+2025-12-14 04:49:45 | INFO     | app.crew_pipeline.scripts.image_generator | 🖼️ Generating STEP 5 image: 'visiting photography in Périphérie Rio de Janeiro, Brésil 🌍'...
+2025-12-14 04:49:45 | INFO     | app.crew_pipeline.scripts.image_generator | 🖼️ Generating STEP 4 image: 'visiting sightseeing in Centre Rio de Janeiro, Brésil 🌍'...
+2025-12-14 04:49:46 | INFO     | app.crew_pipeline.scripts.step_template_generator |     ✅ Template created: GPS (-22.9064, -43.1822), Image: True
+2025-12-14 04:49:46 | INFO     | app.crew_pipeline.scripts.step_template_generator |     ✅ Template created: GPS (0.0000, 0.0000), Image: True
+2025-12-14 04:49:46 | INFO     | app.crew_pipeline.scripts.step_template_generator |   🔨 Generating template step 7: sightseeing in Périphérie Rio de Janeiro, Brésil 🌍
+2025-12-14 04:49:46 | INFO     | app.crew_pipeline.scripts.step_template_generator |     ✅ Template created: GPS (-22.9064, -43.1822), Image: True
+2025-12-14 04:49:46 | INFO     | app.crew_pipeline.scripts.step_template_generator |   🔨 Generating template step 8: photography in Périphérie Rio de Janeiro, Brésil 🌍
+2025-12-14 04:49:46 | INFO     | app.crew_pipeline.scripts.step_template_generator |     ✅ Template created: GPS (-22.9064, -43.1822), Image: True
+2025-12-14 04:49:46 | INFO     | app.crew_pipeline.scripts.step_template_generator |     ✅ Template created: GPS (0.0000, 0.0000), Image: True
+2025-12-14 04:49:46 | INFO     | app.crew_pipeline.scripts.step_template_generator |     ✅ Template created: GPS (-22.9064, -43.1822), Image: True
+2025-12-14 04:49:46 | INFO     | app.crew_pipeline.scripts.step_template_generator |   🔨 Generating template step 9: local_cuisine in Zone touristique
+2025-12-14 04:49:46 | INFO     | app.crew_pipeline.scripts.image_generator | 🖼️ Generating STEP 7 image: 'visiting sightseeing in Périphérie Rio de Janeiro, Brésil 🌍'...
+2025-12-14 04:49:46 | INFO     | app.crew_pipeline.scripts.step_template_generator |   🔨 Generating template step 10: sightseeing in Zone touristique
+2025-12-14 04:49:46 | INFO     | app.crew_pipeline.scripts.step_template_generator |   🔨 Generating template step 11: photography in Zone touristique
+2025-12-14 04:49:46 | INFO     | app.crew_pipeline.scripts.image_generator | 🖼️ Generating STEP 8 image: 'visiting photography in Périphérie Rio de Janeiro, Brésil 🌍'...
+2025-12-14 04:49:46 | INFO     | app.crew_pipeline.scripts.step_template_generator |   🔨 Generating template step 12: local_cuisine in Zone touristique
+2025-12-14 04:49:46 | INFO     | app.crew_pipeline.scripts.image_generator | 🖼️ Generating STEP 9 image: 'visiting local_cuisine in Zone touristique'...
+2025-12-14 04:49:46 | INFO     | app.crew_pipeline.scripts.image_generator | 🖼️ Generating STEP 11 image: 'visiting photography in Zone touristique'...
+2025-12-14 04:49:46 | INFO     | app.crew_pipeline.scripts.image_generator | 🖼️ Generating STEP 12 image: 'visiting local_cuisine in Zone touristique'...
+2025-12-14 04:49:46 | INFO     | app.crew_pipeline.scripts.image_generator | 🖼️ Generating STEP 10 image: 'visiting sightseeing in Zone touristique'...
+2025-12-14 04:49:47 | WARNING  | app.crew_pipeline.scripts.step_template_generator |       ⚠️ geo.place failed attempt 1: Tool 'geo.place' not found. Available: []
+2025-12-14 04:49:47 | WARNING  | app.crew_pipeline.scripts.step_template_generator |       ⚠️ geo.place failed attempt 2: Tool 'geo.place' not found. Available: []
+2025-12-14 04:49:47 | ERROR    | app.crew_pipeline.scripts.step_template_generator |       ❌ All GPS attempts failed: Tool 'geo.city' not found. Available: []
+2025-12-14 04:49:47 | WARNING  | app.crew_pipeline.scripts.step_template_generator |     ⚠️ GPS fetch failed for step 7, using city center fallback
+2025-12-14 04:49:47 | ERROR    | app.crew_pipeline.scripts.step_template_generator |       ❌ Fallback error: Tool 'geo.city' not found. Available: [], using (0,0) coordinates
+2025-12-14 04:49:47 | INFO     | app.crew_pipeline.scripts.step_template_generator |     ✅ Template created: GPS (0.0000, 0.0000), Image: True
+2025-12-14 04:49:47 | INFO     | app.crew_pipeline.scripts.step_template_generator |   🔨 Generating template step 13: sightseeing in Quartier historique
+2025-12-14 04:49:47 | INFO     | app.crew_pipeline.scripts.image_generator | 🖼️ Generating STEP 13 image: 'visiting sightseeing in Quartier historique'...
+2025-12-14 04:49:47 | INFO     | app.crew_pipeline.scripts.step_template_generator |     ✅ Template created: GPS (0.0000, 0.0000), Image: True
+2025-12-14 04:49:47 | INFO     | app.crew_pipeline.scripts.step_template_generator |   🔨 Generating template step 14: photography in Quartier historique
+2025-12-14 04:49:47 | INFO     | app.crew_pipeline.scripts.step_template_generator |     ✅ Template created: GPS (-22.9064, -43.1822), Image: True
+2025-12-14 04:49:47 | WARNING  | app.crew_pipeline.scripts.step_template_generator |       ⚠️ geo.place failed attempt 1: Tool 'geo.place' not found. Available: []
+2025-12-14 04:49:47 | INFO     | app.crew_pipeline.scripts.image_generator | 🖼️ Generating STEP 14 image: 'visiting photography in Quartier historique'...
+2025-12-14 04:49:47 | INFO     | app.crew_pipeline.scripts.step_template_generator |   🔨 Generating template step 15: local_cuisine in Quartier historique
+2025-12-14 04:49:47 | INFO     | app.crew_pipeline.scripts.step_template_generator |     ✅ Template created: GPS (-22.9064, -43.1822), Image: True
+2025-12-14 04:49:47 | WARNING  | app.crew_pipeline.scripts.step_template_generator |       ⚠️ geo.place failed attempt 2: Tool 'geo.place' not found. Available: []
+2025-12-14 04:49:47 | INFO     | app.crew_pipeline.scripts.step_template_generator |     ✅ Template created: GPS (-22.9064, -43.1822), Image: True
+2025-12-14 04:49:47 | INFO     | app.crew_pipeline.scripts.step_template_generator |   🔨 Generating template step 16: sightseeing in Quartier historique
+2025-12-14 04:49:47 | INFO     | app.crew_pipeline.scripts.image_generator | 🖼️ Generating STEP 15 image: 'visiting local_cuisine in Quartier historique'...
+2025-12-14 04:49:47 | ERROR    | app.crew_pipeline.scripts.step_template_generator |       ❌ All GPS attempts failed: Tool 'geo.city' not found. Available: []
+2025-12-14 04:49:47 | INFO     | app.crew_pipeline.scripts.step_template_generator |   🔨 Generating template step 17: photography in Quartier historique
+2025-12-14 04:49:47 | INFO     | app.crew_pipeline.scripts.image_generator | 🖼️ Generating STEP 16 image: 'visiting sightseeing in Quartier historique'...
+2025-12-14 04:49:47 | WARNING  | app.crew_pipeline.scripts.step_template_generator |     ⚠️ GPS fetch failed for step 11, using city center fallback
+2025-12-14 04:49:47 | INFO     | app.crew_pipeline.scripts.image_generator | 🖼️ Generating STEP 17 image: 'visiting photography in Quartier historique'...
+2025-12-14 04:49:47 | ERROR    | app.crew_pipeline.scripts.step_template_generator |       ❌ Fallback error: Tool 'geo.city' not found. Available: [], using (0,0) coordinates
+2025-12-14 04:49:47 | INFO     | app.crew_pipeline.scripts.step_template_generator |     ✅ Template created: GPS (0.0000, 0.0000), Image: True
+2025-12-14 04:49:47 | INFO     | app.crew_pipeline.scripts.step_template_generator |   🔨 Generating template step 18: local_cuisine in Quartier historique
+2025-12-14 04:49:47 | INFO     | app.crew_pipeline.scripts.image_generator | 🖼️ Generating STEP 18 image: 'visiting local_cuisine in Quartier historique'...
+2025-12-14 04:49:47 | INFO     | app.crew_pipeline.scripts.step_template_generator |     ✅ Template created: GPS (-22.9064, -43.1822), Image: True
+2025-12-14 04:49:47 | INFO     | app.crew_pipeline.scripts.step_template_generator |   🔨 Generating template step 19: sightseeing in Zone nature/plage
+2025-12-14 04:49:47 | INFO     | app.crew_pipeline.scripts.image_generator | 🖼️ Generating STEP 19 image: 'visiting sightseeing in Zone nature/plage'...
+2025-12-14 04:49:48 | INFO     | app.crew_pipeline.scripts.step_template_generator |     ✅ Template created: GPS (-22.9064, -43.1822), Image: True
+2025-12-14 04:49:48 | INFO     | app.crew_pipeline.scripts.step_template_generator |     ✅ Template created: GPS (-22.9064, -43.1822), Image: True
+2025-12-14 04:49:48 | INFO     | app.crew_pipeline.scripts.step_template_generator |     ✅ Template created: GPS (-22.9064, -43.1822), Image: True
+2025-12-14 04:49:48 | INFO     | app.crew_pipeline.scripts.step_template_generator |   🔨 Generating template step 20: photography in Zone nature/plage
+2025-12-14 04:49:48 | INFO     | app.crew_pipeline.scripts.step_template_generator |     ✅ Template created: GPS (-22.9064, -43.1822), Image: True
+2025-12-14 04:49:48 | INFO     | app.crew_pipeline.scripts.step_template_generator |     ✅ Template created: GPS (-22.9064, -43.1822), Image: True
+2025-12-14 04:49:48 | INFO     | app.crew_pipeline.scripts.step_template_generator |   🔨 Generating template step 21: local_cuisine in Zone nature/plage
+2025-12-14 04:49:48 | INFO     | app.crew_pipeline.scripts.step_template_generator |   🔨 Generating template step 22: sightseeing in Zone nature/plage
+2025-12-14 04:49:48 | INFO     | app.crew_pipeline.scripts.step_template_generator |   🔨 Generating template step 23: photography in Zone nature/plage
+2025-12-14 04:49:48 | INFO     | app.crew_pipeline.scripts.step_template_generator |   🔨 Generating template step 24: local_cuisine in Zone nature/plage
+2025-12-14 04:49:48 | INFO     | app.crew_pipeline.scripts.image_generator | 🖼️ Generating STEP 20 image: 'visiting photography in Zone nature/plage'...
+2025-12-14 04:49:48 | INFO     | app.crew_pipeline.scripts.image_generator | 🖼️ Generating STEP 21 image: 'visiting local_cuisine in Zone nature/plage'...
+2025-12-14 04:49:48 | INFO     | app.crew_pipeline.scripts.image_generator | 🖼️ Generating STEP 23 image: 'visiting photography in Zone nature/plage'...
+2025-12-14 04:49:48 | INFO     | app.crew_pipeline.scripts.image_generator | 🖼️ Generating STEP 22 image: 'visiting sightseeing in Zone nature/plage'...
+2025-12-14 04:49:48 | INFO     | app.crew_pipeline.scripts.image_generator | 🖼️ Generating STEP 24 image: 'visiting local_cuisine in Zone nature/plage'...
+2025-12-14 04:49:48 | WARNING  | app.crew_pipeline.scripts.redis_cache | ⚠️ Redis GET failed (400): image:images.background|visiting sightseeing in Zone nature/plage (sightseeing) in Rio de Janeiro, Brésil 🌍, Brésil travel p
+2025-12-14 04:49:48 | WARNING  | app.crew_pipeline.scripts.image_generator |    ⚠️ Attempt 1 failed with exception: Tool 'images.background' not found. Available: []
+2025-12-14 04:49:48 | WARNING  | app.crew_pipeline.scripts.redis_cache | ⚠️ Redis GET failed (400): image:images.background|visiting local_cuisine in Zone nature/plage (local_cuisine) in Rio de Janeiro, Brésil 🌍, Brésil trav
+2025-12-14 04:49:48 | WARNING  | app.crew_pipeline.scripts.image_generator |    ⚠️ Attempt 1 failed with exception: Tool 'images.background' not found. Available: []
+2025-12-14 04:49:48 | WARNING  | app.crew_pipeline.scripts.redis_cache | ⚠️ Redis GET failed (400): image:images.background|visiting local_cuisine in Zone nature/plage (local_cuisine) in Rio de Janeiro, Brésil 🌍, Brésil trav
+2025-12-14 04:49:48 | WARNING  | app.crew_pipeline.scripts.image_generator |    ⚠️ Attempt 1 failed with exception: Tool 'images.background' not found. Available: []
+2025-12-14 04:49:48 | WARNING  | app.crew_pipeline.scripts.redis_cache | ⚠️ Redis GET failed (400): image:images.background|visiting photography in Zone nature/plage (photography) in Rio de Janeiro, Brésil 🌍, Brésil travel p
+2025-12-14 04:49:48 | WARNING  | app.crew_pipeline.scripts.redis_cache | ⚠️ Redis GET failed (400): image:images.background|visiting sightseeing in Zone nature/plage (sightseeing) in Rio de Janeiro, Brésil 🌍, Brésil travel p
+2025-12-14 04:49:48 | WARNING  | app.crew_pipeline.scripts.image_generator |    ⚠️ Attempt 1 failed with exception: Tool 'images.background' not found. Available: []
+2025-12-14 04:49:48 | WARNING  | app.crew_pipeline.scripts.image_generator |    ⚠️ Attempt 1 failed with exception: Tool 'images.background' not found. Available: []
+2025-12-14 04:49:48 | WARNING  | app.crew_pipeline.scripts.redis_cache | ⚠️ Redis GET failed (400): image:images.background|visiting photography in Zone nature/plage (photography) in Rio de Janeiro, Brésil 🌍, Brésil travel p
+2025-12-14 04:49:48 | WARNING  | app.crew_pipeline.scripts.image_generator |    ⚠️ Attempt 1 failed with exception: Tool 'images.background' not found. Available: []
+2025-12-14 04:49:49 | WARNING  | app.crew_pipeline.scripts.image_generator |    ⚠️ Attempt 2 failed with exception: Tool 'images.background' not found. Available: []
+2025-12-14 04:49:49 | WARNING  | app.crew_pipeline.scripts.image_generator |    ⚠️ Attempt 2 failed with exception: Tool 'images.background' not found. Available: []
+2025-12-14 04:49:49 | WARNING  | app.crew_pipeline.scripts.image_generator |    ⚠️ Attempt 2 failed with exception: Tool 'images.background' not found. Available: []
+2025-12-14 04:49:49 | WARNING  | app.crew_pipeline.scripts.image_generator |    ⚠️ Attempt 2 failed with exception: Tool 'images.background' not found. Available: []
+2025-12-14 04:49:49 | WARNING  | app.crew_pipeline.scripts.image_generator |    ⚠️ Attempt 2 failed with exception: Tool 'images.background' not found. Available: []
+2025-12-14 04:49:49 | WARNING  | app.crew_pipeline.scripts.image_generator |    ⚠️ Attempt 2 failed with exception: Tool 'images.background' not found. Available: []
+2025-12-14 04:49:50 | WARNING  | app.crew_pipeline.scripts.image_generator |    ⚠️ Attempt 3 failed with exception: Tool 'images.background' not found. Available: []
+2025-12-14 04:49:50 | WARNING  | app.crew_pipeline.scripts.image_generator | ⚠️ Step 19 image generation failed. Using default.
+2025-12-14 04:49:50 | INFO     | app.crew_pipeline.scripts.step_template_generator |     ✅ Template created: GPS (-22.9064, -43.1822), Image: True
+2025-12-14 04:49:50 | INFO     | app.crew_pipeline.scripts.step_template_generator |   🔨 Generating template step 25: sightseeing in Zone nature/plage
+2025-12-14 04:49:50 | INFO     | app.crew_pipeline.scripts.image_generator | 🖼️ Generating STEP 25 image: 'visiting sightseeing in Zone nature/plage'...
+2025-12-14 04:49:50 | WARNING  | app.crew_pipeline.scripts.image_generator |    ⚠️ Attempt 3 failed with exception: Tool 'images.background' not found. Available: []
+2025-12-14 04:49:50 | WARNING  | app.crew_pipeline.scripts.image_generator | ⚠️ Step 24 image generation failed. Using default.
+2025-12-14 04:49:50 | INFO     | app.crew_pipeline.scripts.step_template_generator |     ✅ Template created: GPS (-22.9064, -43.1822), Image: True
+2025-12-14 04:49:50 | WARNING  | app.crew_pipeline.scripts.image_generator |    ⚠️ Attempt 3 failed with exception: Tool 'images.background' not found. Available: []
+2025-12-14 04:49:50 | WARNING  | app.crew_pipeline.scripts.image_generator | ⚠️ Step 21 image generation failed. Using default.
+2025-12-14 04:49:50 | INFO     | app.crew_pipeline.scripts.step_template_generator |     ✅ Template created: GPS (-22.9064, -43.1822), Image: True
+2025-12-14 04:49:50 | WARNING  | app.crew_pipeline.scripts.image_generator |    ⚠️ Attempt 3 failed with exception: Tool 'images.background' not found. Available: []
+2025-12-14 04:49:50 | WARNING  | app.crew_pipeline.scripts.image_generator | ⚠️ Step 20 image generation failed. Using default.
+2025-12-14 04:49:50 | INFO     | app.crew_pipeline.scripts.step_template_generator |     ✅ Template created: GPS (-22.9064, -43.1822), Image: True
+2025-12-14 04:49:50 | WARNING  | app.crew_pipeline.scripts.image_generator |    ⚠️ Attempt 3 failed with exception: Tool 'images.background' not found. Available: []
+2025-12-14 04:49:50 | WARNING  | app.crew_pipeline.scripts.image_generator | ⚠️ Step 22 image generation failed. Using default.
+2025-12-14 04:49:50 | INFO     | app.crew_pipeline.scripts.step_template_generator |     ✅ Template created: GPS (-22.9064, -43.1822), Image: True
+2025-12-14 04:49:50 | WARNING  | app.crew_pipeline.scripts.image_generator |    ⚠️ Attempt 3 failed with exception: Tool 'images.background' not found. Available: []
+2025-12-14 04:49:50 | WARNING  | app.crew_pipeline.scripts.image_generator | ⚠️ Step 23 image generation failed. Using default.
+2025-12-14 04:49:50 | INFO     | app.crew_pipeline.scripts.step_template_generator |     ✅ Template created: GPS (-22.9064, -43.1822), Image: True
+2025-12-14 04:49:50 | WARNING  | app.crew_pipeline.scripts.redis_cache | ⚠️ Redis GET failed (400): image:images.background|visiting sightseeing in Zone nature/plage (sightseeing) in Rio de Janeiro, Brésil 🌍, Brésil travel p
+2025-12-14 04:49:50 | WARNING  | app.crew_pipeline.scripts.image_generator |    ⚠️ Attempt 1 failed with exception: Tool 'images.background' not found. Available: []
+2025-12-14 04:49:51 | WARNING  | app.crew_pipeline.scripts.image_generator |    ⚠️ Attempt 2 failed with exception: Tool 'images.background' not found. Available: []
+2025-12-14 04:49:52 | WARNING  | app.crew_pipeline.scripts.image_generator |    ⚠️ Attempt 3 failed with exception: Tool 'images.background' not found. Available: []
+2025-12-14 04:49:52 | WARNING  | app.crew_pipeline.scripts.image_generator | ⚠️ Step 25 image generation failed. Using default.
+2025-12-14 04:49:52 | INFO     | app.crew_pipeline.scripts.step_template_generator |     ✅ Template created: GPS (-22.9064, -43.1822), Image: True
+2025-12-14 04:49:52 | INFO     | app.crew_pipeline.scripts.step_template_generator | ✅ 25 templates générés (activités seulement, summary step déjà existante)
+2025-12-14 04:49:52 | INFO     | app.crew_pipeline.pipeline | ✅ 25 step templates generated with GPS and images
+2025-12-14 04:49:52 | INFO     | app.crew_pipeline.scripts.incremental_trip_builder | 🖼️ Step 1: Image définie (Supabase)
+2025-12-14 04:49:52 | INFO     | app.crew_pipeline.scripts.incremental_trip_builder | 🖼️ Step 2: Image définie (Supabase)
+2025-12-14 04:49:52 | INFO     | app.crew_pipeline.scripts.incremental_trip_builder | 🖼️ Step 3: Image définie (Supabase)
+2025-12-14 04:49:52 | INFO     | app.crew_pipeline.scripts.incremental_trip_builder | 🖼️ Step 4: Image définie (Supabase)
+2025-12-14 04:49:52 | INFO     | app.crew_pipeline.scripts.incremental_trip_builder | 🖼️ Step 5: Image définie (Supabase)
+2025-12-14 04:49:52 | INFO     | app.crew_pipeline.scripts.incremental_trip_builder | 🖼️ Step 6: Image définie (Supabase)
+2025-12-14 04:49:52 | INFO     | app.crew_pipeline.scripts.incremental_trip_builder | 🖼️ Step 7: Image définie (Supabase)
+2025-12-14 04:49:52 | INFO     | app.crew_pipeline.scripts.incremental_trip_builder | 🖼️ Step 8: Image définie (Supabase)
+2025-12-14 04:49:52 | INFO     | app.crew_pipeline.scripts.incremental_trip_builder | 🖼️ Step 9: Image définie (Supabase)
+2025-12-14 04:49:52 | INFO     | app.crew_pipeline.scripts.incremental_trip_builder | 🖼️ Step 10: Image définie (Supabase)
+2025-12-14 04:49:52 | INFO     | app.crew_pipeline.scripts.incremental_trip_builder | 🖼️ Step 11: Image définie (Supabase)
+2025-12-14 04:49:52 | INFO     | app.crew_pipeline.scripts.incremental_trip_builder | 🖼️ Step 12: Image définie (Supabase)
+2025-12-14 04:49:52 | INFO     | app.crew_pipeline.scripts.incremental_trip_builder | 🖼️ Step 13: Image définie (Supabase)
+2025-12-14 04:49:52 | INFO     | app.crew_pipeline.scripts.incremental_trip_builder | 🖼️ Step 14: Image définie (Supabase)
+2025-12-14 04:49:52 | INFO     | app.crew_pipeline.scripts.incremental_trip_builder | 🖼️ Step 15: Image définie (Supabase)
+2025-12-14 04:49:52 | INFO     | app.crew_pipeline.scripts.incremental_trip_builder | 🖼️ Step 16: Image définie (Supabase)
+2025-12-14 04:49:52 | INFO     | app.crew_pipeline.scripts.incremental_trip_builder | 🖼️ Step 17: Image définie (Supabase)
+2025-12-14 04:49:52 | INFO     | app.crew_pipeline.scripts.incremental_trip_builder | 🖼️ Step 18: Image définie (Supabase)
+2025-12-14 04:49:52 | WARNING  | app.crew_pipeline.scripts.incremental_trip_builder | ⚠️ Step 19: Image invalide/vide, appel ImageGenerator...
+2025-12-14 04:49:52 | INFO     | app.crew_pipeline.scripts.image_generator | 🖼️ Generating STEP 19 image: 'Activity 19'...
+2025-12-14 04:49:53 | INFO     | app.crew_pipeline.scripts.incremental_trip_builder | ✅ Step 19: Image générée via ImageGenerator
+2025-12-14 04:49:53 | WARNING  | app.crew_pipeline.scripts.incremental_trip_builder | ⚠️ Step 20: Image invalide/vide, appel ImageGenerator...
+2025-12-14 04:49:53 | INFO     | app.crew_pipeline.scripts.image_generator | 🖼️ Generating STEP 20 image: 'Activity 20'...
+2025-12-14 04:49:53 | INFO     | app.crew_pipeline.scripts.incremental_trip_builder | ✅ Step 20: Image générée via ImageGenerator
+2025-12-14 04:49:53 | WARNING  | app.crew_pipeline.scripts.incremental_trip_builder | ⚠️ Step 21: Image invalide/vide, appel ImageGenerator...
+2025-12-14 04:49:53 | INFO     | app.crew_pipeline.scripts.image_generator | 🖼️ Generating STEP 21 image: 'Activity 21'...
+2025-12-14 04:49:53 | INFO     | app.crew_pipeline.scripts.incremental_trip_builder | ✅ Step 21: Image générée via ImageGenerator
+2025-12-14 04:49:53 | WARNING  | app.crew_pipeline.scripts.incremental_trip_builder | ⚠️ Step 22: Image invalide/vide, appel ImageGenerator...
+2025-12-14 04:49:53 | INFO     | app.crew_pipeline.scripts.image_generator | 🖼️ Generating STEP 22 image: 'Activity 22'...
+2025-12-14 04:49:53 | INFO     | app.crew_pipeline.scripts.incremental_trip_builder | ✅ Step 22: Image générée via ImageGenerator
+2025-12-14 04:49:53 | WARNING  | app.crew_pipeline.scripts.incremental_trip_builder | ⚠️ Step 23: Image invalide/vide, appel ImageGenerator...
+2025-12-14 04:49:53 | INFO     | app.crew_pipeline.scripts.image_generator | 🖼️ Generating STEP 23 image: 'Activity 23'...
+2025-12-14 04:49:53 | INFO     | app.crew_pipeline.scripts.incremental_trip_builder | ✅ Step 23: Image générée via ImageGenerator
+2025-12-14 04:49:53 | WARNING  | app.crew_pipeline.scripts.incremental_trip_builder | ⚠️ Step 24: Image invalide/vide, appel ImageGenerator...
+2025-12-14 04:49:53 | INFO     | app.crew_pipeline.scripts.image_generator | 🖼️ Generating STEP 24 image: 'Activity 24'...
+2025-12-14 04:49:54 | INFO     | app.crew_pipeline.scripts.incremental_trip_builder | ✅ Step 24: Image générée via ImageGenerator
+2025-12-14 04:49:54 | WARNING  | app.crew_pipeline.scripts.incremental_trip_builder | ⚠️ Step 25: Image invalide/vide, appel ImageGenerator...
+2025-12-14 04:49:54 | INFO     | app.crew_pipeline.scripts.image_generator | 🖼️ Generating STEP 25 image: 'Activity 25'...
+2025-12-14 04:49:54 | INFO     | app.crew_pipeline.scripts.incremental_trip_builder | ✅ Step 25: Image générée via ImageGenerator
+2025-12-14 04:49:54 | INFO     | app.crew_pipeline.pipeline | ✅ Builder enriched with GPS and images from templates
+2025-12-14 04:49:54 | INFO     | app.crew_pipeline.pipeline | ✅ inputs_phase2 updated with enriched trip JSON and templates
+2025-12-14 04:49:54 | INFO     | app.crew_pipeline.pipeline | 🚀 Step 3/3: Executing Phase 2 (Flights, Accommodation, Itinerary Design)...
+2025-12-14 04:49:54 | INFO     | app.crew_pipeline.pipeline | ⚡ Launching 3 crews in parallel...
+2025-12-14 04:49:54 | INFO     | root | OpenAI: Successfully validated tool 'create_reasoning_plan'
+2025-12-14 04:50:00 | INFO     | root | OpenAI API usage: {'prompt_tokens': 1526, 'completion_tokens': 304, 'total_tokens': 1830}
+2025-12-14 04:50:00 | INFO     | app.crew_pipeline.pipeline | 📁 PHASE2_FLIGHTS_RESEARCH - Step 1: flights_research → output\crew_runs\63a10241-48ec-4607-98d0-2736ee6f0966-ad2d0a94\PHASE2_FLIGHTS_RESEARCH\step_1_flights_research
+2025-12-14 04:50:00 | INFO     | app.crew_pipeline.pipeline | ✅ flights_research completed
+2025-12-14 04:50:03 | INFO     | root | OpenAI API usage: {'prompt_tokens': 10526, 'completion_tokens': 523, 'total_tokens': 11049}
+2025-12-14 04:50:04 | INFO     | root | OpenAI API usage: {'prompt_tokens': 1702, 'completion_tokens': 621, 'total_tokens': 2323}
+2025-12-14 04:50:04 | INFO     | app.crew_pipeline.pipeline | 📁 PHASE2_ACCOMMODATION_RESEARCH - Step 1: accommodation_research → output\crew_runs\63a10241-48ec-4607-98d0-2736ee6f0966-ad2d0a94\PHASE2_ACCOMMODATION_RESEARCH\step_1_accommodation_research
+2025-12-14 04:50:04 | INFO     | app.crew_pipeline.pipeline | ✅ accommodation_research completed
+2025-12-14 04:52:02 | INFO     | root | OpenAI API usage: {'prompt_tokens': 10822, 'completion_tokens': 7454, 'total_tokens': 18276}
