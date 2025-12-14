@@ -606,8 +606,8 @@ def get_mcp_tools(server_url: str) -> List[BaseTool]:
         return []
 
     async def _fetch_tools():
-        # 🔧 FIX: Utiliser streamablehttp_client qui gère correctement le protocole fastMCP v2
-        # Le serveur attend Accept: "application/json, text/event-stream"
+        # 🔧 FIX: Utiliser streamablehttp_client (protocole fastMCP v2)
+        # C'est la seule approche qui a fonctionné dans les tests
         logger.info(f"Connecting to MCP server via streamable HTTP: {server_url}")
 
         # streamablehttp_client retourne (read, write, get_session_id)
@@ -616,12 +616,12 @@ def get_mcp_tools(server_url: str) -> List[BaseTool]:
             async with ClientSession(read, write) as session:
                 logger.info("Initializing session...")
                 await session.initialize()
-                
+
                 # Fetch tools
                 logger.info("Session initialized. Listing tools...")
                 tools = await session.list_tools()
                 logger.info(f"Tools listed: {len(tools.tools)} found")
-                
+
                 # Fetch resources (knowledge base)
                 logger.info("Listing resources (knowledge base)...")
                 try:
@@ -630,13 +630,30 @@ def get_mcp_tools(server_url: str) -> List[BaseTool]:
                 except Exception as e:
                     logger.warning(f"Failed to list resources: {e}")
                     resources = None
-                
+
                 return tools, resources
+
+    # 🔧 FIX: Gérer les erreurs de terminaison au niveau de asyncio.run()
+    tools_list = None
+    resources_list = None
 
     try:
         logger.info(f"Fetching MCP tools from {server_url}...")
         tools_list, resources_list = asyncio.run(_fetch_tools())
-        
+    except BaseExceptionGroup as eg:
+        # Vérifier si on a récupéré les outils malgré l'erreur
+        logger.error(f"❌ TaskGroup error fetching tools from MCP server: {eg}")
+        # L'erreur a déjà été loggée, retourner liste vide
+        return []
+    except Exception as e:
+        logger.error(f"❌ Failed to fetch tools from MCP server: {e}")
+        return []
+
+    if tools_list is None:
+        logger.error("❌ Failed to fetch tools (returned None)")
+        return []
+
+    try:
         crew_tools = []
         
         # Process tools
