@@ -718,8 +718,35 @@ def get_mcp_tools(server_url: str) -> List[BaseTool]:
     except BaseExceptionGroup as eg:
         # anyio TaskGroup raises BaseExceptionGroup when tasks fail
         first_exc = eg.exceptions[0] if eg.exceptions else eg
-        logger.error(f"TaskGroup error fetching tools from MCP server: {type(first_exc).__name__}: {str(first_exc)}")
+        error_msg = f"{type(first_exc).__name__}: {str(first_exc)}"
+
+        # 🔧 FIX: Diagnostic spécifique selon le type d'erreur
+        if "502" in error_msg and "Bad Gateway" in error_msg:
+            logger.error(
+                f"❌ Serveur MCP down (502 Bad Gateway): {server_url}\n"
+                f"   Solutions:\n"
+                f"   1. Vérifier logs Railway: railway logs --project travliaq-mcp\n"
+                f"   2. Redémarrer: railway restart --service travliaq-mcp-production\n"
+                f"   3. Vérifier port binding et configuration\n"
+                f"   Le pipeline continuera sans MCP (valeurs par défaut utilisées)"
+            )
+        elif "ReadTimeout" in error_msg or "timeout" in error_msg.lower():
+            logger.error(
+                f"❌ Timeout lors de la connexion MCP: {server_url}\n"
+                f"   Le serveur MCP prend trop de temps à répondre.\n"
+                f"   Le pipeline continuera sans MCP (valeurs par défaut utilisées)"
+            )
+        else:
+            logger.error(f"❌ TaskGroup error fetching tools from MCP server: {error_msg}")
+
         return []
     except Exception as e:
-        logger.error(f"Failed to fetch tools from MCP server: {e}")
+        error_msg = str(e)
+        if "502" in error_msg:
+            logger.error(
+                f"❌ Serveur MCP down (502): {server_url}\n"
+                f"   Vérifiez Railway logs et redémarrez le service MCP"
+            )
+        else:
+            logger.error(f"❌ Failed to fetch tools from MCP server: {error_msg}")
         return []

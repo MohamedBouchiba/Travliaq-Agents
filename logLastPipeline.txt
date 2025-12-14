@@ -1,10 +1,20 @@
-2025-12-14 04:20:54 | INFO     | root | ================================================================================
-2025-12-14 04:20:54 | INFO     | root | TRAVLIAQ PIPELINE - LOGS INITIALIZED
-2025-12-14 04:20:54 | INFO     | root | Log file: E:\CrewTravliaq\Travliaq-Agents\logLastPipeline.txt
-2025-12-14 04:20:54 | INFO     | root | Log level: INFO
-2025-12-14 04:20:54 | INFO     | root | Console output: Enabled
-2025-12-14 04:20:54 | INFO     | root | ================================================================================
-2025-12-14 04:20:54 | INFO     | app.crew_pipeline.pipeline | 🚀 Lancement Pipeline CrewAI (Run ID: 63a10241-48ec-4607-98d0-2736ee6f0966-dbc3c421, Questionnaire: 63a10241...)
-2025-12-14 04:20:54 | INFO     | app.crew_pipeline.mcp_tools | Fetching MCP tools from https://travliaq-mcp-production.up.railway.app/mcp...
-2025-12-14 04:20:54 | INFO     | app.crew_pipeline.mcp_tools | 🆕 Nouvelle session MCP créée pour thread 1352236976304: 1e10562495d0448d...
-2025-12-14 04:20:54 | INFO     | app.crew_pipeline.mcp_tools | Connecting to SSE with headers: {'Mcp-Session-Id': '1e10562495d0448dbe5dacd06361d526'}
+2025-12-14 04:32:44 | INFO     | root | ================================================================================
+2025-12-14 04:32:44 | INFO     | root | TRAVLIAQ PIPELINE - LOGS INITIALIZED
+2025-12-14 04:32:44 | INFO     | root | Log file: E:\CrewTravliaq\Travliaq-Agents\logLastPipeline.txt
+2025-12-14 04:32:44 | INFO     | root | Log level: INFO
+2025-12-14 04:32:44 | INFO     | root | Console output: Enabled
+2025-12-14 04:32:44 | INFO     | root | ================================================================================
+2025-12-14 04:32:44 | INFO     | app.crew_pipeline.pipeline | 🚀 Lancement Pipeline CrewAI (Run ID: 63a10241-48ec-4607-98d0-2736ee6f0966-2050a6d1, Questionnaire: 63a10241...)
+2025-12-14 04:32:44 | INFO     | app.crew_pipeline.mcp_tools | Fetching MCP tools from https://travliaq-mcp-production.up.railway.app/mcp...
+2025-12-14 04:32:49 | INFO     | app.crew_pipeline.mcp_tools | 🆕 Session UUID créée pour thread 1327290431216: da48ad720736435d...
+2025-12-14 04:32:49 | INFO     | app.crew_pipeline.mcp_tools | Connecting to SSE with headers: {'Mcp-Session-Id': 'da48ad720736435d9801cdb24751cb6c'}
+2025-12-14 04:33:21 | ERROR    | app.crew_pipeline.mcp_tools | ❌ Serveur MCP down (502 Bad Gateway): https://travliaq-mcp-production.up.railway.app/mcp
+   Solutions:
+   1. Vérifier logs Railway: railway logs --project travliaq-mcp
+   2. Redémarrer: railway restart --service travliaq-mcp-production
+   3. Vérifier port binding et configuration
+   Le pipeline continuera sans MCP (valeurs par défaut utilisées)
+2025-12-14 04:33:21 | INFO     | app.crew_pipeline.pipeline | ✅ 0 outils MCP chargés.
+2025-12-14 04:33:27 | INFO     | root | OpenAI API usage: {'prompt_tokens': 2698, 'completion_tokens': 391, 'total_tokens': 3089}
+2025-12-14 04:33:27 | INFO     | root | OpenAI: Successfully validated tool 'create_reasoning_plan'
+2025-12-14 04:33:38 | INFO     | root | OpenAI API usage: {'prompt_tokens': 1982, 'completion_tokens': 574, 'total_tokens': 2556}
