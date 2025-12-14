@@ -6,6 +6,7 @@ import time
 import re
 from datetime import date, datetime
 from functools import wraps
+from threading import local
 
 from crewai.tools import BaseTool
 from pydantic import BaseModel, Field, create_model
@@ -106,37 +107,41 @@ MCP_TIMEOUT_BOOKING_FLIGHTS = 90 if _FAST_TEST_MODE else 180  # Timeout étendu 
 MCP_MAX_RETRIES = 1 if _FAST_TEST_MODE else 3
 MCP_RETRY_DELAY_SECONDS = 0.5 if _FAST_TEST_MODE else 1
 
+# 🔧 FIX: Thread-local storage pour sessions MCP (évite conflits 409)
+_thread_local = local()
+
+def _get_thread_session_id(server_url: str) -> Optional[str]:
+    """
+    Récupère le session ID MCP pour le thread courant.
+    Crée une nouvelle session si nécessaire.
+    """
+    if not hasattr(_thread_local, 'session_ids'):
+        _thread_local.session_ids = {}
+
+    if server_url not in _thread_local.session_ids:
+        # Créer une nouvelle session pour ce thread
+        import uuid
+        session_id = str(uuid.uuid4()).replace('-', '')
+        _thread_local.session_ids[server_url] = session_id
+        logger.info(f"🆕 Nouvelle session MCP créée pour thread {id(_thread_local)}: {session_id[:16]}...")
+
+    return _thread_local.session_ids[server_url]
+
 # Cache pour les headers de session (pour éviter de refaire le probe à chaque appel)
 _session_headers_cache: Dict[str, Dict[str, str]] = {}
 
 async def _get_session_headers(server_url: str) -> Dict[str, str]:
     """
     Récupère les headers de session nécessaires pour le serveur MCP.
-    Gère le cas où le serveur nécessite un Mcp-Session-Id spécifique.
+    🔧 FIX: Utilise un session ID unique par thread pour éviter conflits 409.
     """
-    if server_url in _session_headers_cache:
-        return _session_headers_cache[server_url]
-    
+    # Utiliser session ID par thread
+    thread_session_id = _get_thread_session_id(server_url)
+
     headers = {}
-    try:
-        # Probe initial pour voir si on a besoin d'un session ID
-        # On ignore les erreurs de certificat pour simplifier en dev/test
-        async with httpx.AsyncClient(verify=False) as client:
-            resp = await client.get(server_url, headers={"Accept": "text/event-stream"})
-            
-            # Si le serveur renvoie 400 avec un session ID, c'est qu'il faut l'utiliser
-            if resp.status_code == 400 and "Mcp-Session-Id" in resp.headers:
-                session_id = resp.headers["Mcp-Session-Id"]
-                logger.info(f"🔄 Session MCP récupérée: {session_id}")
-                headers["Mcp-Session-Id"] = session_id
-                _session_headers_cache[server_url] = headers
-            elif resp.status_code == 200:
-                # Connexion directe OK
-                _session_headers_cache[server_url] = {}
-                
-    except Exception as e:
-        logger.warning(f"⚠️ Échec du probe de session MCP: {e}")
-    
+    headers["Mcp-Session-Id"] = thread_session_id
+    logger.debug(f"🔑 Using thread-local session ID: {thread_session_id[:16]}...")
+
     return headers
 
 
@@ -240,20 +245,27 @@ class MCPToolWrapper(BaseTool):
                 # Extract first exception from the group for clearer error message
                 first_exc = eg.exceptions[0] if eg.exceptions else eg
                 last_error = f"TaskGroup error: {type(first_exc).__name__}: {str(first_exc)}"
+
+                # 🔧 FIX: Détection spéciale des erreurs 409 Conflict
+                is_409_conflict = "409" in str(first_exc) and "Conflict" in str(first_exc)
+
                 logger.warning(
                     f"⚠️ TaskGroup error pour {self.tool_name} (tentative {attempt}/{self.max_retries}): {last_error}",
-                    extra={"tool": self.tool_name, "error": last_error}
+                    extra={"tool": self.tool_name, "error": last_error, "is_409": is_409_conflict}
                 )
             except Exception as e:
                 last_error = str(e)
+                is_409_conflict = "409" in str(e) and "Conflict" in str(e)
                 logger.warning(
                     f"⚠️ Erreur pour {self.tool_name} (tentative {attempt}/{self.max_retries}): {e}",
-                    extra={"tool": self.tool_name, "error": str(e)}
+                    extra={"tool": self.tool_name, "error": str(e), "is_409": is_409_conflict}
                 )
-            
-            # Attendre avant de réessayer (sauf pour la dernière tentative)
+
+            # 🔧 FIX: Exponential backoff avec délai croissant (2^attempt secondes)
             if attempt < self.max_retries:
-                await asyncio.sleep(MCP_RETRY_DELAY_SECONDS * attempt)
+                backoff_delay = (2 ** attempt) * MCP_RETRY_DELAY_SECONDS  # 1s, 2s, 4s, 8s...
+                logger.info(f"⏳ Retry dans {backoff_delay}s...")
+                await asyncio.sleep(backoff_delay)
         
         # Toutes les tentatives ont échoué
         error_msg = f"Échec après {self.max_retries} tentatives: {last_error}"
