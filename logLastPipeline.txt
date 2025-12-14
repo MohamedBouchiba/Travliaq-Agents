@@ -1,14 +1,90 @@
-2025-12-14 15:05:06 | INFO     | root | ================================================================================
-2025-12-14 15:05:06 | INFO     | root | TRAVLIAQ PIPELINE - LOGS INITIALIZED
-2025-12-14 15:05:06 | INFO     | root | Log file: E:\CrewTravliaq\Travliaq-Agents\logLastPipeline.txt
-2025-12-14 15:05:06 | INFO     | root | Log level: INFO
-2025-12-14 15:05:06 | INFO     | root | Console output: Enabled
-2025-12-14 15:05:06 | INFO     | root | ================================================================================
-2025-12-14 15:05:06 | INFO     | app.crew_pipeline.pipeline | 🚀 Lancement Pipeline CrewAI (Run ID: 63a10241-48ec-4607-98d0-2736ee6f0966-828214b4, Questionnaire: 63a10241...)
-2025-12-14 15:05:07 | INFO     | app.crew_pipeline.mcp_tools | Fetching MCP tools from https://travliaq-mcp-production.up.railway.app/mcp...
-2025-12-14 15:05:07 | WARNING  | app.crew_pipeline.mcp_tools | ⚠️ MCP tools disabled temporarily due to server instability
-2025-12-14 15:05:07 | INFO     | app.crew_pipeline.mcp_tools | Pipeline will use fallback values for geo, weather, and images
-2025-12-14 15:05:07 | INFO     | app.crew_pipeline.mcp_tools | ✅ Total MCP tools and resources loaded: 0
-2025-12-14 15:05:07 | INFO     | app.crew_pipeline.pipeline | ✅ 0 outils MCP chargés.
-2025-12-14 15:05:19 | INFO     | root | OpenAI API usage: {'prompt_tokens': 2698, 'completion_tokens': 423, 'total_tokens': 3121}
-2025-12-14 15:05:19 | INFO     | root | OpenAI: Successfully validated tool 'create_reasoning_plan'
+2025-12-14 15:12:43 | INFO     | root | ================================================================================
+2025-12-14 15:12:43 | INFO     | root | TRAVLIAQ PIPELINE - LOGS INITIALIZED
+2025-12-14 15:12:43 | INFO     | root | Log file: E:\CrewTravliaq\Travliaq-Agents\logLastPipeline.txt
+2025-12-14 15:12:43 | INFO     | root | Log level: INFO
+2025-12-14 15:12:43 | INFO     | root | Console output: Enabled
+2025-12-14 15:12:43 | INFO     | root | ================================================================================
+2025-12-14 15:12:43 | INFO     | app.crew_pipeline.pipeline | 🚀 Lancement Pipeline CrewAI (Run ID: 63a10241-48ec-4607-98d0-2736ee6f0966-210f9b34, Questionnaire: 63a10241...)
+2025-12-14 15:12:43 | INFO     | app.crew_pipeline.mcp_tools | Fetching MCP tools from https://travliaq-mcp-production.up.railway.app/mcp...
+2025-12-14 15:12:43 | INFO     | mcp.client.streamable_http | Received session ID: 9da140ab364e4aba99d31ae684f356cd
+2025-12-14 15:12:43 | INFO     | mcp.client.streamable_http | Negotiated protocol version: 2025-06-18
+2025-12-14 15:12:43 | INFO     | app.crew_pipeline.mcp_tools | ✅ MCP Server initialized: TravliaqMCP v1.0.0
+2025-12-14 15:12:44 | INFO     | app.crew_pipeline.mcp_tools | ✅ Found 18 MCP tools
+2025-12-14 15:12:44 | INFO     | app.crew_pipeline.mcp_tools | Found MCP tool: geo.city
+2025-12-14 15:12:44 | INFO     | app.crew_pipeline.mcp_tools | ⏱️ Using extended timeout (90s) for geo.city
+2025-12-14 15:12:44 | INFO     | app.crew_pipeline.mcp_tools | Found MCP tool: geo.place
+2025-12-14 15:12:44 | INFO     | app.crew_pipeline.mcp_tools | ⏱️ Using extended timeout (90s) for geo.place
+2025-12-14 15:12:44 | INFO     | app.crew_pipeline.mcp_tools | Found MCP tool: places.overview
+2025-12-14 15:12:44 | INFO     | app.crew_pipeline.mcp_tools | ⏱️ Using extended timeout (90s) for places.overview
+2025-12-14 15:12:44 | INFO     | app.crew_pipeline.mcp_tools | Found MCP tool: airports.nearest
+2025-12-14 15:12:44 | INFO     | app.crew_pipeline.mcp_tools | Found MCP tool: climate.avg_temperature
+2025-12-14 15:12:44 | INFO     | app.crew_pipeline.mcp_tools | Found MCP tool: weather.by_coords
+2025-12-14 15:12:44 | INFO     | app.crew_pipeline.mcp_tools | Found MCP tool: weather.brief
+2025-12-14 15:12:44 | INFO     | app.crew_pipeline.mcp_tools | Found MCP tool: weather.by_period
+2025-12-14 15:12:44 | INFO     | app.crew_pipeline.mcp_tools | Found MCP tool: health.ping
+2025-12-14 15:12:44 | INFO     | app.crew_pipeline.mcp_tools | Found MCP tool: images.hero
+2025-12-14 15:12:44 | INFO     | app.crew_pipeline.mcp_tools | Found MCP tool: images.background
+2025-12-14 15:12:44 | INFO     | app.crew_pipeline.mcp_tools | Found MCP tool: text.translate
+2025-12-14 15:12:44 | INFO     | app.crew_pipeline.mcp_tools | Found MCP tool: translate_en
+2025-12-14 15:12:44 | INFO     | app.crew_pipeline.mcp_tools | Found MCP tool: images.slider
+2025-12-14 15:12:44 | INFO     | app.crew_pipeline.mcp_tools | Found MCP tool: debug.ls
+2025-12-14 15:12:44 | INFO     | app.crew_pipeline.mcp_tools | Found MCP tool: booking.search
+2025-12-14 15:12:44 | INFO     | app.crew_pipeline.mcp_tools | ⏱️ Using extended timeout (180s) for booking.search
+2025-12-14 15:12:44 | INFO     | app.crew_pipeline.mcp_tools | Found MCP tool: booking.details
+2025-12-14 15:12:44 | INFO     | app.crew_pipeline.mcp_tools | ⏱️ Using extended timeout (180s) for booking.details
+2025-12-14 15:12:44 | INFO     | app.crew_pipeline.mcp_tools | Found MCP tool: flights.prices
+2025-12-14 15:12:44 | INFO     | app.crew_pipeline.mcp_tools | ⏱️ Using extended timeout (180s) for flights.prices
+2025-12-14 15:12:44 | INFO     | app.crew_pipeline.mcp_tools | ✅ Total MCP tools and resources loaded: 18
+2025-12-14 15:12:44 | INFO     | app.crew_pipeline.pipeline | ✅ 18 outils MCP chargés.
+2025-12-14 15:12:51 | INFO     | root | OpenAI API usage: {'prompt_tokens': 2698, 'completion_tokens': 418, 'total_tokens': 3116}
+2025-12-14 15:12:51 | INFO     | root | OpenAI: Successfully validated tool 'create_reasoning_plan'
+2025-12-14 15:13:20 | INFO     | root | OpenAI API usage: {'prompt_tokens': 7170, 'completion_tokens': 862, 'total_tokens': 8032}
+2025-12-14 15:13:20 | INFO     | app.crew_pipeline.mcp_tools | 🔄 Session ID reçu du serveur: 166121bb0ec14fbc...
+2025-12-14 15:13:20 | INFO     | app.crew_pipeline.mcp_tools | 🔧 Using override endpoint URL: https://travliaq-mcp-production.up.railway.app/mcp
+2025-12-14 15:13:20 | INFO     | app.crew_pipeline.mcp_tools | 📡 Starting SSE event loop...
+2025-12-14 15:13:20 | INFO     | app.crew_pipeline.mcp_tools | 📤 Starting post_writer with endpoint: https://travliaq-mcp-production.up.railway.app/mcp
+2025-12-14 15:13:20 | INFO     | app.crew_pipeline.mcp_tools | 📝 Waiting for messages to send...
+2025-12-14 15:13:20 | INFO     | app.crew_pipeline.mcp_tools | 📮 Sending client message: method=None, id=None
+2025-12-14 15:13:20 | INFO     | app.crew_pipeline.mcp_tools | ✅ Client message sent successfully: 200, response length: 292
+2025-12-14 15:13:20 | INFO     | app.crew_pipeline.mcp_tools | 📦 Parsing POST response as JSON-RPC message...
+2025-12-14 15:13:20 | INFO     | app.crew_pipeline.mcp_tools | 📮 Sending client message: method=None, id=None
+2025-12-14 15:13:20 | INFO     | app.crew_pipeline.mcp_tools | ✅ Client message sent successfully: 202, response length: 0
+2025-12-14 15:13:20 | INFO     | app.crew_pipeline.mcp_tools | 📮 Sending client message: method=None, id=None
+2025-12-14 15:13:20 | INFO     | app.crew_pipeline.mcp_tools | ✅ Client message sent successfully: 200, response length: 1237
+2025-12-14 15:13:20 | INFO     | app.crew_pipeline.mcp_tools | 📦 Parsing POST response as JSON-RPC message...
+2025-12-14 15:13:20 | INFO     | app.crew_pipeline.mcp_tools | 📮 Sending client message: method=None, id=None
+2025-12-14 15:13:20 | INFO     | app.crew_pipeline.mcp_tools | ✅ Client message sent successfully: 200, response length: 16879
+2025-12-14 15:13:20 | INFO     | app.crew_pipeline.mcp_tools | 📦 Parsing POST response as JSON-RPC message...
+2025-12-14 15:13:20 | INFO     | app.crew_pipeline.mcp_tools | ✅ MCP tool geo.place exécuté avec succès
+2025-12-14 15:13:35 | INFO     | root | OpenAI API usage: {'prompt_tokens': 7309, 'completion_tokens': 778, 'total_tokens': 8087}
+2025-12-14 15:13:36 | WARNING  | app.crew_pipeline.mcp_tools | ⚠️ TaskGroup error pour geo.city (tentative 1/3): TaskGroup error: HTTPStatusError: Client error '400 Bad Request' for url 'https://travliaq-mcp-production.up.railway.app/mcp'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/400
+2025-12-14 15:13:36 | INFO     | app.crew_pipeline.mcp_tools | ⏳ Retry dans 2s...
+2025-12-14 15:13:38 | INFO     | app.crew_pipeline.mcp_tools | 🔧 Using override endpoint URL: https://travliaq-mcp-production.up.railway.app/mcp
+2025-12-14 15:13:38 | INFO     | app.crew_pipeline.mcp_tools | 📡 Starting SSE event loop...
+2025-12-14 15:13:38 | INFO     | app.crew_pipeline.mcp_tools | 📤 Starting post_writer with endpoint: https://travliaq-mcp-production.up.railway.app/mcp
+2025-12-14 15:13:38 | INFO     | app.crew_pipeline.mcp_tools | 📝 Waiting for messages to send...
+2025-12-14 15:13:38 | INFO     | app.crew_pipeline.mcp_tools | 📮 Sending client message: method=None, id=None
+2025-12-14 15:13:38 | ERROR    | app.crew_pipeline.mcp_tools | Error in post_writer
+Traceback (most recent call last):
+  File "E:\CrewTravliaq\Travliaq-Agents\app\crew_pipeline\mcp_tools.py", line 489, in post_writer
+    response.raise_for_status()
+  File "E:\CrewTravliaq\Travliaq-Agents\.venv\Lib\site-packages\httpx\_models.py", line 829, in raise_for_status
+    raise HTTPStatusError(message, request=request, response=self)
+httpx.HTTPStatusError: Client error '400 Bad Request' for url 'https://travliaq-mcp-production.up.railway.app/mcp'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/400
+2025-12-14 15:15:08 | WARNING  | app.crew_pipeline.mcp_tools | ⏱️ Timeout pour geo.city (tentative 2/3)
+2025-12-14 15:15:08 | INFO     | app.crew_pipeline.mcp_tools | ⏳ Retry dans 4s...
+2025-12-14 15:15:12 | INFO     | app.crew_pipeline.mcp_tools | 🔧 Using override endpoint URL: https://travliaq-mcp-production.up.railway.app/mcp
+2025-12-14 15:15:12 | INFO     | app.crew_pipeline.mcp_tools | 📡 Starting SSE event loop...
+2025-12-14 15:15:12 | INFO     | app.crew_pipeline.mcp_tools | 📤 Starting post_writer with endpoint: https://travliaq-mcp-production.up.railway.app/mcp
+2025-12-14 15:15:12 | INFO     | app.crew_pipeline.mcp_tools | 📝 Waiting for messages to send...
+2025-12-14 15:15:12 | INFO     | app.crew_pipeline.mcp_tools | 📮 Sending client message: method=None, id=None
+2025-12-14 15:15:12 | ERROR    | app.crew_pipeline.mcp_tools | Error in post_writer
+Traceback (most recent call last):
+  File "E:\CrewTravliaq\Travliaq-Agents\app\crew_pipeline\mcp_tools.py", line 489, in post_writer
+    response.raise_for_status()
+  File "E:\CrewTravliaq\Travliaq-Agents\.venv\Lib\site-packages\httpx\_models.py", line 829, in raise_for_status
+    raise HTTPStatusError(message, request=request, response=self)
+httpx.HTTPStatusError: Client error '400 Bad Request' for url 'https://travliaq-mcp-production.up.railway.app/mcp'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/400
