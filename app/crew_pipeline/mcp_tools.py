@@ -109,36 +109,78 @@ MCP_RETRY_DELAY_SECONDS = 0.5 if _FAST_TEST_MODE else 1
 
 # 🔧 FIX: Thread-local storage pour sessions MCP (évite conflits 409)
 _thread_local = local()
+_server_session_cache: Dict[str, Optional[str]] = {}  # Cache global pour session IDs du serveur
 
-def _get_thread_session_id(server_url: str) -> Optional[str]:
+async def _probe_server_session(server_url: str) -> Optional[str]:
+    """
+    Tente d'obtenir un session ID depuis le serveur MCP.
+    Retourne None si le serveur ne fournit pas de session ID.
+    """
+    if server_url in _server_session_cache:
+        return _server_session_cache[server_url]
+
+    try:
+        # Probe initial pour voir si le serveur fournit un session ID
+        async with httpx.AsyncClient(verify=False, timeout=5.0) as client:
+            resp = await client.get(server_url, headers={"Accept": "text/event-stream"})
+
+            # Si le serveur renvoie un session ID dans les headers
+            if "Mcp-Session-Id" in resp.headers:
+                session_id = resp.headers["Mcp-Session-Id"]
+                logger.info(f"🔄 Session ID reçu du serveur: {session_id[:16]}...")
+                _server_session_cache[server_url] = session_id
+                return session_id
+    except Exception as e:
+        logger.debug(f"⚠️ Probe serveur échoué (normal si serveur n'exige pas de session): {e}")
+
+    # Pas de session ID fourni par le serveur
+    _server_session_cache[server_url] = None
+    return None
+
+def _get_thread_session_id(server_url: str) -> str:
     """
     Récupère le session ID MCP pour le thread courant.
-    Crée une nouvelle session si nécessaire.
+    Crée une nouvelle session UUID si nécessaire.
     """
     if not hasattr(_thread_local, 'session_ids'):
         _thread_local.session_ids = {}
 
     if server_url not in _thread_local.session_ids:
-        # Créer une nouvelle session pour ce thread
+        # Créer une nouvelle session UUID pour ce thread
         import uuid
         session_id = str(uuid.uuid4()).replace('-', '')
         _thread_local.session_ids[server_url] = session_id
-        logger.info(f"🆕 Nouvelle session MCP créée pour thread {id(_thread_local)}: {session_id[:16]}...")
+        logger.info(f"🆕 Session UUID créée pour thread {id(_thread_local)}: {session_id[:16]}...")
 
     return _thread_local.session_ids[server_url]
 
 # Cache pour les headers de session (pour éviter de refaire le probe à chaque appel)
 _session_headers_cache: Dict[str, Dict[str, str]] = {}
 
-async def _get_session_headers(server_url: str) -> Dict[str, str]:
+async def _get_session_headers(server_url: str, use_server_session: bool = True) -> Dict[str, str]:
     """
     Récupère les headers de session nécessaires pour le serveur MCP.
-    🔧 FIX: Utilise un session ID unique par thread pour éviter conflits 409.
-    """
-    # Utiliser session ID par thread
-    thread_session_id = _get_thread_session_id(server_url)
 
+    🔧 FIX:
+    1. Essaie d'abord d'obtenir session ID du serveur (si use_server_session=True)
+    2. Sinon, utilise session ID unique par thread pour éviter conflits 409
+
+    Args:
+        server_url: URL du serveur MCP
+        use_server_session: Si True, tente d'obtenir session depuis serveur (défaut: True)
+    """
     headers = {}
+
+    # Option 1: Essayer d'obtenir session ID du serveur (pour initialisation)
+    if use_server_session:
+        server_session = await _probe_server_session(server_url)
+        if server_session:
+            headers["Mcp-Session-Id"] = server_session
+            logger.debug(f"🔑 Using server-provided session ID: {server_session[:16]}...")
+            return headers
+
+    # Option 2: Utiliser session ID par thread (pour appels parallèles)
+    thread_session_id = _get_thread_session_id(server_url)
     headers["Mcp-Session-Id"] = thread_session_id
     logger.debug(f"🔑 Using thread-local session ID: {thread_session_id[:16]}...")
 
@@ -348,8 +390,8 @@ class MCPResourceWrapper(BaseTool):
 async def custom_sse_client(
     url: str,
     headers: Dict[str, Any] | None = None,
-    timeout: float = 5,
-    sse_read_timeout: float = 30,  # Réduit de 5min à 30s pour éviter les hangs
+    timeout: float = 10,  # 🔧 FIX: Augmenté à 10s pour connexion initiale
+    sse_read_timeout: float = 60,  # 🔧 FIX: Augmenté à 60s pour initialisation
     httpx_client_factory: Any = create_mcp_http_client,
     auth: Any | None = None,
     override_endpoint_url: str | None = None,
@@ -570,13 +612,13 @@ def get_mcp_tools(server_url: str) -> List[BaseTool]:
         return []
 
     async def _fetch_tools():
-        # Récupération des headers de session
-        headers = await _get_session_headers(server_url)
+        # 🔧 FIX: Utiliser session du serveur pour initialisation (évite timeout)
+        headers = await _get_session_headers(server_url, use_server_session=True)
         logger.info(f"Connecting to SSE with headers: {headers}")
-        
+
         # Force Accept header for both SSE and POST
         headers["Accept"] = "application/json, text/event-stream"
-        
+
         # Construct POST endpoint URL (same as server URL but with session ID)
         post_url = server_url
         if "Mcp-Session-Id" in headers:
@@ -584,8 +626,15 @@ def get_mcp_tools(server_url: str) -> List[BaseTool]:
                 post_url += f"&sessionId={headers['Mcp-Session-Id']}"
             else:
                 post_url += f"?sessionId={headers['Mcp-Session-Id']}"
-        
-        async with custom_sse_client(server_url, headers=headers, override_endpoint_url=post_url) as (read, write):
+
+        # 🔧 FIX: Timeouts augmentés pour initialisation (60s au lieu de 30s)
+        async with custom_sse_client(
+            server_url,
+            headers=headers,
+            override_endpoint_url=post_url,
+            timeout=10,
+            sse_read_timeout=60
+        ) as (read, write):
             logger.info("SSE connection established")
             async with ClientSession(read, write) as session:
                 logger.info("Initializing session...")

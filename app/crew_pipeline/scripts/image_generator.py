@@ -180,25 +180,70 @@ class ImageGenerator:
         # ⚡ Utiliser cache-aside pattern
         return self.cache.get_or_compute(cache_key, compute_image)
 
+    def _parse_mcp_result(self, result: Any) -> Any:
+        """
+        Parse le résultat MCP qui peut être une string JSON ou déjà un dict/string.
+
+        🔧 FIX: Évite le double JSON encoding en parsant correctement les résultats MCP.
+
+        Returns:
+            - Dict si résultat est un JSON object
+            - String si résultat est un JSON string
+            - None si invalide
+        """
+        if not result:
+            return None
+
+        # Déjà un dict, retourner tel quel
+        if isinstance(result, dict):
+            return result
+
+        # String, essayer de parser comme JSON
+        if isinstance(result, str):
+            # Si c'est une string JSON, la parser
+            result_stripped = result.strip()
+            if result_stripped.startswith('{') or result_stripped.startswith('['):
+                try:
+                    import json
+                    parsed = json.loads(result_stripped)
+                    logger.debug(f"   📦 Parsed MCP JSON result: {type(parsed)}")
+                    return parsed
+                except json.JSONDecodeError:
+                    # Pas du JSON valide, retourner la string telle quelle
+                    logger.debug(f"   ⚠️ MCP result is not valid JSON, returning as string")
+                    return result
+            # String simple (URL directe)
+            return result
+
+        # Autre type, convertir en string
+        return str(result)
+
     def _invoke_mcp_tool(self, tool_name: str, **kwargs) -> Any:
         """Appel bas niveau à l'outil MCP (supporte manager ou liste)."""
+        raw_result = None
+
         # Cas 1: mcp_tools est un manager avec call_tool
         if hasattr(self.mcp_tools, 'call_tool'):
-            return self.mcp_tools.call_tool(tool_name, **kwargs)
-        
+            raw_result = self.mcp_tools.call_tool(tool_name, **kwargs)
+
         # Cas 2: mcp_tools est une liste d'objets tools (legacy)
-        if isinstance(self.mcp_tools, list):
+        elif isinstance(self.mcp_tools, list):
             for tool in self.mcp_tools:
                 if hasattr(tool, 'name') and tool.name == tool_name:
                     if hasattr(tool, 'func'):
-                        return tool.func(**kwargs)
+                        raw_result = tool.func(**kwargs)
                     elif hasattr(tool, '_run'):
-                        return tool._run(**kwargs)
+                        raw_result = tool._run(**kwargs)
                     elif callable(tool):
-                        return tool(**kwargs)
-                        
-        logger.error(f"❌ Tool '{tool_name}' not found in mcp_tools configuration")
-        return None
+                        raw_result = tool(**kwargs)
+                    break
+
+        if raw_result is None:
+            logger.error(f"❌ Tool '{tool_name}' not found in mcp_tools configuration")
+            return None
+
+        # 🔧 FIX: Parser le résultat pour éviter double JSON encoding
+        return self._parse_mcp_result(raw_result)
 
     def _is_valid_url(self, result: Any, trip_code: str) -> bool:
         """Vérifie si le résultat ressemble à une URL Supabase valide."""
