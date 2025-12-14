@@ -15,11 +15,13 @@ from pydantic import BaseModel, Field, create_model
 try:
     from mcp import ClientSession
     from mcp.client.sse import sse_client, aconnect_sse, remove_request_params, create_mcp_http_client, SSEError
+    from mcp.client.streamable_http import streamablehttp_client
     from mcp.client.session import SessionMessage
     import mcp.types as types
 except ImportError:
     ClientSession = None
     sse_client = None
+    streamablehttp_client = None
     aconnect_sse = None
     remove_request_params = None
     create_mcp_http_client = None
@@ -605,16 +607,14 @@ def get_mcp_tools(server_url: str) -> List[BaseTool]:
 
     async def _fetch_tools():
         """
-        Fetch tools from MCP server using custom_sse_client (compatible with fastMCP v2).
+        Fetch tools from MCP server using streamablehttp_client (official SDK client for fastMCP v2).
+        This client handles SSE headers and JSON-RPC protocol correctly.
         """
         try:
-            # Use custom SSE client with proper headers for fastMCP v2
-            headers = {
-                "Accept": "application/json, text/event-stream",
-                "Content-Type": "application/json"
-            }
+            # Use official SDK streamablehttp_client which handles everything correctly
+            async with streamablehttp_client(server_url) as (read, write, get_session_id):
+                logger.debug(f"Connected to MCP server, session: {get_session_id()[:16] if get_session_id() else 'N/A'}...")
 
-            async with custom_sse_client(server_url, headers=headers, override_endpoint_url=server_url) as (read, write):
                 async with ClientSession(read, write) as session:
                     # Initialize the session
                     init_result = await session.initialize()
@@ -625,7 +625,7 @@ def get_mcp_tools(server_url: str) -> List[BaseTool]:
                     tools_result = await session.list_tools()
                     logger.info(f"✅ Found {len(tools_result.tools)} MCP tools")
 
-                    # Note: Skip list_resources() as it causes BrokenResourceError
+                    # Note: Skip list_resources() as it can cause issues with some servers
                     # Resources will be discovered on-demand when needed
                     resources_result = None
 
@@ -634,12 +634,15 @@ def get_mcp_tools(server_url: str) -> List[BaseTool]:
         except httpx.HTTPStatusError as e:
             logger.error(f"❌ HTTP error from MCP server: {e.response.status_code} {e.response.reason_phrase}")
             logger.debug(f"   URL: {e.request.url}")
+            logger.debug(f"   Response: {e.response.text[:500] if e.response else 'N/A'}")
             return types.ListToolsResult(tools=[]), None
         except anyio.BrokenResourceError as e:
             logger.error(f"❌ Stream broken during MCP communication: {e}")
             return types.ListToolsResult(tools=[]), None
         except Exception as e:
             logger.error(f"❌ Unexpected error fetching MCP tools: {type(e).__name__}: {e}")
+            import traceback
+            logger.debug(f"   Traceback: {traceback.format_exc()}")
             return types.ListToolsResult(tools=[]), None
 
     # 🔧 FIX: Gérer les erreurs de terminaison au niveau de asyncio.run()
