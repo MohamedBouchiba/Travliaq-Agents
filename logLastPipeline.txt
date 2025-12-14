@@ -1,31 +1,14 @@
-2025-12-14 05:00:14 | INFO     | root | ================================================================================
-2025-12-14 05:00:14 | INFO     | root | TRAVLIAQ PIPELINE - LOGS INITIALIZED
-2025-12-14 05:00:14 | INFO     | root | Log file: E:\CrewTravliaq\Travliaq-Agents\logLastPipeline.txt
-2025-12-14 05:00:14 | INFO     | root | Log level: INFO
-2025-12-14 05:00:14 | INFO     | root | Console output: Enabled
-2025-12-14 05:00:14 | INFO     | root | ================================================================================
-2025-12-14 05:00:14 | INFO     | app.crew_pipeline.pipeline | 🚀 Lancement Pipeline CrewAI (Run ID: 63a10241-48ec-4607-98d0-2736ee6f0966-cab85597, Questionnaire: 63a10241...)
-2025-12-14 05:00:14 | INFO     | app.crew_pipeline.mcp_tools | Fetching MCP tools from https://travliaq-mcp-production.up.railway.app/mcp...
-2025-12-14 05:00:14 | INFO     | app.crew_pipeline.mcp_tools | Connecting to MCP server via streamable HTTP: https://travliaq-mcp-production.up.railway.app/mcp
-2025-12-14 05:00:14 | INFO     | app.crew_pipeline.mcp_tools | Streamable HTTP connection established (session_id: None)
-2025-12-14 05:00:14 | INFO     | app.crew_pipeline.mcp_tools | Initializing session...
-2025-12-14 05:00:14 | INFO     | mcp.client.streamable_http | Received session ID: e0f9f62adf14405295978b4c8a01192e
-2025-12-14 05:00:14 | INFO     | mcp.client.streamable_http | Negotiated protocol version: 2025-06-18
-2025-12-14 05:00:14 | INFO     | app.crew_pipeline.mcp_tools | Session initialized. Listing tools...
-2025-12-14 05:00:14 | ERROR    | mcp.client.streamable_http | Error in post_writer
-Traceback (most recent call last):
-  File "E:\CrewTravliaq\Travliaq-Agents\.venv\Lib\site-packages\mcp\client\streamable_http.py", line 417, in post_writer
-    await handle_request_async()
-  File "E:\CrewTravliaq\Travliaq-Agents\.venv\Lib\site-packages\mcp\client\streamable_http.py", line 411, in handle_request_async
-    await self._handle_post_request(ctx)
-  File "E:\CrewTravliaq\Travliaq-Agents\.venv\Lib\site-packages\mcp\client\streamable_http.py", line 280, in _handle_post_request
-    response.raise_for_status()
-  File "E:\CrewTravliaq\Travliaq-Agents\.venv\Lib\site-packages\httpx\_models.py", line 829, in raise_for_status
-    raise HTTPStatusError(message, request=request, response=self)
-httpx.HTTPStatusError: Client error '400 Bad Request' for url 'https://travliaq-mcp-production.up.railway.app/mcp'
-For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/400
-2025-12-14 05:00:14 | WARNING  | mcp.client.streamable_http | Session termination failed: 400
-2025-12-14 05:00:14 | ERROR    | app.crew_pipeline.mcp_tools | ❌ TaskGroup error fetching tools from MCP server: ExceptionGroup: unhandled errors in a TaskGroup (1 sub-exception)
-2025-12-14 05:00:14 | INFO     | app.crew_pipeline.pipeline | ✅ 0 outils MCP chargés.
-2025-12-14 05:00:22 | INFO     | root | OpenAI API usage: {'prompt_tokens': 2698, 'completion_tokens': 423, 'total_tokens': 3121}
-2025-12-14 05:00:22 | INFO     | root | OpenAI: Successfully validated tool 'create_reasoning_plan'
+2025-12-14 15:05:06 | INFO     | root | ================================================================================
+2025-12-14 15:05:06 | INFO     | root | TRAVLIAQ PIPELINE - LOGS INITIALIZED
+2025-12-14 15:05:06 | INFO     | root | Log file: E:\CrewTravliaq\Travliaq-Agents\logLastPipeline.txt
+2025-12-14 15:05:06 | INFO     | root | Log level: INFO
+2025-12-14 15:05:06 | INFO     | root | Console output: Enabled
+2025-12-14 15:05:06 | INFO     | root | ================================================================================
+2025-12-14 15:05:06 | INFO     | app.crew_pipeline.pipeline | 🚀 Lancement Pipeline CrewAI (Run ID: 63a10241-48ec-4607-98d0-2736ee6f0966-828214b4, Questionnaire: 63a10241...)
+2025-12-14 15:05:07 | INFO     | app.crew_pipeline.mcp_tools | Fetching MCP tools from https://travliaq-mcp-production.up.railway.app/mcp...
+2025-12-14 15:05:07 | WARNING  | app.crew_pipeline.mcp_tools | ⚠️ MCP tools disabled temporarily due to server instability
+2025-12-14 15:05:07 | INFO     | app.crew_pipeline.mcp_tools | Pipeline will use fallback values for geo, weather, and images
+2025-12-14 15:05:07 | INFO     | app.crew_pipeline.mcp_tools | ✅ Total MCP tools and resources loaded: 0
+2025-12-14 15:05:07 | INFO     | app.crew_pipeline.pipeline | ✅ 0 outils MCP chargés.
+2025-12-14 15:05:19 | INFO     | root | OpenAI API usage: {'prompt_tokens': 2698, 'completion_tokens': 423, 'total_tokens': 3121}
+2025-12-14 15:05:19 | INFO     | root | OpenAI: Successfully validated tool 'create_reasoning_plan'
