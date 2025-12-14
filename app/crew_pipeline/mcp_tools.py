@@ -15,13 +15,11 @@ from pydantic import BaseModel, Field, create_model
 try:
     from mcp import ClientSession
     from mcp.client.sse import sse_client, aconnect_sse, remove_request_params, create_mcp_http_client, SSEError
-    from mcp.client.streamable_http import streamablehttp_client
     from mcp.client.session import SessionMessage
     import mcp.types as types
 except ImportError:
     ClientSession = None
     sse_client = None
-    streamablehttp_client = None
     aconnect_sse = None
     remove_request_params = None
     create_mcp_http_client = None
@@ -607,12 +605,16 @@ def get_mcp_tools(server_url: str) -> List[BaseTool]:
 
     async def _fetch_tools():
         """
-        Fetch tools from MCP server using streamablehttp_client (fastMCP v2).
+        Fetch tools from MCP server using custom_sse_client (compatible with fastMCP v2).
         """
         try:
-            async with streamablehttp_client(server_url) as (read, write, get_session_id):
-                logger.debug(f"MCP Session ID: {get_session_id()}")
+            # Use custom SSE client with proper headers for fastMCP v2
+            headers = {
+                "Accept": "application/json, text/event-stream",
+                "Content-Type": "application/json"
+            }
 
+            async with custom_sse_client(server_url, headers=headers, override_endpoint_url=server_url) as (read, write):
                 async with ClientSession(read, write) as session:
                     # Initialize the session
                     init_result = await session.initialize()
