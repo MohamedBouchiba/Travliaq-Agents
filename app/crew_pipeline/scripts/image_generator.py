@@ -210,16 +210,53 @@ class ImageGenerator:
             if result.get('success') is False:
                 return False
             url = result.get('url')
-            return bool(url and isinstance(url, str) and "supabase.co" in url)
+            # 🔧 FIX: Nettoyer les guillemets doubles potentiels (double encoding MCP)
+            if isinstance(url, str):
+                url = self._clean_url_string(url)
+            # 🔧 FIX: Vérifier que l'URL commence bien par http (pas un JSON string)
+            return bool(url and isinstance(url, str) and url.startswith("http") and "supabase.co" in url)
             
         if isinstance(result, str):
             # Vérifier si c'est une URL et pas un message d'erreur
-            if "supabase.co" in result and result.startswith("http"):
+            cleaned = self._clean_url_string(result)
+            if "supabase.co" in cleaned and cleaned.startswith("http"):
                 return True
             if "error" in result.lower() or "failed" in result.lower():
                 return False
                 
         return False
+
+    def _clean_url_string(self, url: str) -> str:
+        """
+        🔧 FIX: Nettoie une URL potentiellement double-encodée.
+        
+        Gère les cas:
+        - '"https://..."' (guillemets JSON autour de l'URL)
+        - '{"url": "https://..."}' (JSON string au lieu de dict)
+        """
+        if not isinstance(url, str):
+            return ""
+        
+        url = url.strip()
+        
+        # Cas 1: Guillemets JSON autour de l'URL entière
+        if url.startswith('"') and url.endswith('"'):
+            url = url[1:-1]
+        
+        # Cas 2: JSON string contenant {"url": "..."}
+        if url.startswith('{') and 'url' in url:
+            try:
+                import json
+                parsed = json.loads(url)
+                if isinstance(parsed, dict) and 'url' in parsed:
+                    url = parsed['url']
+                    # Récursion pour nettoyer les guillemets additionnels
+                    return self._clean_url_string(url)
+            except (json.JSONDecodeError, ValueError):
+                pass
+        
+        return url
+
 
     def _fix_url_folder(self, url: str, expected_trip_code: str) -> str:
         """
@@ -231,6 +268,9 @@ class ImageGenerator:
             
         if not isinstance(url, str):
             return ""
+        
+        # 🔧 FIX: Nettoyer les guillemets doubles potentiels (double encoding)
+        url = self._clean_url_string(url)
 
         # Logique de correction de folder (copié de StepTemplateGenerator)
         if "/TRIPS/" not in url:

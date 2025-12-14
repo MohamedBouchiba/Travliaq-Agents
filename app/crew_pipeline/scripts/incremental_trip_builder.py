@@ -208,9 +208,13 @@ class IncrementalTripBuilder:
         # 🔧 FIX: Extract URL string from Redis cache dict if needed FIRST (before validation)
         if isinstance(url, dict):
             url = url.get('value', None)
+        
+        # 🔧 FIX: Nettoyer les guillemets doubles potentiels (double encoding MCP)
+        if isinstance(url, str):
+            url = self._clean_url_string(url)
 
         # Si URL vide ou invalide, générer via ImageGenerator
-        if not url or url == "" or "supabase.co" not in url:
+        if not url or url == "" or not url.startswith("http") or "supabase.co" not in url:
             logger.warning("⚠️ Hero image vide ou invalide fournie, appel ImageGenerator...")
 
             # Initialiser ImageGenerator si besoin (lazy init si mcp_tools dispo)
@@ -222,13 +226,21 @@ class IncrementalTripBuilder:
                     logger.error("❌ Impossible d'initialiser ImageGenerator: mcp_tools manquant")
                     return
 
-            url = self.image_gen.generate_hero_image(
+            generated = self.image_gen.generate_hero_image(
                 destination=self.trip_json.get("destination", "Travel"),
                 trip_code=self.trip_json.get("code", "TRIP")
             )
+            # 🔧 FIX: Extract URL from dict if ImageGenerator returns structured response
+            if isinstance(generated, dict):
+                url = generated.get('url') or generated.get('value')
+            else:
+                url = generated
 
         self.trip_json["main_image"] = url
-        logger.info(f"🖼️ Hero image définie: {url[:80] if url else 'N/A'}")
+        # 🔧 FIX: Safe string slicing with type check to prevent KeyError
+        url_preview = url[:80] if isinstance(url, str) and url else 'N/A'
+        logger.info(f"🖼️ Hero image définie: {url_preview}")
+
 
     # ... (Keep other setters unchanged) ...
 
@@ -241,11 +253,16 @@ class IncrementalTripBuilder:
         # 🔧 FIX: Extract URL string from Redis cache dict if needed
         if isinstance(image_url, dict):
             image_url = image_url.get('value', None)
+        
+        # 🔧 FIX: Nettoyer les guillemets doubles potentiels (double encoding MCP)
+        if isinstance(image_url, str):
+            image_url = self._clean_url_string(image_url)
 
-        # Vérifier si l'image est valide (Supabase)
-        if image_url and "supabase.co" in str(image_url) and "FAILED" not in str(image_url).upper():
+        # Vérifier si l'image est valide (Supabase) - 🔧 FIX: Vérifier aussi startswith http
+        if image_url and image_url.startswith("http") and "supabase.co" in str(image_url) and "FAILED" not in str(image_url).upper():
             step["main_image"] = image_url
             logger.info(f"🖼️ Step {step_number}: Image définie (Supabase)")
+
         else:
             # Appel ImageGenerator en fallback
             logger.warning(f"⚠️ Step {step_number}: Image invalide/vide, appel ImageGenerator...")
@@ -596,6 +613,37 @@ class IncrementalTripBuilder:
             return f"https://source.unsplash.com/1920x1080/?{clean_query},travel,destination"
         else:
             return f"https://source.unsplash.com/800x600/?{clean_query},travel,activity"
+
+    def _clean_url_string(self, url: str) -> str:
+        """
+        🔧 FIX: Nettoie une URL potentiellement double-encodée.
+        
+        Gère les cas:
+        - '"https://..."' (guillemets JSON autour de l'URL)
+        - '{"url": "https://..."}' (JSON string au lieu de dict)
+        """
+        if not isinstance(url, str):
+            return ""
+        
+        url = url.strip()
+        
+        # Cas 1: Guillemets JSON autour de l'URL entière
+        if url.startswith('"') and url.endswith('"'):
+            url = url[1:-1]
+        
+        # Cas 2: JSON string contenant {"url": "..."}
+        if url.startswith('{') and 'url' in url:
+            try:
+                import json
+                parsed = json.loads(url)
+                if isinstance(parsed, dict) and 'url' in parsed:
+                    url = parsed['url']
+                    # Récursion pour nettoyer les guillemets additionnels
+                    return self._clean_url_string(url)
+            except (json.JSONDecodeError, ValueError):
+                pass
+        
+        return url
 
     def _find_missing_critical_fields(self) -> List[str]:
         """Identifier les champs critiques manquants."""

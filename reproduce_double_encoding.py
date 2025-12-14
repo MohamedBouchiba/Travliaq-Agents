@@ -1,6 +1,14 @@
 
 import json
 import logging
+import sys
+from pathlib import Path
+
+# Add project root to path
+sys.path.insert(0, str(Path(__file__).parent))
+
+from app.crew_pipeline.scripts.image_generator import ImageGenerator
+from app.crew_pipeline.scripts.incremental_trip_builder import IncrementalTripBuilder
 
 # Mock logger
 logging.basicConfig(level=logging.DEBUG)
@@ -137,6 +145,64 @@ def run_tests():
     # Wait, check _is_valid_url dict branch:
     # return bool(url and isinstance(url, str) and "supabase.co" in url)
     # It does NOT check startswith("http").
+
+    # ========================================================================
+    # NEW TESTS: Test actual classes after fixes
+    # ========================================================================
+    print("\n" + "="*60)
+    print("TESTING ACTUAL CLASSES AFTER FIX")
+    print("="*60)
+
+    print("\n--- Test 8: ImageGenerator._clean_url_string ---")
+    # Create a mock mcp_tools
+    class MockTool:
+        name = "images.background"
+    mock_mcp = [MockTool()]
+    img_gen = ImageGenerator(mock_mcp)
+    
+    # Test with extra quotes
+    quoted_url = '"https://supabase.co/img.png"'
+    cleaned = img_gen._clean_url_string(quoted_url)
+    print(f"Input: {quoted_url}")
+    print(f"Output: {cleaned}")
+    assert cleaned == "https://supabase.co/img.png", f"Expected clean URL, got: {cleaned}"
+    print("PASS: Extra quotes stripped correctly")
+
+    print("\n--- Test 9: IncrementalTripBuilder._clean_url_string ---")
+    builder = IncrementalTripBuilder(questionnaire={"destination": "Test"})
+    
+    # Test with extra quotes
+    quoted_url2 = '"https://supabase.co/step.png"'
+    cleaned2 = builder._clean_url_string(quoted_url2)
+    print(f"Input: {quoted_url2}")
+    print(f"Output: {cleaned2}")
+    assert cleaned2 == "https://supabase.co/step.png", f"Expected clean URL, got: {cleaned2}"
+    print("PASS: Extra quotes stripped correctly")
+
+    print("\n--- Test 10: IncrementalTripBuilder.set_hero_image with Redis dict ---")
+    builder.initialize_structure(
+        destination="Test City",
+        destination_en="Test City",
+        start_date="2025-12-15",
+        rhythm="relaxed",
+        mcp_tools=[]
+    )
+    
+    # Simulate the exact error case from user
+    redis_cache_value = {
+        'value': '"https://supabase.co/storage/v1/object/public/TRIPS/TEST/hero.jpg"',
+        'ex': 604800
+    }
+    builder.set_hero_image(redis_cache_value)
+    result = builder.trip_json["main_image"]
+    print(f"Input: {redis_cache_value}")
+    print(f"Output: {result}")
+    
+    # Should be clean URL, not the dict or quoted string
+    if result and result.startswith("http") and not result.startswith('"'):
+        print("PASS: Redis dict with quoted URL handled correctly")
+    else:
+        print(f"FAIL: Expected clean URL starting with http, got: {result}")
 
 if __name__ == "__main__":
     run_tests()

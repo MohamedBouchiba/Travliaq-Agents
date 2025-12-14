@@ -1,848 +1,381 @@
-2025-12-14 02:52:56 | INFO     | root | ================================================================================
-2025-12-14 02:52:56 | INFO     | root | TRAVLIAQ PIPELINE - LOGS INITIALIZED
-2025-12-14 02:52:56 | INFO     | root | Log file: E:\CrewTravliaq\Travliaq-Agents\logLastPipeline.txt
-2025-12-14 02:52:56 | INFO     | root | Log level: INFO
-2025-12-14 02:52:56 | INFO     | root | Console output: Enabled
-2025-12-14 02:52:56 | INFO     | root | ================================================================================
-2025-12-14 02:52:56 | INFO     | app.crew_pipeline.pipeline | 🚀 Lancement Pipeline CrewAI (Run ID: 63a10241-48ec-4607-98d0-2736ee6f0966-6134e947, Questionnaire: 63a10241...)
-2025-12-14 02:52:56 | INFO     | app.crew_pipeline.mcp_tools | Fetching MCP tools from https://travliaq-mcp-production.up.railway.app/mcp...
-2025-12-14 02:52:59 | INFO     | app.crew_pipeline.mcp_tools | 🔄 Session MCP récupérée: df104394da9c4e5e946d3d738e139128
-2025-12-14 02:52:59 | INFO     | app.crew_pipeline.mcp_tools | Connecting to SSE with headers: {'Mcp-Session-Id': 'df104394da9c4e5e946d3d738e139128'}
-2025-12-14 02:52:59 | INFO     | app.crew_pipeline.mcp_tools | 🔧 Using override endpoint URL: https://travliaq-mcp-production.up.railway.app/mcp?sessionId=df104394da9c4e5e946d3d738e139128
-2025-12-14 02:52:59 | INFO     | app.crew_pipeline.mcp_tools | 📡 Starting SSE event loop...
-2025-12-14 02:52:59 | INFO     | app.crew_pipeline.mcp_tools | SSE connection established
-2025-12-14 02:52:59 | INFO     | app.crew_pipeline.mcp_tools | Initializing session...
-2025-12-14 02:52:59 | INFO     | app.crew_pipeline.mcp_tools | 📤 Starting post_writer with endpoint: https://travliaq-mcp-production.up.railway.app/mcp?sessionId=df104394da9c4e5e946d3d738e139128
-2025-12-14 02:52:59 | INFO     | app.crew_pipeline.mcp_tools | 📝 Waiting for messages to send...
-2025-12-14 02:52:59 | INFO     | app.crew_pipeline.mcp_tools | 📮 Sending client message: method=None, id=None
-2025-12-14 02:52:59 | INFO     | app.crew_pipeline.mcp_tools | ✅ Client message sent successfully: 200, response length: 292
-2025-12-14 02:52:59 | INFO     | app.crew_pipeline.mcp_tools | 📦 Parsing POST response as JSON-RPC message...
-2025-12-14 02:52:59 | INFO     | app.crew_pipeline.mcp_tools | Session initialized. Listing tools...
-2025-12-14 02:52:59 | INFO     | app.crew_pipeline.mcp_tools | 📮 Sending client message: method=None, id=None
-2025-12-14 02:52:59 | INFO     | app.crew_pipeline.mcp_tools | ✅ Client message sent successfully: 202, response length: 0
-2025-12-14 02:52:59 | INFO     | app.crew_pipeline.mcp_tools | 📮 Sending client message: method=None, id=None
-2025-12-14 02:52:59 | INFO     | app.crew_pipeline.mcp_tools | ✅ Client message sent successfully: 200, response length: 16879
-2025-12-14 02:52:59 | INFO     | app.crew_pipeline.mcp_tools | 📦 Parsing POST response as JSON-RPC message...
-2025-12-14 02:52:59 | INFO     | app.crew_pipeline.mcp_tools | Tools listed: 18 found
-2025-12-14 02:52:59 | INFO     | app.crew_pipeline.mcp_tools | Listing resources (knowledge base)...
-2025-12-14 02:52:59 | INFO     | app.crew_pipeline.mcp_tools | 📮 Sending client message: method=None, id=None
-2025-12-14 02:52:59 | INFO     | app.crew_pipeline.mcp_tools | ✅ Client message sent successfully: 200, response length: 1009
-2025-12-14 02:52:59 | INFO     | app.crew_pipeline.mcp_tools | 📦 Parsing POST response as JSON-RPC message...
-2025-12-14 02:52:59 | INFO     | app.crew_pipeline.mcp_tools | Resources listed: 3 found
-2025-12-14 02:52:59 | INFO     | app.crew_pipeline.mcp_tools | Found MCP tool: geo.city
-2025-12-14 02:52:59 | INFO     | app.crew_pipeline.mcp_tools | ⏱️ Using extended timeout (90s) for geo.city
-2025-12-14 02:52:59 | INFO     | app.crew_pipeline.mcp_tools | Found MCP tool: geo.place
-2025-12-14 02:52:59 | INFO     | app.crew_pipeline.mcp_tools | ⏱️ Using extended timeout (90s) for geo.place
-2025-12-14 02:52:59 | INFO     | app.crew_pipeline.mcp_tools | Found MCP tool: places.overview
-2025-12-14 02:52:59 | INFO     | app.crew_pipeline.mcp_tools | ⏱️ Using extended timeout (90s) for places.overview
-2025-12-14 02:52:59 | INFO     | app.crew_pipeline.mcp_tools | Found MCP tool: airports.nearest
-2025-12-14 02:52:59 | INFO     | app.crew_pipeline.mcp_tools | Found MCP tool: climate.avg_temperature
-2025-12-14 02:52:59 | INFO     | app.crew_pipeline.mcp_tools | Found MCP tool: weather.by_coords
-2025-12-14 02:52:59 | INFO     | app.crew_pipeline.mcp_tools | Found MCP tool: weather.brief
-2025-12-14 02:52:59 | INFO     | app.crew_pipeline.mcp_tools | Found MCP tool: weather.by_period
-2025-12-14 02:52:59 | INFO     | app.crew_pipeline.mcp_tools | Found MCP tool: health.ping
-2025-12-14 02:52:59 | INFO     | app.crew_pipeline.mcp_tools | Found MCP tool: images.hero
-2025-12-14 02:52:59 | INFO     | app.crew_pipeline.mcp_tools | Found MCP tool: images.background
-2025-12-14 02:52:59 | INFO     | app.crew_pipeline.mcp_tools | Found MCP tool: text.translate
-2025-12-14 02:52:59 | INFO     | app.crew_pipeline.mcp_tools | Found MCP tool: translate_en
-2025-12-14 02:52:59 | INFO     | app.crew_pipeline.mcp_tools | Found MCP tool: images.slider
-2025-12-14 02:52:59 | INFO     | app.crew_pipeline.mcp_tools | Found MCP tool: debug.ls
-2025-12-14 02:52:59 | INFO     | app.crew_pipeline.mcp_tools | Found MCP tool: booking.search
-2025-12-14 02:52:59 | INFO     | app.crew_pipeline.mcp_tools | ⏱️ Using extended timeout (180s) for booking.search
-2025-12-14 02:52:59 | INFO     | app.crew_pipeline.mcp_tools | Found MCP tool: booking.details
-2025-12-14 02:52:59 | INFO     | app.crew_pipeline.mcp_tools | ⏱️ Using extended timeout (180s) for booking.details
-2025-12-14 02:52:59 | INFO     | app.crew_pipeline.mcp_tools | Found MCP tool: flights.prices
-2025-12-14 02:52:59 | INFO     | app.crew_pipeline.mcp_tools | ⏱️ Using extended timeout (180s) for flights.prices
-2025-12-14 02:52:59 | INFO     | app.crew_pipeline.mcp_tools | Found MCP resource: Le secteur touristique mondial étude approfondie.md (knowledge-base) (URI: file:///app/src/mcp_server/knowledge-base/Le%20secteur%20touristique%20mondial%20%C3%A9tude%20approfondie.md)
-2025-12-14 02:52:59 | INFO     | app.crew_pipeline.mcp_tools | Found MCP resource: guide_tourisme_complet.md (knowledge-base) (URI: file:///app/src/mcp_server/knowledge-base/guide_tourisme_complet.md)
-2025-12-14 02:52:59 | INFO     | app.crew_pipeline.mcp_tools | Found MCP resource: Les macro-personas du voyageur moderne cartographi.md (knowledge-base) (URI: file:///app/src/mcp_server/knowledge-base/Les%20macro-personas%20du%20voyageur%20moderne%20cartographi.md)
-2025-12-14 02:52:59 | INFO     | app.crew_pipeline.mcp_tools | ✅ Total MCP tools and resources loaded: 21
-2025-12-14 02:52:59 | INFO     | app.crew_pipeline.pipeline | ✅ 21 outils MCP chargés.
-2025-12-14 02:53:08 | INFO     | root | OpenAI API usage: {'prompt_tokens': 2698, 'completion_tokens': 435, 'total_tokens': 3133}
-2025-12-14 02:53:08 | INFO     | root | OpenAI: Successfully validated tool 'create_reasoning_plan'
-2025-12-14 02:53:28 | INFO     | root | OpenAI API usage: {'prompt_tokens': 7391, 'completion_tokens': 639, 'total_tokens': 8030}
-2025-12-14 02:53:28 | INFO     | app.crew_pipeline.mcp_tools | 🔧 Using override endpoint URL: https://travliaq-mcp-production.up.railway.app/mcp?sessionId=df104394da9c4e5e946d3d738e139128
-2025-12-14 02:53:28 | INFO     | app.crew_pipeline.mcp_tools | 📡 Starting SSE event loop...
-2025-12-14 02:53:28 | INFO     | app.crew_pipeline.mcp_tools | 📤 Starting post_writer with endpoint: https://travliaq-mcp-production.up.railway.app/mcp?sessionId=df104394da9c4e5e946d3d738e139128
-2025-12-14 02:53:28 | INFO     | app.crew_pipeline.mcp_tools | 📝 Waiting for messages to send...
-2025-12-14 02:53:28 | INFO     | app.crew_pipeline.mcp_tools | 📮 Sending client message: method=None, id=None
-2025-12-14 02:53:28 | INFO     | app.crew_pipeline.mcp_tools | ✅ Client message sent successfully: 200, response length: 292
-2025-12-14 02:53:28 | INFO     | app.crew_pipeline.mcp_tools | 📦 Parsing POST response as JSON-RPC message...
-2025-12-14 02:53:28 | INFO     | app.crew_pipeline.mcp_tools | 📮 Sending client message: method=None, id=None
-2025-12-14 02:53:28 | INFO     | app.crew_pipeline.mcp_tools | ✅ Client message sent successfully: 202, response length: 0
-2025-12-14 02:53:28 | INFO     | app.crew_pipeline.mcp_tools | 📮 Sending client message: method=None, id=None
-2025-12-14 02:53:28 | INFO     | app.crew_pipeline.mcp_tools | ✅ Client message sent successfully: 200, response length: 979
-2025-12-14 02:53:28 | INFO     | app.crew_pipeline.mcp_tools | 📦 Parsing POST response as JSON-RPC message...
-2025-12-14 02:53:28 | INFO     | app.crew_pipeline.mcp_tools | 📮 Sending client message: method=None, id=None
-2025-12-14 02:53:28 | INFO     | app.crew_pipeline.mcp_tools | ✅ Client message sent successfully: 200, response length: 16879
-2025-12-14 02:53:28 | INFO     | app.crew_pipeline.mcp_tools | 📦 Parsing POST response as JSON-RPC message...
-2025-12-14 02:53:28 | INFO     | app.crew_pipeline.mcp_tools | ✅ MCP tool geo.city exécuté avec succès
-2025-12-14 02:53:31 | INFO     | root | OpenAI API usage: {'prompt_tokens': 7485, 'completion_tokens': 70, 'total_tokens': 7555}
-2025-12-14 02:53:31 | INFO     | app.crew_pipeline.mcp_tools | 🔧 Using override endpoint URL: https://travliaq-mcp-production.up.railway.app/mcp?sessionId=df104394da9c4e5e946d3d738e139128
-2025-12-14 02:53:31 | INFO     | app.crew_pipeline.mcp_tools | 📡 Starting SSE event loop...
-2025-12-14 02:53:31 | INFO     | app.crew_pipeline.mcp_tools | 📤 Starting post_writer with endpoint: https://travliaq-mcp-production.up.railway.app/mcp?sessionId=df104394da9c4e5e946d3d738e139128
-2025-12-14 02:53:31 | INFO     | app.crew_pipeline.mcp_tools | 📝 Waiting for messages to send...
-2025-12-14 02:53:31 | INFO     | app.crew_pipeline.mcp_tools | 📮 Sending client message: method=None, id=None
-2025-12-14 02:53:31 | INFO     | app.crew_pipeline.mcp_tools | ✅ Client message sent successfully: 200, response length: 292
-2025-12-14 02:53:31 | INFO     | app.crew_pipeline.mcp_tools | 📦 Parsing POST response as JSON-RPC message...
-2025-12-14 02:53:31 | INFO     | app.crew_pipeline.mcp_tools | 📮 Sending client message: method=None, id=None
-2025-12-14 02:53:31 | INFO     | app.crew_pipeline.mcp_tools | ✅ Client message sent successfully: 202, response length: 0
-2025-12-14 02:53:31 | INFO     | app.crew_pipeline.mcp_tools | 📮 Sending client message: method=None, id=None
-2025-12-14 02:53:32 | INFO     | app.crew_pipeline.mcp_tools | ✅ Client message sent successfully: 200, response length: 1200
-2025-12-14 02:53:32 | INFO     | app.crew_pipeline.mcp_tools | 📦 Parsing POST response as JSON-RPC message...
-2025-12-14 02:53:32 | INFO     | app.crew_pipeline.mcp_tools | 📮 Sending client message: method=None, id=None
-2025-12-14 02:53:32 | INFO     | app.crew_pipeline.mcp_tools | ✅ Client message sent successfully: 200, response length: 16879
-2025-12-14 02:53:32 | INFO     | app.crew_pipeline.mcp_tools | 📦 Parsing POST response as JSON-RPC message...
-2025-12-14 02:53:32 | INFO     | app.crew_pipeline.mcp_tools | ✅ MCP tool places.overview exécuté avec succès
-2025-12-14 02:53:37 | INFO     | root | OpenAI API usage: {'prompt_tokens': 7639, 'completion_tokens': 284, 'total_tokens': 7923}
-2025-12-14 02:53:37 | INFO     | app.crew_pipeline.mcp_tools | 🔧 Using override endpoint URL: https://travliaq-mcp-production.up.railway.app/mcp?sessionId=df104394da9c4e5e946d3d738e139128
-2025-12-14 02:53:37 | INFO     | app.crew_pipeline.mcp_tools | 📡 Starting SSE event loop...
-2025-12-14 02:53:37 | INFO     | app.crew_pipeline.mcp_tools | 📤 Starting post_writer with endpoint: https://travliaq-mcp-production.up.railway.app/mcp?sessionId=df104394da9c4e5e946d3d738e139128
-2025-12-14 02:53:37 | INFO     | app.crew_pipeline.mcp_tools | 📝 Waiting for messages to send...
-2025-12-14 02:53:37 | INFO     | app.crew_pipeline.mcp_tools | 📮 Sending client message: method=None, id=None
-2025-12-14 02:53:37 | INFO     | app.crew_pipeline.mcp_tools | ✅ Client message sent successfully: 200, response length: 292
-2025-12-14 02:53:37 | INFO     | app.crew_pipeline.mcp_tools | 📦 Parsing POST response as JSON-RPC message...
-2025-12-14 02:53:37 | INFO     | app.crew_pipeline.mcp_tools | 📮 Sending client message: method=None, id=None
-2025-12-14 02:53:37 | INFO     | app.crew_pipeline.mcp_tools | ✅ Client message sent successfully: 202, response length: 0
-2025-12-14 02:53:37 | INFO     | app.crew_pipeline.mcp_tools | 📮 Sending client message: method=None, id=None
-2025-12-14 02:53:38 | INFO     | app.crew_pipeline.mcp_tools | ✅ Client message sent successfully: 200, response length: 1914
-2025-12-14 02:53:38 | INFO     | app.crew_pipeline.mcp_tools | 📦 Parsing POST response as JSON-RPC message...
-2025-12-14 02:53:38 | INFO     | app.crew_pipeline.mcp_tools | 📮 Sending client message: method=None, id=None
-2025-12-14 02:53:38 | INFO     | app.crew_pipeline.mcp_tools | ✅ Client message sent successfully: 200, response length: 16879
-2025-12-14 02:53:38 | INFO     | app.crew_pipeline.mcp_tools | 📦 Parsing POST response as JSON-RPC message...
-2025-12-14 02:53:38 | INFO     | app.crew_pipeline.mcp_tools | ✅ MCP tool climate.avg_temperature exécuté avec succès
-2025-12-14 02:53:41 | INFO     | root | OpenAI API usage: {'prompt_tokens': 12831, 'completion_tokens': 148, 'total_tokens': 12979}
-2025-12-14 02:53:41 | INFO     | app.crew_pipeline.pipeline | 📁 PHASE1_CONTEXT - Step 1: trip_context_building → output\crew_runs\63a10241-48ec-4607-98d0-2736ee6f0966-6134e947\PHASE1_CONTEXT\step_1_trip_context_building
-2025-12-14 02:53:41 | INFO     | app.crew_pipeline.pipeline | 📁 PHASE1_CONTEXT - Step 2: destination_strategy → output\crew_runs\63a10241-48ec-4607-98d0-2736ee6f0966-6134e947\PHASE1_CONTEXT\step_2_destination_strategy
-2025-12-14 02:53:41 | INFO     | app.crew_pipeline.pipeline | 🏗️ Initialisation du IncrementalTripBuilder...
-2025-12-14 02:53:41 | INFO     | app.crew_pipeline.scripts.incremental_trip_builder | 🏗️ IncrementalTripBuilder créé
-2025-12-14 02:53:41 | INFO     | app.crew_pipeline.pipeline | 📍 Destination extraite: Rio de Janeiro, Brésil 🌍, Country: Brésil
-2025-12-14 02:53:41 | INFO     | app.crew_pipeline.scripts.incremental_trip_builder | 🏗️ Structure JSON initialisée: RIODEJANEIRO-2025-B9607C
-2025-12-14 02:53:41 | INFO     | app.crew_pipeline.scripts.incremental_trip_builder |    - Destination: Rio de Janeiro, Brésil 🌍
-2025-12-14 02:53:41 | INFO     | app.crew_pipeline.scripts.incremental_trip_builder |    - Jours: 21
-2025-12-14 02:53:41 | INFO     | app.crew_pipeline.scripts.incremental_trip_builder |    - Rythme: relaxed
-2025-12-14 02:53:41 | INFO     | app.crew_pipeline.scripts.incremental_trip_builder |    - Steps: 31 activités + 1 summary
-2025-12-14 02:53:41 | INFO     | app.crew_pipeline.scripts.incremental_trip_builder |    - Cache size: 32 entries
-2025-12-14 02:53:41 | INFO     | app.crew_pipeline.pipeline | ✅ Structure JSON initialisée: RIODEJANEIRO-2025-B9607C
-2025-12-14 02:53:41 | INFO     | app.crew_pipeline.pipeline | 📋 Step 1/3: Calculating trip structure with SCRIPT (no LLM)...
-2025-12-14 02:53:41 | INFO     | app.crew_pipeline.scripts.trip_structure_calculator | 🧮 Calculating trip structure for Rio de Janeiro, Brésil 🌍 (21 days)
-2025-12-14 02:53:41 | INFO     | app.crew_pipeline.scripts.trip_structure_calculator |    Rhythm: relaxed → 1.2 steps/day avg → 25 steps total
-2025-12-14 02:53:41 | INFO     | app.crew_pipeline.scripts.trip_structure_calculator | ✅ Trip structure calculated: 25 steps across 21 days
-2025-12-14 02:53:41 | INFO     | app.crew_pipeline.pipeline | ✅ Trip structure calculated by script: 25 steps
-2025-12-14 02:53:41 | INFO     | app.crew_pipeline.pipeline | 💾 Trip structure plan saved to output\crew_runs\63a10241-48ec-4607-98d0-2736ee6f0966-6134e947\_trip_structure_plan.yaml
-2025-12-14 02:53:41 | WARNING  | app.crew_pipeline.pipeline | ⚠️ Step count mismatch: builder has 31 steps, plan requires 25 steps. Adjusting...
-2025-12-14 02:53:41 | INFO     | app.crew_pipeline.pipeline | ✅ Removed 6 steps to match plan
-2025-12-14 02:53:41 | INFO     | app.crew_pipeline.pipeline | 🏗️ Step 2/3: Generating step templates with GPS and images...
-2025-12-14 02:53:41 | INFO     | app.crew_pipeline.scripts.redis_cache | ✅ Redis cache enabled (TTL: 604800s = 7 days)
-2025-12-14 02:53:41 | INFO     | app.crew_pipeline.scripts.step_template_generator | 🏗️ Generating step templates for Rio de Janeiro, Brésil 🌍, Brésil (parallel=True)
-2025-12-14 02:53:41 | INFO     | app.crew_pipeline.scripts.step_template_generator | 📅 Jour 1: 1 steps dans zone 'Centre Rio de Janeiro, Brésil 🌍'
-2025-12-14 02:53:41 | INFO     | app.crew_pipeline.scripts.step_template_generator | 📅 Jour 2: 1 steps dans zone 'Centre Rio de Janeiro, Brésil 🌍'
-2025-12-14 02:53:41 | INFO     | app.crew_pipeline.scripts.step_template_generator | 📅 Jour 3: 1 steps dans zone 'Centre Rio de Janeiro, Brésil 🌍'
-2025-12-14 02:53:41 | INFO     | app.crew_pipeline.scripts.step_template_generator | 📅 Jour 4: 1 steps dans zone 'Centre Rio de Janeiro, Brésil 🌍'
-2025-12-14 02:53:41 | INFO     | app.crew_pipeline.scripts.step_template_generator | 📅 Jour 5: 1 steps dans zone 'Périphérie Rio de Janeiro, Brésil 🌍'
-2025-12-14 02:53:41 | INFO     | app.crew_pipeline.scripts.step_template_generator | 📅 Jour 6: 1 steps dans zone 'Périphérie Rio de Janeiro, Brésil 🌍'
-2025-12-14 02:53:41 | INFO     | app.crew_pipeline.scripts.step_template_generator | 📅 Jour 7: 1 steps dans zone 'Périphérie Rio de Janeiro, Brésil 🌍'
-2025-12-14 02:53:41 | INFO     | app.crew_pipeline.scripts.step_template_generator | 📅 Jour 8: 1 steps dans zone 'Périphérie Rio de Janeiro, Brésil 🌍'
-2025-12-14 02:53:41 | INFO     | app.crew_pipeline.scripts.step_template_generator | 📅 Jour 9: 1 steps dans zone 'Zone touristique'
-2025-12-14 02:53:41 | INFO     | app.crew_pipeline.scripts.step_template_generator | 📅 Jour 10: 1 steps dans zone 'Zone touristique'
-2025-12-14 02:53:41 | INFO     | app.crew_pipeline.scripts.step_template_generator | 📅 Jour 11: 1 steps dans zone 'Zone touristique'
-2025-12-14 02:53:41 | INFO     | app.crew_pipeline.scripts.step_template_generator | 📅 Jour 12: 1 steps dans zone 'Zone touristique'
-2025-12-14 02:53:41 | INFO     | app.crew_pipeline.scripts.step_template_generator | 📅 Jour 13: 1 steps dans zone 'Quartier historique'
-2025-12-14 02:53:41 | INFO     | app.crew_pipeline.scripts.step_template_generator | 📅 Jour 14: 2 steps dans zone 'Quartier historique'
-2025-12-14 02:53:41 | INFO     | app.crew_pipeline.scripts.step_template_generator | 📅 Jour 15: 1 steps dans zone 'Quartier historique'
-2025-12-14 02:53:41 | INFO     | app.crew_pipeline.scripts.step_template_generator | 📅 Jour 16: 2 steps dans zone 'Quartier historique'
-2025-12-14 02:53:41 | INFO     | app.crew_pipeline.scripts.step_template_generator | 📅 Jour 17: 1 steps dans zone 'Zone nature/plage'
-2025-12-14 02:53:41 | INFO     | app.crew_pipeline.scripts.step_template_generator | 📅 Jour 18: 1 steps dans zone 'Zone nature/plage'
-2025-12-14 02:53:41 | INFO     | app.crew_pipeline.scripts.step_template_generator | 📅 Jour 19: 2 steps dans zone 'Zone nature/plage'
-2025-12-14 02:53:41 | INFO     | app.crew_pipeline.scripts.step_template_generator | 📅 Jour 20: 2 steps dans zone 'Zone nature/plage'
-2025-12-14 02:53:41 | INFO     | app.crew_pipeline.scripts.step_template_generator | 📅 Jour 21: 1 steps dans zone 'Zone nature/plage'
-2025-12-14 02:53:41 | INFO     | app.crew_pipeline.scripts.step_template_generator | ⚡ Generating 25 templates in parallel (max_workers=6)
-2025-12-14 02:53:41 | INFO     | app.crew_pipeline.scripts.step_template_generator |   🔨 Generating template step 1: sightseeing in Centre Rio de Janeiro, Brésil 🌍
-2025-12-14 02:53:41 | INFO     | app.crew_pipeline.scripts.step_template_generator |   🔨 Generating template step 2: photography in Centre Rio de Janeiro, Brésil 🌍
-2025-12-14 02:53:41 | INFO     | app.crew_pipeline.scripts.step_template_generator |   🔨 Generating template step 3: local_cuisine in Centre Rio de Janeiro, Brésil 🌍
-2025-12-14 02:53:41 | INFO     | app.crew_pipeline.scripts.step_template_generator |   🔨 Generating template step 4: sightseeing in Centre Rio de Janeiro, Brésil 🌍
-2025-12-14 02:53:41 | INFO     | app.crew_pipeline.scripts.image_generator | 🖼️ Generating STEP 1 image: 'visiting sightseeing in Centre Rio de Janeiro, Brésil 🌍'...
-2025-12-14 02:53:41 | INFO     | app.crew_pipeline.scripts.step_template_generator |   🔨 Generating template step 5: photography in Périphérie Rio de Janeiro, Brésil 🌍
-2025-12-14 02:53:41 | INFO     | app.crew_pipeline.scripts.step_template_generator |   🔨 Generating template step 6: local_cuisine in Périphérie Rio de Janeiro, Brésil 🌍
-2025-12-14 02:53:41 | INFO     | app.crew_pipeline.scripts.image_generator | 🖼️ Generating STEP 2 image: 'visiting photography in Centre Rio de Janeiro, Brésil 🌍'...
-2025-12-14 02:53:41 | INFO     | app.crew_pipeline.scripts.image_generator | 🖼️ Generating STEP 3 image: 'visiting local_cuisine in Centre Rio de Janeiro, Brésil 🌍'...
-2025-12-14 02:53:41 | INFO     | app.crew_pipeline.scripts.image_generator | 🖼️ Generating STEP 5 image: 'visiting photography in Périphérie Rio de Janeiro, Brésil 🌍'...
-2025-12-14 02:53:41 | INFO     | app.crew_pipeline.scripts.image_generator | 🖼️ Generating STEP 4 image: 'visiting sightseeing in Centre Rio de Janeiro, Brésil 🌍'...
-2025-12-14 02:53:41 | INFO     | app.crew_pipeline.scripts.image_generator | 🖼️ Generating STEP 6 image: 'visiting local_cuisine in Périphérie Rio de Janeiro, Brésil 🌍'...
-2025-12-14 02:53:42 | INFO     | app.crew_pipeline.scripts.step_template_generator |     ✅ Template created: GPS (-22.9064, -43.1822), Image: True
-2025-12-14 02:53:42 | INFO     | app.crew_pipeline.scripts.step_template_generator |   🔨 Generating template step 7: sightseeing in Périphérie Rio de Janeiro, Brésil 🌍
-2025-12-14 02:53:42 | INFO     | app.crew_pipeline.scripts.image_generator | 🖼️ Generating STEP 7 image: 'visiting sightseeing in Périphérie Rio de Janeiro, Brésil 🌍'...
-2025-12-14 02:53:42 | INFO     | app.crew_pipeline.scripts.step_template_generator |     ✅ Template created: GPS (-22.9064, -43.1822), Image: True
-2025-12-14 02:53:42 | INFO     | app.crew_pipeline.scripts.step_template_generator |   🔨 Generating template step 8: photography in Périphérie Rio de Janeiro, Brésil 🌍
-2025-12-14 02:53:42 | INFO     | app.crew_pipeline.scripts.image_generator | 🖼️ Generating STEP 8 image: 'visiting photography in Périphérie Rio de Janeiro, Brésil 🌍'...
-2025-12-14 02:53:42 | INFO     | app.crew_pipeline.scripts.step_template_generator |     ✅ Template created: GPS (-22.9064, -43.1822), Image: True
-2025-12-14 02:53:42 | INFO     | app.crew_pipeline.scripts.step_template_generator |     ✅ Template created: GPS (0.0000, 0.0000), Image: True
-2025-12-14 02:53:42 | INFO     | app.crew_pipeline.scripts.step_template_generator |     ✅ Template created: GPS (0.0000, 0.0000), Image: True
-2025-12-14 02:53:42 | INFO     | app.crew_pipeline.scripts.step_template_generator |   🔨 Generating template step 9: local_cuisine in Zone touristique
-2025-12-14 02:53:42 | INFO     | app.crew_pipeline.scripts.step_template_generator |   🔨 Generating template step 10: sightseeing in Zone touristique
-2025-12-14 02:53:42 | INFO     | app.crew_pipeline.scripts.step_template_generator |   🔨 Generating template step 11: photography in Zone touristique
-2025-12-14 02:53:42 | INFO     | app.crew_pipeline.scripts.image_generator | 🖼️ Generating STEP 9 image: 'visiting local_cuisine in Zone touristique'...
-2025-12-14 02:53:42 | INFO     | app.crew_pipeline.scripts.image_generator | 🖼️ Generating STEP 11 image: 'visiting photography in Zone touristique'...
-2025-12-14 02:53:42 | INFO     | app.crew_pipeline.scripts.image_generator | 🖼️ Generating STEP 10 image: 'visiting sightseeing in Zone touristique'...
-2025-12-14 02:53:42 | INFO     | app.crew_pipeline.scripts.step_template_generator |     ✅ Template created: GPS (0.0000, 0.0000), Image: True
-2025-12-14 02:53:42 | INFO     | app.crew_pipeline.scripts.step_template_generator |   🔨 Generating template step 12: local_cuisine in Zone touristique
-2025-12-14 02:53:42 | INFO     | app.crew_pipeline.scripts.image_generator | 🖼️ Generating STEP 12 image: 'visiting local_cuisine in Zone touristique'...
-2025-12-14 02:53:42 | INFO     | app.crew_pipeline.scripts.step_template_generator |     ✅ Template created: GPS (-22.9064, -43.1822), Image: True
-2025-12-14 02:53:42 | INFO     | app.crew_pipeline.scripts.step_template_generator |   🔨 Generating template step 13: sightseeing in Quartier historique
-2025-12-14 02:53:42 | INFO     | app.crew_pipeline.mcp_tools | 🔧 Using override endpoint URL: https://travliaq-mcp-production.up.railway.app/mcp?sessionId=df104394da9c4e5e946d3d738e139128
-2025-12-14 02:53:42 | INFO     | app.crew_pipeline.scripts.image_generator | 🖼️ Generating STEP 13 image: 'visiting sightseeing in Quartier historique'...
-2025-12-14 02:53:42 | INFO     | app.crew_pipeline.mcp_tools | 📡 Starting SSE event loop...
-2025-12-14 02:53:42 | INFO     | app.crew_pipeline.mcp_tools | 📤 Starting post_writer with endpoint: https://travliaq-mcp-production.up.railway.app/mcp?sessionId=df104394da9c4e5e946d3d738e139128
-2025-12-14 02:53:42 | INFO     | app.crew_pipeline.mcp_tools | 📝 Waiting for messages to send...
-2025-12-14 02:53:42 | INFO     | app.crew_pipeline.mcp_tools | 📮 Sending client message: method=None, id=None
-2025-12-14 02:53:43 | INFO     | app.crew_pipeline.mcp_tools | ✅ Client message sent successfully: 200, response length: 292
-2025-12-14 02:53:43 | INFO     | app.crew_pipeline.mcp_tools | 📦 Parsing POST response as JSON-RPC message...
-2025-12-14 02:53:43 | INFO     | app.crew_pipeline.mcp_tools | 📮 Sending client message: method=None, id=None
-2025-12-14 02:53:43 | INFO     | app.crew_pipeline.mcp_tools | ✅ Client message sent successfully: 202, response length: 0
-2025-12-14 02:53:43 | INFO     | app.crew_pipeline.mcp_tools | 📮 Sending client message: method=None, id=None
-2025-12-14 02:53:43 | INFO     | app.crew_pipeline.scripts.step_template_generator |     ✅ Template created: GPS (-22.9064, -43.1822), Image: True
-2025-12-14 02:53:43 | INFO     | app.crew_pipeline.scripts.step_template_generator |   🔨 Generating template step 14: photography in Quartier historique
-2025-12-14 02:53:43 | INFO     | app.crew_pipeline.scripts.image_generator | 🖼️ Generating STEP 14 image: 'visiting photography in Quartier historique'...
-2025-12-14 02:53:43 | INFO     | app.crew_pipeline.scripts.step_template_generator |     ✅ Template created: GPS (-22.9064, -43.1822), Image: True
-2025-12-14 02:53:43 | INFO     | app.crew_pipeline.scripts.step_template_generator |   🔨 Generating template step 15: local_cuisine in Quartier historique
-2025-12-14 02:53:43 | INFO     | app.crew_pipeline.scripts.image_generator | 🖼️ Generating STEP 15 image: 'visiting local_cuisine in Quartier historique'...
-2025-12-14 02:53:43 | INFO     | app.crew_pipeline.scripts.step_template_generator |     ✅ Template created: GPS (-22.9064, -43.1822), Image: True
-2025-12-14 02:53:43 | INFO     | app.crew_pipeline.scripts.step_template_generator |   🔨 Generating template step 16: sightseeing in Quartier historique
-2025-12-14 02:53:43 | INFO     | app.crew_pipeline.scripts.image_generator | 🖼️ Generating STEP 16 image: 'visiting sightseeing in Quartier historique'...
-2025-12-14 02:53:44 | INFO     | app.crew_pipeline.scripts.step_template_generator |     ✅ Template created: GPS (-22.9064, -43.1822), Image: True
-2025-12-14 02:53:44 | INFO     | app.crew_pipeline.scripts.step_template_generator |   🔨 Generating template step 17: photography in Quartier historique
-2025-12-14 02:53:44 | INFO     | app.crew_pipeline.scripts.image_generator | 🖼️ Generating STEP 17 image: 'visiting photography in Quartier historique'...
-2025-12-14 02:53:44 | INFO     | app.crew_pipeline.scripts.step_template_generator |     ✅ Template created: GPS (-22.9064, -43.1822), Image: True
-2025-12-14 02:53:44 | INFO     | app.crew_pipeline.scripts.step_template_generator |   🔨 Generating template step 18: local_cuisine in Quartier historique
-2025-12-14 02:53:44 | INFO     | app.crew_pipeline.scripts.image_generator | 🖼️ Generating STEP 18 image: 'visiting local_cuisine in Quartier historique'...
-2025-12-14 02:53:44 | INFO     | app.crew_pipeline.scripts.step_template_generator |     ✅ Template created: GPS (-22.9064, -43.1822), Image: True
-2025-12-14 02:53:44 | INFO     | app.crew_pipeline.scripts.step_template_generator |   🔨 Generating template step 19: sightseeing in Zone nature/plage
-2025-12-14 02:53:44 | INFO     | app.crew_pipeline.scripts.image_generator | 🖼️ Generating STEP 19 image: 'visiting sightseeing in Zone nature/plage'...
-2025-12-14 02:53:45 | WARNING  | app.crew_pipeline.scripts.redis_cache | ⚠️ Redis GET failed (400): image:images.background|visiting sightseeing in Zone nature/plage (sightseeing) in Rio de Janeiro, Brésil 🌍, Brésil travel p
-2025-12-14 02:53:51 | WARNING  | app.crew_pipeline.mcp_tools | ⚠️ TaskGroup error pour geo.place (tentative 1/3): TaskGroup error: HTTPStatusError: Client error '409 Conflict' for url 'https://travliaq-mcp-production.up.railway.app/mcp'
-For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/409
-2025-12-14 02:53:51 | WARNING  | app.crew_pipeline.mcp_tools | ⚠️ TaskGroup error pour geo.place (tentative 1/3): TaskGroup error: HTTPStatusError: Client error '409 Conflict' for url 'https://travliaq-mcp-production.up.railway.app/mcp'
-For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/409
-2025-12-14 02:53:51 | WARNING  | app.crew_pipeline.mcp_tools | ⚠️ TaskGroup error pour geo.place (tentative 1/3): TaskGroup error: HTTPStatusError: Client error '409 Conflict' for url 'https://travliaq-mcp-production.up.railway.app/mcp'
-For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/409
-2025-12-14 02:53:51 | WARNING  | app.crew_pipeline.mcp_tools | ⚠️ TaskGroup error pour geo.place (tentative 1/3): TaskGroup error: HTTPStatusError: Client error '409 Conflict' for url 'https://travliaq-mcp-production.up.railway.app/mcp'
-For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/409
-2025-12-14 02:53:51 | INFO     | app.crew_pipeline.mcp_tools | ✅ Client message sent successfully: 200, response length: 1094
-2025-12-14 02:53:51 | INFO     | app.crew_pipeline.mcp_tools | 📦 Parsing POST response as JSON-RPC message...
-2025-12-14 02:53:51 | INFO     | app.crew_pipeline.mcp_tools | 📮 Sending client message: method=None, id=None
-2025-12-14 02:53:51 | WARNING  | app.crew_pipeline.mcp_tools | ⚠️ TaskGroup error pour images.background (tentative 1/3): TaskGroup error: HTTPStatusError: Client error '409 Conflict' for url 'https://travliaq-mcp-production.up.railway.app/mcp'
-For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/409
-2025-12-14 02:53:51 | INFO     | app.crew_pipeline.mcp_tools | ✅ Client message sent successfully: 200, response length: 16879
-2025-12-14 02:53:51 | INFO     | app.crew_pipeline.mcp_tools | 📦 Parsing POST response as JSON-RPC message...
-2025-12-14 02:53:51 | INFO     | app.crew_pipeline.mcp_tools | ✅ MCP tool images.background exécuté avec succès - Résultat: {"success":true,"trip_code":"RIODEJANEIRO-2025-B9607C","url":"https://cinbnmlfpffmyjmkwbco.supabase.co/storage/v1/object/public/TRIPS/RIODEJANEIRO-2025-B9607C/background_1765677231.jpg","type":"background","usage":"step_main_image"}
-2025-12-14 02:53:51 | INFO     | app.crew_pipeline.scripts.image_generator |    ✅ Image generated successfully: https://cinbnmlfpffmyjmkwbco.supabase.co/storage/v1/object/public/TRIPS/RIODEJAN...
-2025-12-14 02:53:52 | INFO     | app.crew_pipeline.scripts.step_template_generator |     ✅ Template created: GPS (-22.9064, -43.1822), Image: True
-2025-12-14 02:53:52 | INFO     | app.crew_pipeline.scripts.step_template_generator |   🔨 Generating template step 20: photography in Zone nature/plage
-2025-12-14 02:53:52 | INFO     | app.crew_pipeline.scripts.image_generator | 🖼️ Generating STEP 20 image: 'visiting photography in Zone nature/plage'...
-2025-12-14 02:53:52 | WARNING  | app.crew_pipeline.scripts.redis_cache | ⚠️ Redis GET failed (400): image:images.background|visiting photography in Zone nature/plage (photography) in Rio de Janeiro, Brésil 🌍, Brésil travel p
-2025-12-14 02:53:52 | INFO     | app.crew_pipeline.mcp_tools | 🔧 Using override endpoint URL: https://travliaq-mcp-production.up.railway.app/mcp?sessionId=df104394da9c4e5e946d3d738e139128
-2025-12-14 02:53:52 | INFO     | app.crew_pipeline.mcp_tools | 📡 Starting SSE event loop...
-2025-12-14 02:53:52 | INFO     | app.crew_pipeline.mcp_tools | 📤 Starting post_writer with endpoint: https://travliaq-mcp-production.up.railway.app/mcp?sessionId=df104394da9c4e5e946d3d738e139128
-2025-12-14 02:53:52 | INFO     | app.crew_pipeline.mcp_tools | 📝 Waiting for messages to send...
-2025-12-14 02:53:52 | INFO     | app.crew_pipeline.mcp_tools | 📮 Sending client message: method=None, id=None
-2025-12-14 02:53:52 | INFO     | app.crew_pipeline.mcp_tools | ✅ Client message sent successfully: 200, response length: 292
-2025-12-14 02:53:52 | INFO     | app.crew_pipeline.mcp_tools | 📦 Parsing POST response as JSON-RPC message...
-2025-12-14 02:53:52 | INFO     | app.crew_pipeline.mcp_tools | 📮 Sending client message: method=None, id=None
-2025-12-14 02:53:52 | INFO     | app.crew_pipeline.mcp_tools | ✅ Client message sent successfully: 202, response length: 0
-2025-12-14 02:53:52 | INFO     | app.crew_pipeline.mcp_tools | 📮 Sending client message: method=None, id=None
-2025-12-14 02:54:02 | WARNING  | app.crew_pipeline.mcp_tools | ⚠️ TaskGroup error pour geo.place (tentative 2/3): TaskGroup error: HTTPStatusError: Client error '409 Conflict' for url 'https://travliaq-mcp-production.up.railway.app/mcp'
-For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/409
-2025-12-14 02:54:02 | WARNING  | app.crew_pipeline.mcp_tools | ⚠️ TaskGroup error pour images.background (tentative 2/3): TaskGroup error: HTTPStatusError: Client error '409 Conflict' for url 'https://travliaq-mcp-production.up.railway.app/mcp'
-For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/409
-2025-12-14 02:54:02 | WARNING  | app.crew_pipeline.mcp_tools | ⚠️ TaskGroup error pour geo.place (tentative 2/3): TaskGroup error: HTTPStatusError: Client error '409 Conflict' for url 'https://travliaq-mcp-production.up.railway.app/mcp'
-For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/409
-2025-12-14 02:54:02 | WARNING  | app.crew_pipeline.mcp_tools | ⚠️ TaskGroup error pour geo.place (tentative 2/3): TaskGroup error: HTTPStatusError: Client error '409 Conflict' for url 'https://travliaq-mcp-production.up.railway.app/mcp'
-For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/409
-2025-12-14 02:54:02 | WARNING  | app.crew_pipeline.mcp_tools | ⚠️ TaskGroup error pour geo.place (tentative 2/3): TaskGroup error: HTTPStatusError: Client error '409 Conflict' for url 'https://travliaq-mcp-production.up.railway.app/mcp'
-For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/409
-2025-12-14 02:54:02 | INFO     | app.crew_pipeline.mcp_tools | ✅ Client message sent successfully: 200, response length: 1094
-2025-12-14 02:54:02 | INFO     | app.crew_pipeline.mcp_tools | 📦 Parsing POST response as JSON-RPC message...
-2025-12-14 02:54:02 | INFO     | app.crew_pipeline.mcp_tools | 📮 Sending client message: method=None, id=None
-2025-12-14 02:54:02 | INFO     | app.crew_pipeline.mcp_tools | ✅ Client message sent successfully: 200, response length: 16879
-2025-12-14 02:54:02 | INFO     | app.crew_pipeline.mcp_tools | 📦 Parsing POST response as JSON-RPC message...
-2025-12-14 02:54:02 | INFO     | app.crew_pipeline.mcp_tools | ✅ MCP tool images.background exécuté avec succès - Résultat: {"success":true,"trip_code":"RIODEJANEIRO-2025-B9607C","url":"https://cinbnmlfpffmyjmkwbco.supabase.co/storage/v1/object/public/TRIPS/RIODEJANEIRO-2025-B9607C/background_1765677241.jpg","type":"background","usage":"step_main_image"}
-2025-12-14 02:54:02 | INFO     | app.crew_pipeline.scripts.image_generator |    ✅ Image generated successfully: https://cinbnmlfpffmyjmkwbco.supabase.co/storage/v1/object/public/TRIPS/RIODEJAN...
-2025-12-14 02:54:02 | WARNING  | app.crew_pipeline.scripts.redis_cache | ⚠️ Redis SET failed (400): image:images.background|visiting photography in Zone nature/plage (photography) in Rio de Janeiro, Brésil 🌍, Brésil travel p
-2025-12-14 02:54:02 | INFO     | app.crew_pipeline.scripts.step_template_generator |     ✅ Template created: GPS (-22.9064, -43.1822), Image: True
-2025-12-14 02:54:02 | INFO     | app.crew_pipeline.scripts.step_template_generator |   🔨 Generating template step 21: local_cuisine in Zone nature/plage
-2025-12-14 02:54:02 | INFO     | app.crew_pipeline.scripts.image_generator | 🖼️ Generating STEP 21 image: 'visiting local_cuisine in Zone nature/plage'...
-2025-12-14 02:54:02 | WARNING  | app.crew_pipeline.scripts.redis_cache | ⚠️ Redis GET failed (400): image:images.background|visiting local_cuisine in Zone nature/plage (local_cuisine) in Rio de Janeiro, Brésil 🌍, Brésil trav
-2025-12-14 02:54:02 | INFO     | app.crew_pipeline.mcp_tools | 🔧 Using override endpoint URL: https://travliaq-mcp-production.up.railway.app/mcp?sessionId=df104394da9c4e5e946d3d738e139128
-2025-12-14 02:54:02 | INFO     | app.crew_pipeline.mcp_tools | 📡 Starting SSE event loop...
-2025-12-14 02:54:02 | INFO     | app.crew_pipeline.mcp_tools | 📤 Starting post_writer with endpoint: https://travliaq-mcp-production.up.railway.app/mcp?sessionId=df104394da9c4e5e946d3d738e139128
-2025-12-14 02:54:02 | INFO     | app.crew_pipeline.mcp_tools | 📝 Waiting for messages to send...
-2025-12-14 02:54:02 | INFO     | app.crew_pipeline.mcp_tools | 📮 Sending client message: method=None, id=None
-2025-12-14 02:54:02 | INFO     | app.crew_pipeline.mcp_tools | ✅ Client message sent successfully: 200, response length: 292
-2025-12-14 02:54:02 | INFO     | app.crew_pipeline.mcp_tools | 📦 Parsing POST response as JSON-RPC message...
-2025-12-14 02:54:02 | INFO     | app.crew_pipeline.mcp_tools | 📮 Sending client message: method=None, id=None
-2025-12-14 02:54:02 | INFO     | app.crew_pipeline.mcp_tools | ✅ Client message sent successfully: 202, response length: 0
-2025-12-14 02:54:02 | INFO     | app.crew_pipeline.mcp_tools | 📮 Sending client message: method=None, id=None
-2025-12-14 02:54:10 | WARNING  | app.crew_pipeline.mcp_tools | ⚠️ TaskGroup error pour images.background (tentative 3/3): TaskGroup error: HTTPStatusError: Client error '409 Conflict' for url 'https://travliaq-mcp-production.up.railway.app/mcp'
-For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/409
-2025-12-14 02:54:10 | ERROR    | app.crew_pipeline.mcp_tools | ❌ MCP tool images.background a échoué définitivement
-2025-12-14 02:54:10 | WARNING  | app.crew_pipeline.scripts.image_generator |    ⚠️ Attempt 1 returned invalid result: Error executing tool images.background: Échec après 3 tentatives: TaskGroup error: HTTPStatusError: 
-2025-12-14 02:54:10 | WARNING  | app.crew_pipeline.mcp_tools | ⚠️ TaskGroup error pour geo.place (tentative 3/3): TaskGroup error: HTTPStatusError: Client error '409 Conflict' for url 'https://travliaq-mcp-production.up.railway.app/mcp'
-For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/409
-2025-12-14 02:54:10 | ERROR    | app.crew_pipeline.mcp_tools | ❌ MCP tool geo.place a échoué définitivement
-2025-12-14 02:54:10 | WARNING  | app.crew_pipeline.scripts.step_template_generator |       ⚠️ Unexpected MCP response type: str
-2025-12-14 02:54:10 | WARNING  | app.crew_pipeline.mcp_tools | ⚠️ TaskGroup error pour geo.place (tentative 3/3): TaskGroup error: HTTPStatusError: Client error '409 Conflict' for url 'https://travliaq-mcp-production.up.railway.app/mcp'
-For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/409
-2025-12-14 02:54:10 | ERROR    | app.crew_pipeline.mcp_tools | ❌ MCP tool geo.place a échoué définitivement
-2025-12-14 02:54:10 | INFO     | app.crew_pipeline.mcp_tools | ✅ Client message sent successfully: 200, response length: 1094
-2025-12-14 02:54:10 | WARNING  | app.crew_pipeline.mcp_tools | ⚠️ TaskGroup error pour geo.place (tentative 3/3): TaskGroup error: HTTPStatusError: Client error '409 Conflict' for url 'https://travliaq-mcp-production.up.railway.app/mcp'
-For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/409
-2025-12-14 02:54:10 | WARNING  | app.crew_pipeline.mcp_tools | ⚠️ TaskGroup error pour geo.place (tentative 3/3): TaskGroup error: HTTPStatusError: Client error '409 Conflict' for url 'https://travliaq-mcp-production.up.railway.app/mcp'
-For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/409
-2025-12-14 02:54:10 | INFO     | app.crew_pipeline.mcp_tools | 📦 Parsing POST response as JSON-RPC message...
-2025-12-14 02:54:10 | ERROR    | app.crew_pipeline.mcp_tools | ❌ MCP tool geo.place a échoué définitivement
-2025-12-14 02:54:10 | ERROR    | app.crew_pipeline.mcp_tools | ❌ MCP tool geo.place a échoué définitivement
-2025-12-14 02:54:10 | INFO     | app.crew_pipeline.mcp_tools | 📮 Sending client message: method=None, id=None
-2025-12-14 02:54:10 | WARNING  | app.crew_pipeline.scripts.step_template_generator |       ⚠️ Unexpected MCP response type: str
-2025-12-14 02:54:10 | WARNING  | app.crew_pipeline.scripts.step_template_generator |       ⚠️ Unexpected MCP response type: str
-2025-12-14 02:54:10 | WARNING  | app.crew_pipeline.scripts.step_template_generator |       ⚠️ Unexpected MCP response type: str
-2025-12-14 02:54:10 | INFO     | app.crew_pipeline.mcp_tools | ✅ Client message sent successfully: 200, response length: 16879
-2025-12-14 02:54:10 | INFO     | app.crew_pipeline.mcp_tools | 📦 Parsing POST response as JSON-RPC message...
-2025-12-14 02:54:10 | INFO     | app.crew_pipeline.mcp_tools | ✅ MCP tool images.background exécuté avec succès - Résultat: {"success":true,"trip_code":"RIODEJANEIRO-2025-B9607C","url":"https://cinbnmlfpffmyjmkwbco.supabase.co/storage/v1/object/public/TRIPS/RIODEJANEIRO-2025-B9607C/background_1765677249.jpg","type":"background","usage":"step_main_image"}
-2025-12-14 02:54:10 | INFO     | app.crew_pipeline.scripts.image_generator |    ✅ Image generated successfully: https://cinbnmlfpffmyjmkwbco.supabase.co/storage/v1/object/public/TRIPS/RIODEJAN...
-2025-12-14 02:54:10 | INFO     | app.crew_pipeline.mcp_tools | 🔧 Using override endpoint URL: https://travliaq-mcp-production.up.railway.app/mcp?sessionId=df104394da9c4e5e946d3d738e139128
-2025-12-14 02:54:10 | WARNING  | app.crew_pipeline.mcp_tools | ⚠️ TaskGroup error pour geo.place (tentative 1/3): TaskGroup error: HTTPStatusError: Client error '409 Conflict' for url 'https://travliaq-mcp-production.up.railway.app/mcp'
-For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/409
-2025-12-14 02:54:10 | WARNING  | app.crew_pipeline.mcp_tools | ⚠️ TaskGroup error pour geo.place (tentative 1/3): TaskGroup error: HTTPStatusError: Client error '409 Conflict' for url 'https://travliaq-mcp-production.up.railway.app/mcp'
-For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/409
-2025-12-14 02:54:10 | WARNING  | app.crew_pipeline.mcp_tools | ⚠️ TaskGroup error pour geo.place (tentative 1/3): TaskGroup error: HTTPStatusError: Client error '409 Conflict' for url 'https://travliaq-mcp-production.up.railway.app/mcp'
-For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/409
-2025-12-14 02:54:10 | INFO     | app.crew_pipeline.mcp_tools | 📡 Starting SSE event loop...
-2025-12-14 02:54:10 | INFO     | app.crew_pipeline.mcp_tools | 📤 Starting post_writer with endpoint: https://travliaq-mcp-production.up.railway.app/mcp?sessionId=df104394da9c4e5e946d3d738e139128
-2025-12-14 02:54:10 | INFO     | app.crew_pipeline.mcp_tools | 📝 Waiting for messages to send...
-2025-12-14 02:54:10 | INFO     | app.crew_pipeline.mcp_tools | 📮 Sending client message: method=None, id=None
-2025-12-14 02:54:10 | WARNING  | app.crew_pipeline.scripts.redis_cache | ⚠️ Redis SET failed (400): image:images.background|visiting local_cuisine in Zone nature/plage (local_cuisine) in Rio de Janeiro, Brésil 🌍, Brésil trav
-2025-12-14 02:54:10 | INFO     | app.crew_pipeline.scripts.step_template_generator |     ✅ Template created: GPS (-22.9064, -43.1822), Image: True
-2025-12-14 02:54:10 | INFO     | app.crew_pipeline.scripts.step_template_generator |   🔨 Generating template step 22: sightseeing in Zone nature/plage
-2025-12-14 02:54:10 | INFO     | app.crew_pipeline.scripts.image_generator | 🖼️ Generating STEP 22 image: 'visiting sightseeing in Zone nature/plage'...
-2025-12-14 02:54:10 | INFO     | app.crew_pipeline.mcp_tools | ✅ Client message sent successfully: 200, response length: 292
-2025-12-14 02:54:10 | INFO     | app.crew_pipeline.mcp_tools | 📦 Parsing POST response as JSON-RPC message...
-2025-12-14 02:54:10 | INFO     | app.crew_pipeline.mcp_tools | 📮 Sending client message: method=None, id=None
-2025-12-14 02:54:10 | INFO     | app.crew_pipeline.mcp_tools | ✅ Client message sent successfully: 202, response length: 0
-2025-12-14 02:54:10 | INFO     | app.crew_pipeline.mcp_tools | 📮 Sending client message: method=None, id=None
-2025-12-14 02:54:10 | WARNING  | app.crew_pipeline.scripts.redis_cache | ⚠️ Redis GET failed (400): image:images.background|visiting sightseeing in Zone nature/plage (sightseeing) in Rio de Janeiro, Brésil 🌍, Brésil travel p
-2025-12-14 02:54:10 | WARNING  | app.crew_pipeline.mcp_tools | ⚠️ TaskGroup error pour images.background (tentative 1/3): TaskGroup error: HTTPStatusError: Client error '409 Conflict' for url 'https://travliaq-mcp-production.up.railway.app/mcp'
-For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/409
-2025-12-14 02:54:11 | WARNING  | app.crew_pipeline.mcp_tools | ⚠️ TaskGroup error pour images.background (tentative 1/3): TaskGroup error: HTTPStatusError: Client error '409 Conflict' for url 'https://travliaq-mcp-production.up.railway.app/mcp'
-For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/409
-2025-12-14 02:54:11 | INFO     | app.crew_pipeline.mcp_tools | ✅ Client message sent successfully: 200, response length: 1651
-2025-12-14 02:54:11 | INFO     | app.crew_pipeline.mcp_tools | 📦 Parsing POST response as JSON-RPC message...
-2025-12-14 02:54:11 | INFO     | app.crew_pipeline.mcp_tools | 📮 Sending client message: method=None, id=None
-2025-12-14 02:54:11 | INFO     | app.crew_pipeline.mcp_tools | ✅ Client message sent successfully: 200, response length: 16879
-2025-12-14 02:54:11 | INFO     | app.crew_pipeline.mcp_tools | 📦 Parsing POST response as JSON-RPC message...
-2025-12-14 02:54:11 | INFO     | app.crew_pipeline.mcp_tools | ✅ MCP tool geo.place exécuté avec succès
-2025-12-14 02:54:11 | WARNING  | app.crew_pipeline.mcp_tools | ⚠️ TaskGroup error pour geo.place (tentative 2/3): TaskGroup error: HTTPStatusError: Client error '409 Conflict' for url 'https://travliaq-mcp-production.up.railway.app/mcp'
-For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/409
-2025-12-14 02:54:11 | WARNING  | app.crew_pipeline.mcp_tools | ⚠️ TaskGroup error pour geo.place (tentative 2/3): TaskGroup error: HTTPStatusError: Client error '409 Conflict' for url 'https://travliaq-mcp-production.up.railway.app/mcp'
-For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/409
-2025-12-14 02:54:11 | INFO     | app.crew_pipeline.mcp_tools | 🔧 Using override endpoint URL: https://travliaq-mcp-production.up.railway.app/mcp?sessionId=df104394da9c4e5e946d3d738e139128
-2025-12-14 02:54:11 | INFO     | app.crew_pipeline.mcp_tools | 📡 Starting SSE event loop...
-2025-12-14 02:54:11 | INFO     | app.crew_pipeline.mcp_tools | 📤 Starting post_writer with endpoint: https://travliaq-mcp-production.up.railway.app/mcp?sessionId=df104394da9c4e5e946d3d738e139128
-2025-12-14 02:54:11 | INFO     | app.crew_pipeline.mcp_tools | 📝 Waiting for messages to send...
-2025-12-14 02:54:11 | INFO     | app.crew_pipeline.mcp_tools | 📮 Sending client message: method=None, id=None
-2025-12-14 02:54:11 | INFO     | app.crew_pipeline.mcp_tools | ✅ Client message sent successfully: 200, response length: 292
-2025-12-14 02:54:11 | INFO     | app.crew_pipeline.mcp_tools | 📦 Parsing POST response as JSON-RPC message...
-2025-12-14 02:54:11 | INFO     | app.crew_pipeline.mcp_tools | 📮 Sending client message: method=None, id=None
-2025-12-14 02:54:11 | INFO     | app.crew_pipeline.mcp_tools | ✅ Client message sent successfully: 202, response length: 0
-2025-12-14 02:54:11 | INFO     | app.crew_pipeline.mcp_tools | 📮 Sending client message: method=None, id=None
-2025-12-14 02:54:11 | WARNING  | app.crew_pipeline.mcp_tools | ⚠️ TaskGroup error pour geo.city (tentative 1/3): TaskGroup error: HTTPStatusError: Client error '409 Conflict' for url 'https://travliaq-mcp-production.up.railway.app/mcp'
-For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/409
-2025-12-14 02:54:12 | WARNING  | app.crew_pipeline.mcp_tools | ⚠️ TaskGroup error pour images.background (tentative 2/3): TaskGroup error: HTTPStatusError: Client error '409 Conflict' for url 'https://travliaq-mcp-production.up.railway.app/mcp'
-For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/409
-2025-12-14 02:54:12 | WARNING  | app.crew_pipeline.mcp_tools | ⚠️ TaskGroup error pour images.background (tentative 2/3): TaskGroup error: HTTPStatusError: Client error '409 Conflict' for url 'https://travliaq-mcp-production.up.railway.app/mcp'
-For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/409
-2025-12-14 02:54:13 | WARNING  | app.crew_pipeline.mcp_tools | ⚠️ TaskGroup error pour geo.city (tentative 2/3): TaskGroup error: HTTPStatusError: Client error '409 Conflict' for url 'https://travliaq-mcp-production.up.railway.app/mcp'
-For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/409
-2025-12-14 02:54:14 | WARNING  | app.crew_pipeline.mcp_tools | ⚠️ TaskGroup error pour geo.place (tentative 3/3): TaskGroup error: HTTPStatusError: Client error '409 Conflict' for url 'https://travliaq-mcp-production.up.railway.app/mcp'
-For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/409
-2025-12-14 02:54:14 | ERROR    | app.crew_pipeline.mcp_tools | ❌ MCP tool geo.place a échoué définitivement
-2025-12-14 02:54:14 | WARNING  | app.crew_pipeline.scripts.step_template_generator |       ⚠️ Unexpected MCP response type: str
-2025-12-14 02:54:14 | WARNING  | app.crew_pipeline.mcp_tools | ⚠️ TaskGroup error pour geo.place (tentative 3/3): TaskGroup error: HTTPStatusError: Client error '409 Conflict' for url 'https://travliaq-mcp-production.up.railway.app/mcp'
-For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/409
-2025-12-14 02:54:14 | ERROR    | app.crew_pipeline.mcp_tools | ❌ MCP tool geo.place a échoué définitivement
-2025-12-14 02:54:14 | WARNING  | app.crew_pipeline.scripts.step_template_generator |       ⚠️ Unexpected MCP response type: str
-2025-12-14 02:54:14 | INFO     | app.crew_pipeline.mcp_tools | ✅ Client message sent successfully: 200, response length: 1822
-2025-12-14 02:54:14 | INFO     | app.crew_pipeline.mcp_tools | 📦 Parsing POST response as JSON-RPC message...
-2025-12-14 02:54:14 | INFO     | app.crew_pipeline.mcp_tools | 📮 Sending client message: method=None, id=None
-2025-12-14 02:54:14 | INFO     | app.crew_pipeline.mcp_tools | ✅ Client message sent successfully: 200, response length: 16879
-2025-12-14 02:54:14 | INFO     | app.crew_pipeline.mcp_tools | 📦 Parsing POST response as JSON-RPC message...
-2025-12-14 02:54:14 | INFO     | app.crew_pipeline.mcp_tools | ✅ MCP tool geo.place exécuté avec succès
-2025-12-14 02:54:14 | INFO     | app.crew_pipeline.mcp_tools | 🔧 Using override endpoint URL: https://travliaq-mcp-production.up.railway.app/mcp?sessionId=df104394da9c4e5e946d3d738e139128
-2025-12-14 02:54:14 | INFO     | app.crew_pipeline.mcp_tools | 📡 Starting SSE event loop...
-2025-12-14 02:54:14 | INFO     | app.crew_pipeline.mcp_tools | 📤 Starting post_writer with endpoint: https://travliaq-mcp-production.up.railway.app/mcp?sessionId=df104394da9c4e5e946d3d738e139128
-2025-12-14 02:54:14 | INFO     | app.crew_pipeline.mcp_tools | 📝 Waiting for messages to send...
-2025-12-14 02:54:14 | INFO     | app.crew_pipeline.mcp_tools | 📮 Sending client message: method=None, id=None
-2025-12-14 02:54:14 | WARNING  | app.crew_pipeline.mcp_tools | ⚠️ TaskGroup error pour geo.city (tentative 1/3): TaskGroup error: HTTPStatusError: Client error '409 Conflict' for url 'https://travliaq-mcp-production.up.railway.app/mcp'
-For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/409
-2025-12-14 02:54:14 | INFO     | app.crew_pipeline.mcp_tools | ✅ Client message sent successfully: 200, response length: 292
-2025-12-14 02:54:14 | INFO     | app.crew_pipeline.mcp_tools | 📦 Parsing POST response as JSON-RPC message...
-2025-12-14 02:54:14 | INFO     | app.crew_pipeline.mcp_tools | 📮 Sending client message: method=None, id=None
-2025-12-14 02:54:14 | INFO     | app.crew_pipeline.mcp_tools | ✅ Client message sent successfully: 202, response length: 0
-2025-12-14 02:54:14 | INFO     | app.crew_pipeline.mcp_tools | 📮 Sending client message: method=None, id=None
-2025-12-14 02:54:14 | WARNING  | app.crew_pipeline.mcp_tools | ⚠️ TaskGroup error pour images.background (tentative 3/3): TaskGroup error: HTTPStatusError: Client error '409 Conflict' for url 'https://travliaq-mcp-production.up.railway.app/mcp'
-For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/409
-2025-12-14 02:54:14 | ERROR    | app.crew_pipeline.mcp_tools | ❌ MCP tool images.background a échoué définitivement
-2025-12-14 02:54:14 | WARNING  | app.crew_pipeline.scripts.image_generator |    ⚠️ Attempt 1 returned invalid result: Error executing tool images.background: Échec après 3 tentatives: TaskGroup error: HTTPStatusError: 
-2025-12-14 02:54:14 | WARNING  | app.crew_pipeline.mcp_tools | ⚠️ TaskGroup error pour geo.city (tentative 1/3): TaskGroup error: HTTPStatusError: Client error '409 Conflict' for url 'https://travliaq-mcp-production.up.railway.app/mcp'
-For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/409
-2025-12-14 02:54:14 | INFO     | app.crew_pipeline.mcp_tools | ✅ Client message sent successfully: 200, response length: 1009
-2025-12-14 02:54:14 | INFO     | app.crew_pipeline.mcp_tools | 📦 Parsing POST response as JSON-RPC message...
-2025-12-14 02:54:14 | INFO     | app.crew_pipeline.mcp_tools | 📮 Sending client message: method=None, id=None
-2025-12-14 02:54:14 | INFO     | app.crew_pipeline.mcp_tools | ✅ Client message sent successfully: 200, response length: 16879
-2025-12-14 02:54:14 | INFO     | app.crew_pipeline.mcp_tools | 📦 Parsing POST response as JSON-RPC message...
-2025-12-14 02:54:14 | INFO     | app.crew_pipeline.mcp_tools | ✅ MCP tool geo.city exécuté avec succès
-2025-12-14 02:54:14 | INFO     | app.crew_pipeline.mcp_tools | 🔧 Using override endpoint URL: https://travliaq-mcp-production.up.railway.app/mcp?sessionId=df104394da9c4e5e946d3d738e139128
-2025-12-14 02:54:14 | INFO     | app.crew_pipeline.mcp_tools | 📡 Starting SSE event loop...
-2025-12-14 02:54:14 | INFO     | app.crew_pipeline.mcp_tools | 📤 Starting post_writer with endpoint: https://travliaq-mcp-production.up.railway.app/mcp?sessionId=df104394da9c4e5e946d3d738e139128
-2025-12-14 02:54:14 | INFO     | app.crew_pipeline.mcp_tools | 📝 Waiting for messages to send...
-2025-12-14 02:54:14 | INFO     | app.crew_pipeline.mcp_tools | 📮 Sending client message: method=None, id=None
-2025-12-14 02:54:14 | INFO     | app.crew_pipeline.mcp_tools | ✅ Client message sent successfully: 200, response length: 292
-2025-12-14 02:54:14 | INFO     | app.crew_pipeline.mcp_tools | 📦 Parsing POST response as JSON-RPC message...
-2025-12-14 02:54:14 | INFO     | app.crew_pipeline.mcp_tools | 📮 Sending client message: method=None, id=None
-2025-12-14 02:54:14 | INFO     | app.crew_pipeline.mcp_tools | ✅ Client message sent successfully: 202, response length: 0
-2025-12-14 02:54:14 | INFO     | app.crew_pipeline.mcp_tools | 📮 Sending client message: method=None, id=None
-2025-12-14 02:54:14 | INFO     | app.crew_pipeline.scripts.step_template_generator |     ✅ Template created: GPS (-22.9064, -43.1822), Image: True
-2025-12-14 02:54:14 | INFO     | app.crew_pipeline.scripts.step_template_generator |   🔨 Generating template step 23: photography in Zone nature/plage
-2025-12-14 02:54:14 | INFO     | app.crew_pipeline.scripts.image_generator | 🖼️ Generating STEP 23 image: 'visiting photography in Zone nature/plage'...
-2025-12-14 02:54:15 | WARNING  | app.crew_pipeline.scripts.redis_cache | ⚠️ Redis GET failed (400): image:images.background|visiting photography in Zone nature/plage (photography) in Rio de Janeiro, Brésil 🌍, Brésil travel p
-2025-12-14 02:54:23 | WARNING  | app.crew_pipeline.mcp_tools | ⚠️ TaskGroup error pour images.background (tentative 1/3): TaskGroup error: HTTPStatusError: Client error '409 Conflict' for url 'https://travliaq-mcp-production.up.railway.app/mcp'
-For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/409
-2025-12-14 02:54:23 | WARNING  | app.crew_pipeline.mcp_tools | ⚠️ TaskGroup error pour images.background (tentative 1/3): TaskGroup error: HTTPStatusError: Client error '409 Conflict' for url 'https://travliaq-mcp-production.up.railway.app/mcp'
-For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/409
-2025-12-14 02:54:23 | WARNING  | app.crew_pipeline.mcp_tools | ⚠️ TaskGroup error pour geo.city (tentative 2/3): TaskGroup error: HTTPStatusError: Client error '409 Conflict' for url 'https://travliaq-mcp-production.up.railway.app/mcp'
-For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/409
-2025-12-14 02:54:23 | WARNING  | app.crew_pipeline.mcp_tools | ⚠️ TaskGroup error pour geo.city (tentative 3/3): TaskGroup error: HTTPStatusError: Client error '409 Conflict' for url 'https://travliaq-mcp-production.up.railway.app/mcp'
-For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/409
-2025-12-14 02:54:23 | WARNING  | app.crew_pipeline.mcp_tools | ⚠️ TaskGroup error pour geo.city (tentative 2/3): TaskGroup error: HTTPStatusError: Client error '409 Conflict' for url 'https://travliaq-mcp-production.up.railway.app/mcp'
-For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/409
-2025-12-14 02:54:23 | ERROR    | app.crew_pipeline.mcp_tools | ❌ MCP tool geo.city a échoué définitivement
-2025-12-14 02:54:23 | WARNING  | app.crew_pipeline.scripts.step_template_generator |       ⚠️ Unexpected MCP response type: str
-2025-12-14 02:54:23 | WARNING  | app.crew_pipeline.scripts.step_template_generator |     ⚠️ GPS fetch failed for step 11, using city center fallback
-2025-12-14 02:54:23 | INFO     | app.crew_pipeline.mcp_tools | ✅ Client message sent successfully: 200, response length: 1094
-2025-12-14 02:54:23 | INFO     | app.crew_pipeline.mcp_tools | 📦 Parsing POST response as JSON-RPC message...
-2025-12-14 02:54:23 | INFO     | app.crew_pipeline.mcp_tools | 📮 Sending client message: method=None, id=None
-2025-12-14 02:54:23 | INFO     | app.crew_pipeline.mcp_tools | ✅ Client message sent successfully: 200, response length: 16879
-2025-12-14 02:54:23 | INFO     | app.crew_pipeline.mcp_tools | 📦 Parsing POST response as JSON-RPC message...
-2025-12-14 02:54:23 | INFO     | app.crew_pipeline.mcp_tools | ✅ MCP tool images.background exécuté avec succès - Résultat: {"success":true,"trip_code":"RIODEJANEIRO-2025-B9607C","url":"https://cinbnmlfpffmyjmkwbco.supabase.co/storage/v1/object/public/TRIPS/RIODEJANEIRO-2025-B9607C/background_1765677262.jpg","type":"background","usage":"step_main_image"}
-2025-12-14 02:54:23 | INFO     | app.crew_pipeline.scripts.image_generator |    ✅ Image generated successfully: https://cinbnmlfpffmyjmkwbco.supabase.co/storage/v1/object/public/TRIPS/RIODEJAN...
-2025-12-14 02:54:23 | INFO     | app.crew_pipeline.mcp_tools | 🔧 Using override endpoint URL: https://travliaq-mcp-production.up.railway.app/mcp?sessionId=df104394da9c4e5e946d3d738e139128
-2025-12-14 02:54:23 | INFO     | app.crew_pipeline.mcp_tools | 📡 Starting SSE event loop...
-2025-12-14 02:54:23 | INFO     | app.crew_pipeline.mcp_tools | 📤 Starting post_writer with endpoint: https://travliaq-mcp-production.up.railway.app/mcp?sessionId=df104394da9c4e5e946d3d738e139128
-2025-12-14 02:54:23 | INFO     | app.crew_pipeline.mcp_tools | 📝 Waiting for messages to send...
-2025-12-14 02:54:23 | INFO     | app.crew_pipeline.mcp_tools | 📮 Sending client message: method=None, id=None
-2025-12-14 02:54:23 | INFO     | app.crew_pipeline.mcp_tools | ✅ Client message sent successfully: 200, response length: 292
-2025-12-14 02:54:23 | INFO     | app.crew_pipeline.mcp_tools | 📦 Parsing POST response as JSON-RPC message...
-2025-12-14 02:54:23 | INFO     | app.crew_pipeline.mcp_tools | 📮 Sending client message: method=None, id=None
-2025-12-14 02:54:23 | WARNING  | app.crew_pipeline.scripts.redis_cache | ⚠️ Redis SET failed (400): image:images.background|visiting sightseeing in Zone nature/plage (sightseeing) in Rio de Janeiro, Brésil 🌍, Brésil travel p
-2025-12-14 02:54:23 | INFO     | app.crew_pipeline.scripts.step_template_generator |     ✅ Template created: GPS (-22.9064, -43.1822), Image: True
-2025-12-14 02:54:23 | INFO     | app.crew_pipeline.scripts.step_template_generator |   🔨 Generating template step 24: local_cuisine in Zone nature/plage
-2025-12-14 02:54:23 | INFO     | app.crew_pipeline.scripts.image_generator | 🖼️ Generating STEP 24 image: 'visiting local_cuisine in Zone nature/plage'...
-2025-12-14 02:54:23 | INFO     | app.crew_pipeline.mcp_tools | ✅ Client message sent successfully: 202, response length: 0
-2025-12-14 02:54:23 | INFO     | app.crew_pipeline.mcp_tools | 📮 Sending client message: method=None, id=None
-2025-12-14 02:54:23 | INFO     | app.crew_pipeline.mcp_tools | ✅ Client message sent successfully: 200, response length: 1009
-2025-12-14 02:54:23 | INFO     | app.crew_pipeline.mcp_tools | 📦 Parsing POST response as JSON-RPC message...
-2025-12-14 02:54:23 | INFO     | app.crew_pipeline.mcp_tools | 📮 Sending client message: method=None, id=None
-2025-12-14 02:54:23 | INFO     | app.crew_pipeline.mcp_tools | ✅ Client message sent successfully: 200, response length: 16879
-2025-12-14 02:54:23 | INFO     | app.crew_pipeline.mcp_tools | 📦 Parsing POST response as JSON-RPC message...
-2025-12-14 02:54:23 | INFO     | app.crew_pipeline.mcp_tools | ✅ MCP tool geo.city exécuté avec succès
-2025-12-14 02:54:23 | INFO     | app.crew_pipeline.scripts.step_template_generator |       ✅ Fallback GPS found: Rio de Janeiro
-2025-12-14 02:54:23 | INFO     | app.crew_pipeline.scripts.step_template_generator |     ✅ Template created: GPS (-22.9064, -43.1822), Image: True
-2025-12-14 02:54:23 | INFO     | app.crew_pipeline.scripts.step_template_generator |   🔨 Generating template step 25: sightseeing in Zone nature/plage
-2025-12-14 02:54:23 | INFO     | app.crew_pipeline.scripts.image_generator | 🖼️ Generating STEP 25 image: 'visiting sightseeing in Zone nature/plage'...
-2025-12-14 02:54:23 | WARNING  | app.crew_pipeline.scripts.redis_cache | ⚠️ Redis GET failed (400): image:images.background|visiting local_cuisine in Zone nature/plage (local_cuisine) in Rio de Janeiro, Brésil 🌍, Brésil trav
-2025-12-14 02:54:24 | WARNING  | app.crew_pipeline.scripts.redis_cache | ⚠️ Redis GET failed (400): image:images.background|visiting sightseeing in Zone nature/plage (sightseeing) in Rio de Janeiro, Brésil 🌍, Brésil travel p
-2025-12-14 02:54:24 | INFO     | app.crew_pipeline.mcp_tools | 🔧 Using override endpoint URL: https://travliaq-mcp-production.up.railway.app/mcp?sessionId=df104394da9c4e5e946d3d738e139128
-2025-12-14 02:54:24 | INFO     | app.crew_pipeline.mcp_tools | 📡 Starting SSE event loop...
-2025-12-14 02:54:24 | INFO     | app.crew_pipeline.mcp_tools | 📤 Starting post_writer with endpoint: https://travliaq-mcp-production.up.railway.app/mcp?sessionId=df104394da9c4e5e946d3d738e139128
-2025-12-14 02:54:24 | INFO     | app.crew_pipeline.mcp_tools | 📝 Waiting for messages to send...
-2025-12-14 02:54:24 | INFO     | app.crew_pipeline.mcp_tools | 📮 Sending client message: method=None, id=None
-2025-12-14 02:54:24 | INFO     | app.crew_pipeline.mcp_tools | ✅ Client message sent successfully: 200, response length: 292
-2025-12-14 02:54:24 | INFO     | app.crew_pipeline.mcp_tools | 📦 Parsing POST response as JSON-RPC message...
-2025-12-14 02:54:24 | INFO     | app.crew_pipeline.mcp_tools | 📮 Sending client message: method=None, id=None
-2025-12-14 02:54:24 | INFO     | app.crew_pipeline.mcp_tools | ✅ Client message sent successfully: 202, response length: 0
-2025-12-14 02:54:24 | INFO     | app.crew_pipeline.mcp_tools | 📮 Sending client message: method=None, id=None
-2025-12-14 02:54:32 | WARNING  | app.crew_pipeline.mcp_tools | ⚠️ TaskGroup error pour images.background (tentative 1/3): TaskGroup error: HTTPStatusError: Client error '409 Conflict' for url 'https://travliaq-mcp-production.up.railway.app/mcp'
-For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/409
-2025-12-14 02:54:32 | WARNING  | app.crew_pipeline.mcp_tools | ⚠️ TaskGroup error pour geo.city (tentative 3/3): TaskGroup error: HTTPStatusError: Client error '409 Conflict' for url 'https://travliaq-mcp-production.up.railway.app/mcp'
-For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/409
-2025-12-14 02:54:32 | ERROR    | app.crew_pipeline.mcp_tools | ❌ MCP tool geo.city a échoué définitivement
-2025-12-14 02:54:32 | WARNING  | app.crew_pipeline.scripts.step_template_generator |       ⚠️ Unexpected MCP response type: str
-2025-12-14 02:54:32 | WARNING  | app.crew_pipeline.scripts.step_template_generator |     ⚠️ GPS fetch failed for step 7, using city center fallback
-2025-12-14 02:54:32 | WARNING  | app.crew_pipeline.mcp_tools | ⚠️ TaskGroup error pour geo.city (tentative 3/3): TaskGroup error: HTTPStatusError: Client error '409 Conflict' for url 'https://travliaq-mcp-production.up.railway.app/mcp'
-For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/409
-2025-12-14 02:54:32 | ERROR    | app.crew_pipeline.mcp_tools | ❌ MCP tool geo.city a échoué définitivement
-2025-12-14 02:54:32 | WARNING  | app.crew_pipeline.scripts.step_template_generator |       ⚠️ Unexpected MCP response type: str
-2025-12-14 02:54:32 | WARNING  | app.crew_pipeline.scripts.step_template_generator |     ⚠️ GPS fetch failed for step 9, using city center fallback
-2025-12-14 02:54:32 | WARNING  | app.crew_pipeline.mcp_tools | ⚠️ TaskGroup error pour images.background (tentative 2/3): TaskGroup error: HTTPStatusError: Client error '409 Conflict' for url 'https://travliaq-mcp-production.up.railway.app/mcp'
-For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/409
-2025-12-14 02:54:32 | INFO     | app.crew_pipeline.mcp_tools | ✅ Client message sent successfully: 200, response length: 1094
-2025-12-14 02:54:32 | WARNING  | app.crew_pipeline.mcp_tools | ⚠️ TaskGroup error pour images.background (tentative 2/3): TaskGroup error: HTTPStatusError: Client error '409 Conflict' for url 'https://travliaq-mcp-production.up.railway.app/mcp'
-For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/409
-2025-12-14 02:54:32 | INFO     | app.crew_pipeline.mcp_tools | 📦 Parsing POST response as JSON-RPC message...
-2025-12-14 02:54:32 | INFO     | app.crew_pipeline.mcp_tools | 📮 Sending client message: method=None, id=None
-2025-12-14 02:54:32 | INFO     | app.crew_pipeline.mcp_tools | ✅ Client message sent successfully: 200, response length: 16879
-2025-12-14 02:54:32 | INFO     | app.crew_pipeline.mcp_tools | 📦 Parsing POST response as JSON-RPC message...
-2025-12-14 02:54:32 | INFO     | app.crew_pipeline.mcp_tools | ✅ MCP tool images.background exécuté avec succès - Résultat: {"success":true,"trip_code":"RIODEJANEIRO-2025-B9607C","url":"https://cinbnmlfpffmyjmkwbco.supabase.co/storage/v1/object/public/TRIPS/RIODEJANEIRO-2025-B9607C/background_1765677271.jpg","type":"background","usage":"step_main_image"}
-2025-12-14 02:54:32 | INFO     | app.crew_pipeline.scripts.image_generator |    ✅ Image generated successfully: https://cinbnmlfpffmyjmkwbco.supabase.co/storage/v1/object/public/TRIPS/RIODEJAN...
-2025-12-14 02:54:32 | INFO     | app.crew_pipeline.mcp_tools | 🔧 Using override endpoint URL: https://travliaq-mcp-production.up.railway.app/mcp?sessionId=df104394da9c4e5e946d3d738e139128
-2025-12-14 02:54:32 | INFO     | app.crew_pipeline.mcp_tools | 📡 Starting SSE event loop...
-2025-12-14 02:54:32 | INFO     | app.crew_pipeline.mcp_tools | 📤 Starting post_writer with endpoint: https://travliaq-mcp-production.up.railway.app/mcp?sessionId=df104394da9c4e5e946d3d738e139128
-2025-12-14 02:54:32 | INFO     | app.crew_pipeline.mcp_tools | 📝 Waiting for messages to send...
-2025-12-14 02:54:32 | INFO     | app.crew_pipeline.mcp_tools | 📮 Sending client message: method=None, id=None
-2025-12-14 02:54:32 | WARNING  | app.crew_pipeline.mcp_tools | ⚠️ TaskGroup error pour geo.city (tentative 1/3): TaskGroup error: HTTPStatusError: Client error '409 Conflict' for url 'https://travliaq-mcp-production.up.railway.app/mcp'
-For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/409
-2025-12-14 02:54:32 | WARNING  | app.crew_pipeline.scripts.redis_cache | ⚠️ Redis SET failed (400): image:images.background|visiting local_cuisine in Zone nature/plage (local_cuisine) in Rio de Janeiro, Brésil 🌍, Brésil trav
-2025-12-14 02:54:32 | INFO     | app.crew_pipeline.scripts.step_template_generator |     ✅ Template created: GPS (-22.9064, -43.1822), Image: True
-2025-12-14 02:54:32 | INFO     | app.crew_pipeline.mcp_tools | ✅ Client message sent successfully: 200, response length: 292
-2025-12-14 02:54:32 | INFO     | app.crew_pipeline.mcp_tools | 📦 Parsing POST response as JSON-RPC message...
-2025-12-14 02:54:32 | INFO     | app.crew_pipeline.mcp_tools | 📮 Sending client message: method=None, id=None
-2025-12-14 02:54:32 | INFO     | app.crew_pipeline.mcp_tools | ✅ Client message sent successfully: 202, response length: 0
-2025-12-14 02:54:32 | INFO     | app.crew_pipeline.mcp_tools | 📮 Sending client message: method=None, id=None
-2025-12-14 02:54:32 | INFO     | app.crew_pipeline.mcp_tools | ✅ Client message sent successfully: 200, response length: 1009
-2025-12-14 02:54:32 | INFO     | app.crew_pipeline.mcp_tools | 📦 Parsing POST response as JSON-RPC message...
-2025-12-14 02:54:32 | INFO     | app.crew_pipeline.mcp_tools | 📮 Sending client message: method=None, id=None
-2025-12-14 02:54:32 | INFO     | app.crew_pipeline.mcp_tools | ✅ Client message sent successfully: 200, response length: 16879
-2025-12-14 02:54:32 | INFO     | app.crew_pipeline.mcp_tools | 📦 Parsing POST response as JSON-RPC message...
-2025-12-14 02:54:32 | INFO     | app.crew_pipeline.mcp_tools | ✅ MCP tool geo.city exécuté avec succès
-2025-12-14 02:54:32 | INFO     | app.crew_pipeline.scripts.step_template_generator |       ✅ Fallback GPS found: Rio de Janeiro
-2025-12-14 02:54:32 | INFO     | app.crew_pipeline.scripts.step_template_generator |     ✅ Template created: GPS (-22.9064, -43.1822), Image: True
-2025-12-14 02:54:33 | INFO     | app.crew_pipeline.mcp_tools | 🔧 Using override endpoint URL: https://travliaq-mcp-production.up.railway.app/mcp?sessionId=df104394da9c4e5e946d3d738e139128
-2025-12-14 02:54:33 | INFO     | app.crew_pipeline.mcp_tools | 📡 Starting SSE event loop...
-2025-12-14 02:54:33 | INFO     | app.crew_pipeline.mcp_tools | 📤 Starting post_writer with endpoint: https://travliaq-mcp-production.up.railway.app/mcp?sessionId=df104394da9c4e5e946d3d738e139128
-2025-12-14 02:54:33 | INFO     | app.crew_pipeline.mcp_tools | 📝 Waiting for messages to send...
-2025-12-14 02:54:33 | INFO     | app.crew_pipeline.mcp_tools | 📮 Sending client message: method=None, id=None
-2025-12-14 02:54:33 | INFO     | app.crew_pipeline.mcp_tools | ✅ Client message sent successfully: 200, response length: 292
-2025-12-14 02:54:33 | INFO     | app.crew_pipeline.mcp_tools | 📦 Parsing POST response as JSON-RPC message...
-2025-12-14 02:54:33 | INFO     | app.crew_pipeline.mcp_tools | 📮 Sending client message: method=None, id=None
-2025-12-14 02:54:33 | INFO     | app.crew_pipeline.mcp_tools | ✅ Client message sent successfully: 202, response length: 0
-2025-12-14 02:54:33 | INFO     | app.crew_pipeline.mcp_tools | 📮 Sending client message: method=None, id=None
-2025-12-14 02:54:40 | WARNING  | app.crew_pipeline.mcp_tools | ⚠️ TaskGroup error pour geo.city (tentative 2/3): TaskGroup error: HTTPStatusError: Client error '409 Conflict' for url 'https://travliaq-mcp-production.up.railway.app/mcp'
-For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/409
-2025-12-14 02:54:40 | WARNING  | app.crew_pipeline.mcp_tools | ⚠️ TaskGroup error pour images.background (tentative 3/3): TaskGroup error: HTTPStatusError: Client error '409 Conflict' for url 'https://travliaq-mcp-production.up.railway.app/mcp'
-For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/409
-2025-12-14 02:54:40 | ERROR    | app.crew_pipeline.mcp_tools | ❌ MCP tool images.background a échoué définitivement
-2025-12-14 02:54:40 | WARNING  | app.crew_pipeline.scripts.image_generator |    ⚠️ Attempt 2 returned invalid result: Error executing tool images.background: Échec après 3 tentatives: TaskGroup error: HTTPStatusError: 
-2025-12-14 02:54:40 | WARNING  | app.crew_pipeline.mcp_tools | ⚠️ TaskGroup error pour images.background (tentative 3/3): TaskGroup error: HTTPStatusError: Client error '409 Conflict' for url 'https://travliaq-mcp-production.up.railway.app/mcp'
-For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/409
-2025-12-14 02:54:40 | INFO     | app.crew_pipeline.mcp_tools | ✅ Client message sent successfully: 200, response length: 1094
-2025-12-14 02:54:40 | ERROR    | app.crew_pipeline.mcp_tools | ❌ MCP tool images.background a échoué définitivement
-2025-12-14 02:54:40 | INFO     | app.crew_pipeline.mcp_tools | 📦 Parsing POST response as JSON-RPC message...
-2025-12-14 02:54:40 | INFO     | app.crew_pipeline.mcp_tools | 📮 Sending client message: method=None, id=None
-2025-12-14 02:54:40 | WARNING  | app.crew_pipeline.scripts.image_generator |    ⚠️ Attempt 1 returned invalid result: Error executing tool images.background: Échec après 3 tentatives: TaskGroup error: HTTPStatusError: 
-2025-12-14 02:54:40 | INFO     | app.crew_pipeline.mcp_tools | ✅ Client message sent successfully: 200, response length: 16879
-2025-12-14 02:54:40 | INFO     | app.crew_pipeline.mcp_tools | 📦 Parsing POST response as JSON-RPC message...
-2025-12-14 02:54:40 | INFO     | app.crew_pipeline.mcp_tools | ✅ MCP tool images.background exécuté avec succès - Résultat: {"success":true,"trip_code":"RIODEJANEIRO-2025-B9607C","url":"https://cinbnmlfpffmyjmkwbco.supabase.co/storage/v1/object/public/TRIPS/RIODEJANEIRO-2025-B9607C/background_1765677279.jpg","type":"background","usage":"step_main_image"}
-2025-12-14 02:54:40 | INFO     | app.crew_pipeline.scripts.image_generator |    ✅ Image generated successfully: https://cinbnmlfpffmyjmkwbco.supabase.co/storage/v1/object/public/TRIPS/RIODEJAN...
-2025-12-14 02:54:40 | WARNING  | app.crew_pipeline.scripts.redis_cache | ⚠️ Redis SET failed (400): image:images.background|visiting sightseeing in Zone nature/plage (sightseeing) in Rio de Janeiro, Brésil 🌍, Brésil travel p
-2025-12-14 02:54:40 | INFO     | app.crew_pipeline.scripts.step_template_generator |     ✅ Template created: GPS (-22.9064, -43.1822), Image: True
-2025-12-14 02:54:41 | INFO     | app.crew_pipeline.mcp_tools | 🔧 Using override endpoint URL: https://travliaq-mcp-production.up.railway.app/mcp?sessionId=df104394da9c4e5e946d3d738e139128
-2025-12-14 02:54:41 | INFO     | app.crew_pipeline.mcp_tools | 📡 Starting SSE event loop...
-2025-12-14 02:54:41 | INFO     | app.crew_pipeline.mcp_tools | 📤 Starting post_writer with endpoint: https://travliaq-mcp-production.up.railway.app/mcp?sessionId=df104394da9c4e5e946d3d738e139128
-2025-12-14 02:54:41 | INFO     | app.crew_pipeline.mcp_tools | 📝 Waiting for messages to send...
-2025-12-14 02:54:41 | INFO     | app.crew_pipeline.mcp_tools | 📮 Sending client message: method=None, id=None
-2025-12-14 02:54:41 | WARNING  | app.crew_pipeline.mcp_tools | ⚠️ TaskGroup error pour images.background (tentative 1/3): TaskGroup error: HTTPStatusError: Client error '409 Conflict' for url 'https://travliaq-mcp-production.up.railway.app/mcp'
-For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/409
-2025-12-14 02:54:41 | INFO     | app.crew_pipeline.mcp_tools | ✅ Client message sent successfully: 200, response length: 292
-2025-12-14 02:54:41 | INFO     | app.crew_pipeline.mcp_tools | 📦 Parsing POST response as JSON-RPC message...
-2025-12-14 02:54:41 | INFO     | app.crew_pipeline.mcp_tools | 📮 Sending client message: method=None, id=None
-2025-12-14 02:54:41 | INFO     | app.crew_pipeline.mcp_tools | ✅ Client message sent successfully: 202, response length: 0
-2025-12-14 02:54:41 | INFO     | app.crew_pipeline.mcp_tools | 📮 Sending client message: method=None, id=None
-2025-12-14 02:54:47 | WARNING  | app.crew_pipeline.mcp_tools | ⚠️ TaskGroup error pour geo.city (tentative 3/3): TaskGroup error: HTTPStatusError: Client error '409 Conflict' for url 'https://travliaq-mcp-production.up.railway.app/mcp'
-For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/409
-2025-12-14 02:54:47 | ERROR    | app.crew_pipeline.mcp_tools | ❌ MCP tool geo.city a échoué définitivement
-2025-12-14 02:54:47 | WARNING  | app.crew_pipeline.scripts.step_template_generator |       ⚠️ Unexpected MCP response type: str
-2025-12-14 02:54:47 | ERROR    | app.crew_pipeline.scripts.step_template_generator |       ❌ Even city fallback failed, using (0,0) coordinates
-2025-12-14 02:54:47 | INFO     | app.crew_pipeline.scripts.step_template_generator |     ✅ Template created: GPS (0.0000, 0.0000), Image: True
-2025-12-14 02:54:47 | WARNING  | app.crew_pipeline.mcp_tools | ⚠️ TaskGroup error pour images.background (tentative 2/3): TaskGroup error: HTTPStatusError: Client error '409 Conflict' for url 'https://travliaq-mcp-production.up.railway.app/mcp'
-For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/409
-2025-12-14 02:54:47 | INFO     | app.crew_pipeline.mcp_tools | ✅ Client message sent successfully: 200, response length: 1094
-2025-12-14 02:54:47 | INFO     | app.crew_pipeline.mcp_tools | 📦 Parsing POST response as JSON-RPC message...
-2025-12-14 02:54:47 | INFO     | app.crew_pipeline.mcp_tools | 📮 Sending client message: method=None, id=None
-2025-12-14 02:54:47 | INFO     | app.crew_pipeline.mcp_tools | ✅ Client message sent successfully: 200, response length: 16879
-2025-12-14 02:54:47 | INFO     | app.crew_pipeline.mcp_tools | 📦 Parsing POST response as JSON-RPC message...
-2025-12-14 02:54:47 | INFO     | app.crew_pipeline.mcp_tools | ✅ MCP tool images.background exécuté avec succès - Résultat: {"success":true,"trip_code":"RIODEJANEIRO-2025-B9607C","url":"https://cinbnmlfpffmyjmkwbco.supabase.co/storage/v1/object/public/TRIPS/RIODEJANEIRO-2025-B9607C/background_1765677287.jpg","type":"background","usage":"step_main_image"}
-2025-12-14 02:54:47 | INFO     | app.crew_pipeline.scripts.image_generator |    ✅ Image generated successfully: https://cinbnmlfpffmyjmkwbco.supabase.co/storage/v1/object/public/TRIPS/RIODEJAN...
-2025-12-14 02:54:47 | WARNING  | app.crew_pipeline.scripts.redis_cache | ⚠️ Redis SET failed (400): image:images.background|visiting photography in Zone nature/plage (photography) in Rio de Janeiro, Brésil 🌍, Brésil travel p
-2025-12-14 02:54:47 | INFO     | app.crew_pipeline.scripts.step_template_generator |     ✅ Template created: GPS (-22.9064, -43.1822), Image: True
-2025-12-14 02:54:49 | INFO     | app.crew_pipeline.mcp_tools | 🔧 Using override endpoint URL: https://travliaq-mcp-production.up.railway.app/mcp?sessionId=df104394da9c4e5e946d3d738e139128
-2025-12-14 02:54:49 | INFO     | app.crew_pipeline.mcp_tools | 📡 Starting SSE event loop...
-2025-12-14 02:54:49 | INFO     | app.crew_pipeline.mcp_tools | 📤 Starting post_writer with endpoint: https://travliaq-mcp-production.up.railway.app/mcp?sessionId=df104394da9c4e5e946d3d738e139128
-2025-12-14 02:54:49 | INFO     | app.crew_pipeline.mcp_tools | 📝 Waiting for messages to send...
-2025-12-14 02:54:49 | INFO     | app.crew_pipeline.mcp_tools | 📮 Sending client message: method=None, id=None
-2025-12-14 02:54:49 | INFO     | app.crew_pipeline.mcp_tools | ✅ Client message sent successfully: 200, response length: 292
-2025-12-14 02:54:49 | INFO     | app.crew_pipeline.mcp_tools | 📦 Parsing POST response as JSON-RPC message...
-2025-12-14 02:54:49 | INFO     | app.crew_pipeline.mcp_tools | 📮 Sending client message: method=None, id=None
-2025-12-14 02:54:49 | INFO     | app.crew_pipeline.mcp_tools | ✅ Client message sent successfully: 202, response length: 0
-2025-12-14 02:54:49 | INFO     | app.crew_pipeline.mcp_tools | 📮 Sending client message: method=None, id=None
-2025-12-14 02:55:02 | INFO     | app.crew_pipeline.mcp_tools | ✅ Client message sent successfully: 200, response length: 1094
-2025-12-14 02:55:02 | INFO     | app.crew_pipeline.mcp_tools | 📦 Parsing POST response as JSON-RPC message...
-2025-12-14 02:55:02 | INFO     | app.crew_pipeline.mcp_tools | 📮 Sending client message: method=None, id=None
-2025-12-14 02:55:02 | INFO     | app.crew_pipeline.mcp_tools | ✅ Client message sent successfully: 200, response length: 16879
-2025-12-14 02:55:02 | INFO     | app.crew_pipeline.mcp_tools | 📦 Parsing POST response as JSON-RPC message...
-2025-12-14 02:55:02 | INFO     | app.crew_pipeline.mcp_tools | ✅ MCP tool images.background exécuté avec succès - Résultat: {"success":true,"trip_code":"RIODEJANEIRO-2025-B9607C","url":"https://cinbnmlfpffmyjmkwbco.supabase.co/storage/v1/object/public/TRIPS/RIODEJANEIRO-2025-B9607C/background_1765677302.jpg","type":"background","usage":"step_main_image"}
-2025-12-14 02:55:02 | INFO     | app.crew_pipeline.scripts.image_generator |    ✅ Image generated successfully: https://cinbnmlfpffmyjmkwbco.supabase.co/storage/v1/object/public/TRIPS/RIODEJAN...
-2025-12-14 02:55:02 | WARNING  | app.crew_pipeline.scripts.redis_cache | ⚠️ Redis SET failed (400): image:images.background|visiting sightseeing in Zone nature/plage (sightseeing) in Rio de Janeiro, Brésil 🌍, Brésil travel p
-2025-12-14 02:55:02 | INFO     | app.crew_pipeline.scripts.step_template_generator |     ✅ Template created: GPS (-22.9064, -43.1822), Image: True
-2025-12-14 02:55:02 | INFO     | app.crew_pipeline.scripts.step_template_generator | ✅ 25 templates générés (activités seulement, summary step déjà existante)
-2025-12-14 02:55:02 | INFO     | app.crew_pipeline.pipeline | ✅ 25 step templates generated with GPS and images
-2025-12-14 02:55:02 | INFO     | app.crew_pipeline.scripts.incremental_trip_builder | 🖼️ Step 1: Image définie (Supabase)
-2025-12-14 02:55:02 | INFO     | app.crew_pipeline.scripts.incremental_trip_builder | 🖼️ Step 2: Image définie (Supabase)
-2025-12-14 02:55:02 | INFO     | app.crew_pipeline.scripts.incremental_trip_builder | 🖼️ Step 3: Image définie (Supabase)
-2025-12-14 02:55:02 | INFO     | app.crew_pipeline.scripts.incremental_trip_builder | 🖼️ Step 4: Image définie (Supabase)
-2025-12-14 02:55:02 | INFO     | app.crew_pipeline.scripts.incremental_trip_builder | 🖼️ Step 5: Image définie (Supabase)
-2025-12-14 02:55:02 | INFO     | app.crew_pipeline.scripts.incremental_trip_builder | 🖼️ Step 6: Image définie (Supabase)
-2025-12-14 02:55:02 | INFO     | app.crew_pipeline.scripts.incremental_trip_builder | 🖼️ Step 7: Image définie (Supabase)
-2025-12-14 02:55:02 | INFO     | app.crew_pipeline.scripts.incremental_trip_builder | 🖼️ Step 8: Image définie (Supabase)
-2025-12-14 02:55:02 | INFO     | app.crew_pipeline.scripts.incremental_trip_builder | 🖼️ Step 9: Image définie (Supabase)
-2025-12-14 02:55:02 | INFO     | app.crew_pipeline.scripts.incremental_trip_builder | 🖼️ Step 10: Image définie (Supabase)
-2025-12-14 02:55:02 | INFO     | app.crew_pipeline.scripts.incremental_trip_builder | 🖼️ Step 11: Image définie (Supabase)
-2025-12-14 02:55:02 | INFO     | app.crew_pipeline.scripts.incremental_trip_builder | 🖼️ Step 12: Image définie (Supabase)
-2025-12-14 02:55:02 | INFO     | app.crew_pipeline.scripts.incremental_trip_builder | 🖼️ Step 13: Image définie (Supabase)
-2025-12-14 02:55:02 | INFO     | app.crew_pipeline.scripts.incremental_trip_builder | 🖼️ Step 14: Image définie (Supabase)
-2025-12-14 02:55:02 | INFO     | app.crew_pipeline.scripts.incremental_trip_builder | 🖼️ Step 15: Image définie (Supabase)
-2025-12-14 02:55:02 | INFO     | app.crew_pipeline.scripts.incremental_trip_builder | 🖼️ Step 16: Image définie (Supabase)
-2025-12-14 02:55:02 | INFO     | app.crew_pipeline.scripts.incremental_trip_builder | 🖼️ Step 17: Image définie (Supabase)
-2025-12-14 02:55:02 | INFO     | app.crew_pipeline.scripts.incremental_trip_builder | 🖼️ Step 18: Image définie (Supabase)
-2025-12-14 02:55:02 | INFO     | app.crew_pipeline.scripts.incremental_trip_builder | 🖼️ Step 19: Image définie (Supabase)
-2025-12-14 02:55:02 | INFO     | app.crew_pipeline.scripts.incremental_trip_builder | 🖼️ Step 20: Image définie (Supabase)
-2025-12-14 02:55:02 | INFO     | app.crew_pipeline.scripts.incremental_trip_builder | 🖼️ Step 21: Image définie (Supabase)
-2025-12-14 02:55:02 | INFO     | app.crew_pipeline.scripts.incremental_trip_builder | 🖼️ Step 22: Image définie (Supabase)
-2025-12-14 02:55:02 | INFO     | app.crew_pipeline.scripts.incremental_trip_builder | 🖼️ Step 23: Image définie (Supabase)
-2025-12-14 02:55:02 | INFO     | app.crew_pipeline.scripts.incremental_trip_builder | 🖼️ Step 24: Image définie (Supabase)
-2025-12-14 02:55:02 | INFO     | app.crew_pipeline.scripts.incremental_trip_builder | 🖼️ Step 25: Image définie (Supabase)
-2025-12-14 02:55:02 | INFO     | app.crew_pipeline.pipeline | ✅ Builder enriched with GPS and images from templates
-2025-12-14 02:55:02 | INFO     | app.crew_pipeline.pipeline | ✅ inputs_phase2 updated with enriched trip JSON and templates
-2025-12-14 02:55:02 | INFO     | app.crew_pipeline.pipeline | 🚀 Step 3/3: Executing Phase 2 (Flights, Accommodation, Itinerary Design)...
-2025-12-14 02:55:02 | INFO     | app.crew_pipeline.pipeline | ⚡ Launching 3 crews in parallel...
-2025-12-14 02:55:02 | INFO     | root | OpenAI: Successfully validated tool 'create_reasoning_plan'
-2025-12-14 02:55:05 | INFO     | root | OpenAI API usage: {'prompt_tokens': 6472, 'completion_tokens': 50, 'total_tokens': 6522}
-2025-12-14 02:55:05 | INFO     | app.crew_pipeline.mcp_tools | 🔧 Using override endpoint URL: https://travliaq-mcp-production.up.railway.app/mcp?sessionId=df104394da9c4e5e946d3d738e139128
-2025-12-14 02:55:05 | INFO     | app.crew_pipeline.mcp_tools | 📡 Starting SSE event loop...
-2025-12-14 02:55:05 | INFO     | app.crew_pipeline.mcp_tools | 📤 Starting post_writer with endpoint: https://travliaq-mcp-production.up.railway.app/mcp?sessionId=df104394da9c4e5e946d3d738e139128
-2025-12-14 02:55:05 | INFO     | app.crew_pipeline.mcp_tools | 📝 Waiting for messages to send...
-2025-12-14 02:55:05 | INFO     | app.crew_pipeline.mcp_tools | 📮 Sending client message: method=None, id=None
-2025-12-14 02:55:05 | INFO     | app.crew_pipeline.mcp_tools | ✅ Client message sent successfully: 200, response length: 292
-2025-12-14 02:55:05 | INFO     | app.crew_pipeline.mcp_tools | 📦 Parsing POST response as JSON-RPC message...
-2025-12-14 02:55:05 | INFO     | app.crew_pipeline.mcp_tools | 📮 Sending client message: method=None, id=None
-2025-12-14 02:55:05 | INFO     | app.crew_pipeline.mcp_tools | ✅ Client message sent successfully: 202, response length: 0
-2025-12-14 02:55:05 | INFO     | app.crew_pipeline.mcp_tools | 📮 Sending client message: method=None, id=None
-2025-12-14 02:55:05 | INFO     | app.crew_pipeline.mcp_tools | ✅ Client message sent successfully: 200, response length: 1200
-2025-12-14 02:55:05 | INFO     | app.crew_pipeline.mcp_tools | 📦 Parsing POST response as JSON-RPC message...
-2025-12-14 02:55:05 | INFO     | app.crew_pipeline.mcp_tools | 📮 Sending client message: method=None, id=None
-2025-12-14 02:55:05 | INFO     | app.crew_pipeline.mcp_tools | ✅ Client message sent successfully: 200, response length: 16879
-2025-12-14 02:55:05 | INFO     | app.crew_pipeline.mcp_tools | 📦 Parsing POST response as JSON-RPC message...
-2025-12-14 02:55:05 | INFO     | app.crew_pipeline.mcp_tools | ✅ MCP tool places.overview exécuté avec succès
-2025-12-14 02:55:09 | INFO     | root | OpenAI API usage: {'prompt_tokens': 6651, 'completion_tokens': 100, 'total_tokens': 6751}
-2025-12-14 02:55:09 | INFO     | app.crew_pipeline.mcp_tools | 🔧 Using override endpoint URL: https://travliaq-mcp-production.up.railway.app/mcp?sessionId=df104394da9c4e5e946d3d738e139128
-2025-12-14 02:55:09 | INFO     | app.crew_pipeline.mcp_tools | 📡 Starting SSE event loop...
-2025-12-14 02:55:09 | INFO     | app.crew_pipeline.mcp_tools | 📤 Starting post_writer with endpoint: https://travliaq-mcp-production.up.railway.app/mcp?sessionId=df104394da9c4e5e946d3d738e139128
-2025-12-14 02:55:09 | INFO     | app.crew_pipeline.mcp_tools | 📝 Waiting for messages to send...
-2025-12-14 02:55:09 | INFO     | app.crew_pipeline.mcp_tools | 📮 Sending client message: method=None, id=None
-2025-12-14 02:55:09 | INFO     | app.crew_pipeline.mcp_tools | ✅ Client message sent successfully: 200, response length: 292
-2025-12-14 02:55:09 | INFO     | app.crew_pipeline.mcp_tools | 📦 Parsing POST response as JSON-RPC message...
-2025-12-14 02:55:09 | INFO     | app.crew_pipeline.mcp_tools | 📮 Sending client message: method=None, id=None
-2025-12-14 02:55:09 | INFO     | app.crew_pipeline.mcp_tools | ✅ Client message sent successfully: 202, response length: 0
-2025-12-14 02:55:09 | INFO     | app.crew_pipeline.mcp_tools | 📮 Sending client message: method=None, id=None
-2025-12-14 02:55:13 | INFO     | root | OpenAI API usage: {'prompt_tokens': 6296, 'completion_tokens': 654, 'total_tokens': 6950}
-2025-12-14 02:55:14 | WARNING  | app.crew_pipeline.mcp_tools | ⚠️ TaskGroup error pour airports.nearest (tentative 1/3): TaskGroup error: HTTPStatusError: Client error '409 Conflict' for url 'https://travliaq-mcp-production.up.railway.app/mcp'
-For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/409
-2025-12-14 02:55:15 | WARNING  | app.crew_pipeline.mcp_tools | ⚠️ TaskGroup error pour airports.nearest (tentative 2/3): TaskGroup error: HTTPStatusError: Client error '409 Conflict' for url 'https://travliaq-mcp-production.up.railway.app/mcp'
-For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/409
-2025-12-14 02:55:17 | WARNING  | app.crew_pipeline.mcp_tools | ⚠️ TaskGroup error pour airports.nearest (tentative 3/3): TaskGroup error: HTTPStatusError: Client error '409 Conflict' for url 'https://travliaq-mcp-production.up.railway.app/mcp'
-For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/409
-2025-12-14 02:55:17 | ERROR    | app.crew_pipeline.mcp_tools | ❌ MCP tool airports.nearest a échoué définitivement
-2025-12-14 02:55:19 | INFO     | root | OpenAI API usage: {'prompt_tokens': 6390, 'completion_tokens': 94, 'total_tokens': 6484}
-2025-12-14 02:55:19 | WARNING  | app.crew_pipeline.mcp_tools | ⚠️ TaskGroup error pour airports.nearest (tentative 1/3): TaskGroup error: HTTPStatusError: Client error '409 Conflict' for url 'https://travliaq-mcp-production.up.railway.app/mcp'
-For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/409
-2025-12-14 02:55:21 | WARNING  | app.crew_pipeline.mcp_tools | ⚠️ TaskGroup error pour airports.nearest (tentative 2/3): TaskGroup error: HTTPStatusError: Client error '409 Conflict' for url 'https://travliaq-mcp-production.up.railway.app/mcp'
-For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/409
-2025-12-14 02:55:23 | WARNING  | app.crew_pipeline.mcp_tools | ⚠️ TaskGroup error pour airports.nearest (tentative 3/3): TaskGroup error: HTTPStatusError: Client error '409 Conflict' for url 'https://travliaq-mcp-production.up.railway.app/mcp'
-For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/409
-2025-12-14 02:55:23 | ERROR    | app.crew_pipeline.mcp_tools | ❌ MCP tool airports.nearest a échoué définitivement
-2025-12-14 02:55:23 | INFO     | app.crew_pipeline.mcp_tools | ✅ Client message sent successfully: 200, response length: 49863
-2025-12-14 02:55:23 | INFO     | app.crew_pipeline.mcp_tools | 📦 Parsing POST response as JSON-RPC message...
-2025-12-14 02:55:23 | INFO     | app.crew_pipeline.mcp_tools | 📮 Sending client message: method=None, id=None
-2025-12-14 02:55:23 | INFO     | app.crew_pipeline.mcp_tools | ✅ Client message sent successfully: 200, response length: 16879
-2025-12-14 02:55:23 | INFO     | app.crew_pipeline.mcp_tools | 📦 Parsing POST response as JSON-RPC message...
-2025-12-14 02:55:23 | INFO     | app.crew_pipeline.mcp_tools | ✅ MCP tool booking.search exécuté avec succès
-2025-12-14 02:55:24 | INFO     | root | OpenAI API usage: {'prompt_tokens': 6486, 'completion_tokens': 36, 'total_tokens': 6522}
-2025-12-14 02:55:24 | INFO     | app.crew_pipeline.pipeline | 📁 PHASE2_FLIGHTS_RESEARCH - Step 1: flights_research → output\crew_runs\63a10241-48ec-4607-98d0-2736ee6f0966-6134e947\PHASE2_FLIGHTS_RESEARCH\step_1_flights_research
-2025-12-14 02:55:24 | INFO     | app.crew_pipeline.pipeline | ✅ flights_research completed
-2025-12-14 02:55:34 | INFO     | root | OpenAI API usage: {'prompt_tokens': 17038, 'completion_tokens': 626, 'total_tokens': 17664}
-2025-12-14 02:55:37 | INFO     | app.crew_pipeline.pipeline | 📁 PHASE2_ACCOMMODATION_RESEARCH - Step 1: accommodation_research → output\crew_runs\63a10241-48ec-4607-98d0-2736ee6f0966-6134e947\PHASE2_ACCOMMODATION_RESEARCH\step_1_accommodation_research
-2025-12-14 02:55:37 | INFO     | app.crew_pipeline.pipeline | ✅ accommodation_research completed
-2025-12-14 02:56:13 | INFO     | root | OpenAI API usage: {'prompt_tokens': 15695, 'completion_tokens': 3534, 'total_tokens': 19229}
-2025-12-14 02:56:13 | INFO     | app.crew_pipeline.pipeline | 📁 PHASE2_ITINERARY_DESIGN - Step 1: itinerary_design → output\crew_runs\63a10241-48ec-4607-98d0-2736ee6f0966-6134e947\PHASE2_ITINERARY_DESIGN\step_1_itinerary_design
-2025-12-14 02:56:13 | INFO     | app.crew_pipeline.pipeline | ✅ itinerary_design completed
-2025-12-14 02:56:13 | INFO     | app.crew_pipeline.pipeline | 🔧 Enrichissement du trip JSON avec les résultats de PHASE2...
-2025-12-14 02:56:13 | INFO     | app.crew_pipeline.scripts.incremental_trip_builder | 🏨 Hotel info updated: Hotel Villa Rica (7.9)
-2025-12-14 02:56:13 | INFO     | app.crew_pipeline.pipeline | ✅ Hébergement set: Hotel Villa Rica (7.9★)
-2025-12-14 02:56:13 | INFO     | app.crew_pipeline.pipeline | 📊 Agent itinerary_design returned 25 steps
-2025-12-14 02:56:13 | WARNING  | app.crew_pipeline.scripts.incremental_trip_builder | ⚠️ Hero image vide ou invalide fournie, appel ImageGenerator...
-2025-12-14 02:56:13 | INFO     | app.crew_pipeline.scripts.image_generator | 🖼️ Generating HERO image for Rio de Janeiro, Brésil 🌍...
-2025-12-14 02:56:13 | ERROR    | app.crew_pipeline.pipeline | ❌ Erreur lors de l'enrichissement depuis PHASE2: slice(None, 80, None)
+2025-12-14 03:19:22 | INFO     | root | ================================================================================
+2025-12-14 03:19:22 | INFO     | root | TRAVLIAQ PIPELINE - LOGS INITIALIZED
+2025-12-14 03:19:22 | INFO     | root | Log file: E:\CrewTravliaq\Travliaq-Agents\logLastPipeline.txt
+2025-12-14 03:19:22 | INFO     | root | Log level: INFO
+2025-12-14 03:19:22 | INFO     | root | Console output: Enabled
+2025-12-14 03:19:22 | INFO     | root | ================================================================================
+2025-12-14 03:19:22 | INFO     | app.crew_pipeline.pipeline | 🚀 Lancement Pipeline CrewAI (Run ID: 63a10241-48ec-4607-98d0-2736ee6f0966-4046c782, Questionnaire: 63a10241...)
+2025-12-14 03:19:22 | INFO     | app.crew_pipeline.mcp_tools | Fetching MCP tools from https://travliaq-mcp-production.up.railway.app/mcp...
+2025-12-14 03:19:22 | INFO     | app.crew_pipeline.mcp_tools | 🆕 Nouvelle session MCP créée pour thread 1946727204960: f78620ca8b18452b...
+2025-12-14 03:19:22 | INFO     | app.crew_pipeline.mcp_tools | Connecting to SSE with headers: {'Mcp-Session-Id': 'f78620ca8b18452b9a04729d5f56a2d0'}
+2025-12-14 03:19:22 | ERROR    | app.crew_pipeline.mcp_tools | TaskGroup error fetching tools from MCP server: HTTPStatusError: Client error '400 Bad Request' for url 'https://travliaq-mcp-production.up.railway.app/mcp'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/400
+2025-12-14 03:19:22 | INFO     | app.crew_pipeline.pipeline | ✅ 0 outils MCP chargés.
+2025-12-14 03:19:30 | INFO     | root | OpenAI API usage: {'prompt_tokens': 2698, 'completion_tokens': 423, 'total_tokens': 3121}
+2025-12-14 03:19:30 | INFO     | root | OpenAI: Successfully validated tool 'create_reasoning_plan'
+2025-12-14 03:19:40 | INFO     | root | OpenAI API usage: {'prompt_tokens': 1982, 'completion_tokens': 609, 'total_tokens': 2591}
+2025-12-14 03:19:43 | INFO     | root | OpenAI API usage: {'prompt_tokens': 2795, 'completion_tokens': 153, 'total_tokens': 2948}
+2025-12-14 03:19:43 | INFO     | app.crew_pipeline.pipeline | 📁 PHASE1_CONTEXT - Step 1: trip_context_building → output\crew_runs\63a10241-48ec-4607-98d0-2736ee6f0966-4046c782\PHASE1_CONTEXT\step_1_trip_context_building
+2025-12-14 03:19:43 | INFO     | app.crew_pipeline.pipeline | 📁 PHASE1_CONTEXT - Step 2: destination_strategy → output\crew_runs\63a10241-48ec-4607-98d0-2736ee6f0966-4046c782\PHASE1_CONTEXT\step_2_destination_strategy
+2025-12-14 03:19:43 | INFO     | app.crew_pipeline.pipeline | 🏗️ Initialisation du IncrementalTripBuilder...
+2025-12-14 03:19:43 | INFO     | app.crew_pipeline.scripts.incremental_trip_builder | 🏗️ IncrementalTripBuilder créé
+2025-12-14 03:19:43 | INFO     | app.crew_pipeline.pipeline | 📍 Destination extraite: Rio de Janeiro, Brésil 🌍, Country: Brésil
+2025-12-14 03:19:43 | INFO     | app.crew_pipeline.scripts.incremental_trip_builder | 🏗️ Structure JSON initialisée: RIODEJANEIRO-2025-9C28F1
+2025-12-14 03:19:43 | INFO     | app.crew_pipeline.scripts.incremental_trip_builder |    - Destination: Rio de Janeiro, Brésil 🌍
+2025-12-14 03:19:43 | INFO     | app.crew_pipeline.scripts.incremental_trip_builder |    - Jours: 21
+2025-12-14 03:19:43 | INFO     | app.crew_pipeline.scripts.incremental_trip_builder |    - Rythme: relaxed
+2025-12-14 03:19:43 | INFO     | app.crew_pipeline.scripts.incremental_trip_builder |    - Steps: 31 activités + 1 summary
+2025-12-14 03:19:43 | INFO     | app.crew_pipeline.scripts.incremental_trip_builder |    - Cache size: 32 entries
+2025-12-14 03:19:43 | INFO     | app.crew_pipeline.pipeline | ✅ Structure JSON initialisée: RIODEJANEIRO-2025-9C28F1
+2025-12-14 03:19:43 | INFO     | app.crew_pipeline.pipeline | 📋 Step 1/3: Calculating trip structure with SCRIPT (no LLM)...
+2025-12-14 03:19:43 | INFO     | app.crew_pipeline.scripts.trip_structure_calculator | 🧮 Calculating trip structure for Rio de Janeiro, Brésil 🌍 (21 days)
+2025-12-14 03:19:43 | INFO     | app.crew_pipeline.scripts.trip_structure_calculator |    Rhythm: relaxed → 1.2 steps/day avg → 25 steps total
+2025-12-14 03:19:43 | INFO     | app.crew_pipeline.scripts.trip_structure_calculator | ✅ Trip structure calculated: 25 steps across 21 days
+2025-12-14 03:19:43 | INFO     | app.crew_pipeline.pipeline | ✅ Trip structure calculated by script: 25 steps
+2025-12-14 03:19:43 | INFO     | app.crew_pipeline.pipeline | 💾 Trip structure plan saved to output\crew_runs\63a10241-48ec-4607-98d0-2736ee6f0966-4046c782\_trip_structure_plan.yaml
+2025-12-14 03:19:43 | WARNING  | app.crew_pipeline.pipeline | ⚠️ Step count mismatch: builder has 31 steps, plan requires 25 steps. Adjusting...
+2025-12-14 03:19:43 | INFO     | app.crew_pipeline.pipeline | ✅ Removed 6 steps to match plan
+2025-12-14 03:19:43 | INFO     | app.crew_pipeline.pipeline | 🏗️ Step 2/3: Generating step templates with GPS and images...
+2025-12-14 03:19:43 | INFO     | app.crew_pipeline.scripts.redis_cache | ✅ Redis cache enabled (TTL: 604800s = 7 days)
+2025-12-14 03:19:43 | INFO     | app.crew_pipeline.scripts.step_template_generator | 🏗️ Generating step templates for Rio de Janeiro, Brésil 🌍, Brésil (parallel=True)
+2025-12-14 03:19:43 | INFO     | app.crew_pipeline.scripts.step_template_generator | 📅 Jour 1: 1 steps dans zone 'Centre Rio de Janeiro, Brésil 🌍'
+2025-12-14 03:19:43 | INFO     | app.crew_pipeline.scripts.step_template_generator | 📅 Jour 2: 1 steps dans zone 'Centre Rio de Janeiro, Brésil 🌍'
+2025-12-14 03:19:43 | INFO     | app.crew_pipeline.scripts.step_template_generator | 📅 Jour 3: 1 steps dans zone 'Centre Rio de Janeiro, Brésil 🌍'
+2025-12-14 03:19:43 | INFO     | app.crew_pipeline.scripts.step_template_generator | 📅 Jour 4: 1 steps dans zone 'Centre Rio de Janeiro, Brésil 🌍'
+2025-12-14 03:19:43 | INFO     | app.crew_pipeline.scripts.step_template_generator | 📅 Jour 5: 1 steps dans zone 'Périphérie Rio de Janeiro, Brésil 🌍'
+2025-12-14 03:19:43 | INFO     | app.crew_pipeline.scripts.step_template_generator | 📅 Jour 6: 1 steps dans zone 'Périphérie Rio de Janeiro, Brésil 🌍'
+2025-12-14 03:19:43 | INFO     | app.crew_pipeline.scripts.step_template_generator | 📅 Jour 7: 1 steps dans zone 'Périphérie Rio de Janeiro, Brésil 🌍'
+2025-12-14 03:19:43 | INFO     | app.crew_pipeline.scripts.step_template_generator | 📅 Jour 8: 1 steps dans zone 'Périphérie Rio de Janeiro, Brésil 🌍'
+2025-12-14 03:19:43 | INFO     | app.crew_pipeline.scripts.step_template_generator | 📅 Jour 9: 1 steps dans zone 'Zone touristique'
+2025-12-14 03:19:43 | INFO     | app.crew_pipeline.scripts.step_template_generator | 📅 Jour 10: 1 steps dans zone 'Zone touristique'
+2025-12-14 03:19:43 | INFO     | app.crew_pipeline.scripts.step_template_generator | 📅 Jour 11: 1 steps dans zone 'Zone touristique'
+2025-12-14 03:19:43 | INFO     | app.crew_pipeline.scripts.step_template_generator | 📅 Jour 12: 1 steps dans zone 'Zone touristique'
+2025-12-14 03:19:43 | INFO     | app.crew_pipeline.scripts.step_template_generator | 📅 Jour 13: 1 steps dans zone 'Quartier historique'
+2025-12-14 03:19:43 | INFO     | app.crew_pipeline.scripts.step_template_generator | 📅 Jour 14: 2 steps dans zone 'Quartier historique'
+2025-12-14 03:19:43 | INFO     | app.crew_pipeline.scripts.step_template_generator | 📅 Jour 15: 1 steps dans zone 'Quartier historique'
+2025-12-14 03:19:43 | INFO     | app.crew_pipeline.scripts.step_template_generator | 📅 Jour 16: 2 steps dans zone 'Quartier historique'
+2025-12-14 03:19:43 | INFO     | app.crew_pipeline.scripts.step_template_generator | 📅 Jour 17: 1 steps dans zone 'Zone nature/plage'
+2025-12-14 03:19:43 | INFO     | app.crew_pipeline.scripts.step_template_generator | 📅 Jour 18: 1 steps dans zone 'Zone nature/plage'
+2025-12-14 03:19:43 | INFO     | app.crew_pipeline.scripts.step_template_generator | 📅 Jour 19: 2 steps dans zone 'Zone nature/plage'
+2025-12-14 03:19:43 | INFO     | app.crew_pipeline.scripts.step_template_generator | 📅 Jour 20: 2 steps dans zone 'Zone nature/plage'
+2025-12-14 03:19:43 | INFO     | app.crew_pipeline.scripts.step_template_generator | 📅 Jour 21: 1 steps dans zone 'Zone nature/plage'
+2025-12-14 03:19:43 | INFO     | app.crew_pipeline.scripts.step_template_generator | ⚡ Generating 25 templates in parallel (max_workers=6)
+2025-12-14 03:19:43 | INFO     | app.crew_pipeline.scripts.step_template_generator |   🔨 Generating template step 1: sightseeing in Centre Rio de Janeiro, Brésil 🌍
+2025-12-14 03:19:43 | INFO     | app.crew_pipeline.scripts.step_template_generator |   🔨 Generating template step 2: photography in Centre Rio de Janeiro, Brésil 🌍
+2025-12-14 03:19:43 | INFO     | app.crew_pipeline.scripts.step_template_generator |   🔨 Generating template step 3: local_cuisine in Centre Rio de Janeiro, Brésil 🌍
+2025-12-14 03:19:43 | INFO     | app.crew_pipeline.scripts.step_template_generator |   🔨 Generating template step 4: sightseeing in Centre Rio de Janeiro, Brésil 🌍
+2025-12-14 03:19:43 | INFO     | app.crew_pipeline.scripts.image_generator | 🖼️ Generating STEP 2 image: 'visiting photography in Centre Rio de Janeiro, Brésil 🌍'...
+2025-12-14 03:19:43 | INFO     | app.crew_pipeline.scripts.step_template_generator |   🔨 Generating template step 5: photography in Périphérie Rio de Janeiro, Brésil 🌍
+2025-12-14 03:19:43 | INFO     | app.crew_pipeline.scripts.image_generator | 🖼️ Generating STEP 4 image: 'visiting sightseeing in Centre Rio de Janeiro, Brésil 🌍'...
+2025-12-14 03:19:43 | INFO     | app.crew_pipeline.scripts.image_generator | 🖼️ Generating STEP 3 image: 'visiting local_cuisine in Centre Rio de Janeiro, Brésil 🌍'...
+2025-12-14 03:19:43 | INFO     | app.crew_pipeline.scripts.step_template_generator |   🔨 Generating template step 6: local_cuisine in Périphérie Rio de Janeiro, Brésil 🌍
+2025-12-14 03:19:43 | INFO     | app.crew_pipeline.scripts.image_generator | 🖼️ Generating STEP 5 image: 'visiting photography in Périphérie Rio de Janeiro, Brésil 🌍'...
+2025-12-14 03:19:43 | INFO     | app.crew_pipeline.scripts.image_generator | 🖼️ Generating STEP 1 image: 'visiting sightseeing in Centre Rio de Janeiro, Brésil 🌍'...
+2025-12-14 03:19:43 | INFO     | app.crew_pipeline.scripts.image_generator | 🖼️ Generating STEP 6 image: 'visiting local_cuisine in Périphérie Rio de Janeiro, Brésil 🌍'...
+2025-12-14 03:19:44 | INFO     | app.crew_pipeline.scripts.step_template_generator |     ✅ Template created: GPS (-22.9064, -43.1822), Image: True
+2025-12-14 03:19:44 | INFO     | app.crew_pipeline.scripts.step_template_generator |   🔨 Generating template step 7: sightseeing in Périphérie Rio de Janeiro, Brésil 🌍
+2025-12-14 03:19:44 | INFO     | app.crew_pipeline.scripts.step_template_generator |     ✅ Template created: GPS (0.0000, 0.0000), Image: True
+2025-12-14 03:19:44 | INFO     | app.crew_pipeline.scripts.step_template_generator |     ✅ Template created: GPS (0.0000, 0.0000), Image: True
+2025-12-14 03:19:44 | INFO     | app.crew_pipeline.scripts.step_template_generator |   🔨 Generating template step 8: photography in Périphérie Rio de Janeiro, Brésil 🌍
+2025-12-14 03:19:44 | INFO     | app.crew_pipeline.scripts.image_generator | 🖼️ Generating STEP 7 image: 'visiting sightseeing in Périphérie Rio de Janeiro, Brésil 🌍'...
+2025-12-14 03:19:44 | INFO     | app.crew_pipeline.scripts.step_template_generator |     ✅ Template created: GPS (-22.9064, -43.1822), Image: True
+2025-12-14 03:19:44 | INFO     | app.crew_pipeline.scripts.step_template_generator |     ✅ Template created: GPS (-22.9064, -43.1822), Image: True
+2025-12-14 03:19:44 | INFO     | app.crew_pipeline.scripts.step_template_generator |     ✅ Template created: GPS (-22.9064, -43.1822), Image: True
+2025-12-14 03:19:44 | INFO     | app.crew_pipeline.scripts.step_template_generator |   🔨 Generating template step 9: local_cuisine in Zone touristique
+2025-12-14 03:19:44 | INFO     | app.crew_pipeline.scripts.image_generator | 🖼️ Generating STEP 8 image: 'visiting photography in Périphérie Rio de Janeiro, Brésil 🌍'...
+2025-12-14 03:19:44 | INFO     | app.crew_pipeline.scripts.step_template_generator |   🔨 Generating template step 10: sightseeing in Zone touristique
+2025-12-14 03:19:44 | INFO     | app.crew_pipeline.scripts.step_template_generator |   🔨 Generating template step 11: photography in Zone touristique
+2025-12-14 03:19:44 | INFO     | app.crew_pipeline.scripts.step_template_generator |   🔨 Generating template step 12: local_cuisine in Zone touristique
+2025-12-14 03:19:44 | INFO     | app.crew_pipeline.scripts.image_generator | 🖼️ Generating STEP 9 image: 'visiting local_cuisine in Zone touristique'...
+2025-12-14 03:19:44 | INFO     | app.crew_pipeline.scripts.image_generator | 🖼️ Generating STEP 10 image: 'visiting sightseeing in Zone touristique'...
+2025-12-14 03:19:44 | INFO     | app.crew_pipeline.scripts.image_generator | 🖼️ Generating STEP 11 image: 'visiting photography in Zone touristique'...
+2025-12-14 03:19:44 | INFO     | app.crew_pipeline.scripts.image_generator | 🖼️ Generating STEP 12 image: 'visiting local_cuisine in Zone touristique'...
+2025-12-14 03:19:45 | WARNING  | app.crew_pipeline.scripts.step_template_generator |       ⚠️ geo.place failed attempt 1: Tool 'geo.place' not found. Available: []
+2025-12-14 03:19:45 | WARNING  | app.crew_pipeline.scripts.step_template_generator |       ⚠️ geo.place failed attempt 2: Tool 'geo.place' not found. Available: []
+2025-12-14 03:19:45 | ERROR    | app.crew_pipeline.scripts.step_template_generator |       ❌ All GPS attempts failed: Tool 'geo.city' not found. Available: []
+2025-12-14 03:19:45 | WARNING  | app.crew_pipeline.scripts.step_template_generator |     ⚠️ GPS fetch failed for step 7, using city center fallback
+2025-12-14 03:19:45 | ERROR    | app.crew_pipeline.scripts.step_template_generator |       ❌ Fallback error: Tool 'geo.city' not found. Available: [], using (0,0) coordinates
+2025-12-14 03:19:45 | INFO     | app.crew_pipeline.scripts.step_template_generator |     ✅ Template created: GPS (0.0000, 0.0000), Image: True
+2025-12-14 03:19:45 | INFO     | app.crew_pipeline.scripts.step_template_generator |   🔨 Generating template step 13: sightseeing in Quartier historique
+2025-12-14 03:19:45 | INFO     | app.crew_pipeline.scripts.image_generator | 🖼️ Generating STEP 13 image: 'visiting sightseeing in Quartier historique'...
+2025-12-14 03:19:45 | INFO     | app.crew_pipeline.scripts.step_template_generator |     ✅ Template created: GPS (-22.9064, -43.1822), Image: True
+2025-12-14 03:19:45 | INFO     | app.crew_pipeline.scripts.step_template_generator |     ✅ Template created: GPS (0.0000, 0.0000), Image: True
+2025-12-14 03:19:45 | INFO     | app.crew_pipeline.scripts.step_template_generator |   🔨 Generating template step 14: photography in Quartier historique
+2025-12-14 03:19:45 | INFO     | app.crew_pipeline.scripts.step_template_generator |     ✅ Template created: GPS (-22.9064, -43.1822), Image: True
+2025-12-14 03:19:45 | INFO     | app.crew_pipeline.scripts.step_template_generator |   🔨 Generating template step 15: local_cuisine in Quartier historique
+2025-12-14 03:19:45 | INFO     | app.crew_pipeline.scripts.step_template_generator |   🔨 Generating template step 16: sightseeing in Quartier historique
+2025-12-14 03:19:45 | INFO     | app.crew_pipeline.scripts.image_generator | 🖼️ Generating STEP 14 image: 'visiting photography in Quartier historique'...
+2025-12-14 03:19:45 | INFO     | app.crew_pipeline.scripts.image_generator | 🖼️ Generating STEP 15 image: 'visiting local_cuisine in Quartier historique'...
+2025-12-14 03:19:45 | INFO     | app.crew_pipeline.scripts.image_generator | 🖼️ Generating STEP 16 image: 'visiting sightseeing in Quartier historique'...
+2025-12-14 03:19:45 | WARNING  | app.crew_pipeline.scripts.step_template_generator |       ⚠️ geo.place failed attempt 1: Tool 'geo.place' not found. Available: []
+2025-12-14 03:19:45 | WARNING  | app.crew_pipeline.scripts.step_template_generator |       ⚠️ geo.place failed attempt 2: Tool 'geo.place' not found. Available: []
+2025-12-14 03:19:45 | ERROR    | app.crew_pipeline.scripts.step_template_generator |       ❌ All GPS attempts failed: Tool 'geo.city' not found. Available: []
+2025-12-14 03:19:45 | INFO     | app.crew_pipeline.scripts.step_template_generator |     ✅ Template created: GPS (-22.9064, -43.1822), Image: True
+2025-12-14 03:19:45 | WARNING  | app.crew_pipeline.scripts.step_template_generator |     ⚠️ GPS fetch failed for step 11, using city center fallback
+2025-12-14 03:19:45 | INFO     | app.crew_pipeline.scripts.step_template_generator |   🔨 Generating template step 17: photography in Quartier historique
+2025-12-14 03:19:45 | ERROR    | app.crew_pipeline.scripts.step_template_generator |       ❌ Fallback error: Tool 'geo.city' not found. Available: [], using (0,0) coordinates
+2025-12-14 03:19:45 | INFO     | app.crew_pipeline.scripts.step_template_generator |     ✅ Template created: GPS (0.0000, 0.0000), Image: True
+2025-12-14 03:19:45 | INFO     | app.crew_pipeline.scripts.step_template_generator |   🔨 Generating template step 18: local_cuisine in Quartier historique
+2025-12-14 03:19:45 | INFO     | app.crew_pipeline.scripts.image_generator | 🖼️ Generating STEP 17 image: 'visiting photography in Quartier historique'...
+2025-12-14 03:19:45 | INFO     | app.crew_pipeline.scripts.image_generator | 🖼️ Generating STEP 18 image: 'visiting local_cuisine in Quartier historique'...
+2025-12-14 03:19:46 | INFO     | app.crew_pipeline.scripts.step_template_generator |     ✅ Template created: GPS (-22.9064, -43.1822), Image: True
+2025-12-14 03:19:46 | INFO     | app.crew_pipeline.scripts.step_template_generator |   🔨 Generating template step 19: sightseeing in Zone nature/plage
+2025-12-14 03:19:46 | INFO     | app.crew_pipeline.scripts.image_generator | 🖼️ Generating STEP 19 image: 'visiting sightseeing in Zone nature/plage'...
+2025-12-14 03:19:46 | INFO     | app.crew_pipeline.scripts.step_template_generator |     ✅ Template created: GPS (-22.9064, -43.1822), Image: True
+2025-12-14 03:19:46 | INFO     | app.crew_pipeline.scripts.step_template_generator |     ✅ Template created: GPS (-22.9064, -43.1822), Image: True
+2025-12-14 03:19:46 | INFO     | app.crew_pipeline.scripts.step_template_generator |     ✅ Template created: GPS (-22.9064, -43.1822), Image: True
+2025-12-14 03:19:46 | INFO     | app.crew_pipeline.scripts.step_template_generator |   🔨 Generating template step 20: photography in Zone nature/plage
+2025-12-14 03:19:46 | INFO     | app.crew_pipeline.scripts.step_template_generator |     ✅ Template created: GPS (-22.9064, -43.1822), Image: True
+2025-12-14 03:19:46 | INFO     | app.crew_pipeline.scripts.step_template_generator |     ✅ Template created: GPS (-22.9064, -43.1822), Image: True
+2025-12-14 03:19:46 | INFO     | app.crew_pipeline.scripts.step_template_generator |   🔨 Generating template step 21: local_cuisine in Zone nature/plage
+2025-12-14 03:19:46 | INFO     | app.crew_pipeline.scripts.step_template_generator |   🔨 Generating template step 22: sightseeing in Zone nature/plage
+2025-12-14 03:19:46 | INFO     | app.crew_pipeline.scripts.step_template_generator |   🔨 Generating template step 23: photography in Zone nature/plage
+2025-12-14 03:19:46 | INFO     | app.crew_pipeline.scripts.image_generator | 🖼️ Generating STEP 20 image: 'visiting photography in Zone nature/plage'...
+2025-12-14 03:19:46 | INFO     | app.crew_pipeline.scripts.step_template_generator |   🔨 Generating template step 24: local_cuisine in Zone nature/plage
+2025-12-14 03:19:46 | INFO     | app.crew_pipeline.scripts.image_generator | 🖼️ Generating STEP 21 image: 'visiting local_cuisine in Zone nature/plage'...
+2025-12-14 03:19:46 | INFO     | app.crew_pipeline.scripts.image_generator | 🖼️ Generating STEP 22 image: 'visiting sightseeing in Zone nature/plage'...
+2025-12-14 03:19:46 | INFO     | app.crew_pipeline.scripts.image_generator | 🖼️ Generating STEP 23 image: 'visiting photography in Zone nature/plage'...
+2025-12-14 03:19:46 | INFO     | app.crew_pipeline.scripts.image_generator | 🖼️ Generating STEP 24 image: 'visiting local_cuisine in Zone nature/plage'...
+2025-12-14 03:19:46 | WARNING  | app.crew_pipeline.scripts.redis_cache | ⚠️ Redis GET failed (400): image:images.background|visiting sightseeing in Zone nature/plage (sightseeing) in Rio de Janeiro, Brésil 🌍, Brésil travel p
+2025-12-14 03:19:46 | WARNING  | app.crew_pipeline.scripts.image_generator |    ⚠️ Attempt 1 failed with exception: Tool 'images.background' not found. Available: []
+2025-12-14 03:19:46 | WARNING  | app.crew_pipeline.scripts.redis_cache | ⚠️ Redis GET failed (400): image:images.background|visiting photography in Zone nature/plage (photography) in Rio de Janeiro, Brésil 🌍, Brésil travel p
+2025-12-14 03:19:46 | WARNING  | app.crew_pipeline.scripts.image_generator |    ⚠️ Attempt 1 failed with exception: Tool 'images.background' not found. Available: []
+2025-12-14 03:19:46 | WARNING  | app.crew_pipeline.scripts.redis_cache | ⚠️ Redis GET failed (400): image:images.background|visiting photography in Zone nature/plage (photography) in Rio de Janeiro, Brésil 🌍, Brésil travel p
+2025-12-14 03:19:46 | WARNING  | app.crew_pipeline.scripts.redis_cache | ⚠️ Redis GET failed (400): image:images.background|visiting local_cuisine in Zone nature/plage (local_cuisine) in Rio de Janeiro, Brésil 🌍, Brésil trav
+2025-12-14 03:19:46 | WARNING  | app.crew_pipeline.scripts.redis_cache | ⚠️ Redis GET failed (400): image:images.background|visiting sightseeing in Zone nature/plage (sightseeing) in Rio de Janeiro, Brésil 🌍, Brésil travel p
+2025-12-14 03:19:46 | WARNING  | app.crew_pipeline.scripts.image_generator |    ⚠️ Attempt 1 failed with exception: Tool 'images.background' not found. Available: []
+2025-12-14 03:19:46 | WARNING  | app.crew_pipeline.scripts.image_generator |    ⚠️ Attempt 1 failed with exception: Tool 'images.background' not found. Available: []
+2025-12-14 03:19:46 | WARNING  | app.crew_pipeline.scripts.image_generator |    ⚠️ Attempt 1 failed with exception: Tool 'images.background' not found. Available: []
+2025-12-14 03:19:46 | WARNING  | app.crew_pipeline.scripts.redis_cache | ⚠️ Redis GET failed (400): image:images.background|visiting local_cuisine in Zone nature/plage (local_cuisine) in Rio de Janeiro, Brésil 🌍, Brésil trav
+2025-12-14 03:19:46 | WARNING  | app.crew_pipeline.scripts.image_generator |    ⚠️ Attempt 1 failed with exception: Tool 'images.background' not found. Available: []
+2025-12-14 03:19:47 | WARNING  | app.crew_pipeline.scripts.image_generator |    ⚠️ Attempt 2 failed with exception: Tool 'images.background' not found. Available: []
+2025-12-14 03:19:47 | WARNING  | app.crew_pipeline.scripts.image_generator |    ⚠️ Attempt 2 failed with exception: Tool 'images.background' not found. Available: []
+2025-12-14 03:19:47 | WARNING  | app.crew_pipeline.scripts.image_generator |    ⚠️ Attempt 2 failed with exception: Tool 'images.background' not found. Available: []
+2025-12-14 03:19:47 | WARNING  | app.crew_pipeline.scripts.image_generator |    ⚠️ Attempt 2 failed with exception: Tool 'images.background' not found. Available: []
+2025-12-14 03:19:47 | WARNING  | app.crew_pipeline.scripts.image_generator |    ⚠️ Attempt 2 failed with exception: Tool 'images.background' not found. Available: []
+2025-12-14 03:19:47 | WARNING  | app.crew_pipeline.scripts.image_generator |    ⚠️ Attempt 2 failed with exception: Tool 'images.background' not found. Available: []
+2025-12-14 03:19:48 | WARNING  | app.crew_pipeline.scripts.image_generator |    ⚠️ Attempt 3 failed with exception: Tool 'images.background' not found. Available: []
+2025-12-14 03:19:48 | WARNING  | app.crew_pipeline.scripts.image_generator | ⚠️ Step 19 image generation failed. Using default.
+2025-12-14 03:19:48 | INFO     | app.crew_pipeline.scripts.step_template_generator |     ✅ Template created: GPS (-22.9064, -43.1822), Image: True
+2025-12-14 03:19:48 | INFO     | app.crew_pipeline.scripts.step_template_generator |   🔨 Generating template step 25: sightseeing in Zone nature/plage
+2025-12-14 03:19:48 | INFO     | app.crew_pipeline.scripts.image_generator | 🖼️ Generating STEP 25 image: 'visiting sightseeing in Zone nature/plage'...
+2025-12-14 03:19:48 | WARNING  | app.crew_pipeline.scripts.image_generator |    ⚠️ Attempt 3 failed with exception: Tool 'images.background' not found. Available: []
+2025-12-14 03:19:48 | WARNING  | app.crew_pipeline.scripts.image_generator | ⚠️ Step 20 image generation failed. Using default.
+2025-12-14 03:19:48 | INFO     | app.crew_pipeline.scripts.step_template_generator |     ✅ Template created: GPS (-22.9064, -43.1822), Image: True
+2025-12-14 03:19:48 | WARNING  | app.crew_pipeline.scripts.image_generator |    ⚠️ Attempt 3 failed with exception: Tool 'images.background' not found. Available: []
+2025-12-14 03:19:48 | WARNING  | app.crew_pipeline.scripts.image_generator | ⚠️ Step 23 image generation failed. Using default.
+2025-12-14 03:19:48 | INFO     | app.crew_pipeline.scripts.step_template_generator |     ✅ Template created: GPS (-22.9064, -43.1822), Image: True
+2025-12-14 03:19:48 | WARNING  | app.crew_pipeline.scripts.image_generator |    ⚠️ Attempt 3 failed with exception: Tool 'images.background' not found. Available: []
+2025-12-14 03:19:48 | WARNING  | app.crew_pipeline.scripts.image_generator |    ⚠️ Attempt 3 failed with exception: Tool 'images.background' not found. Available: []
+2025-12-14 03:19:48 | WARNING  | app.crew_pipeline.scripts.image_generator | ⚠️ Step 22 image generation failed. Using default.
+2025-12-14 03:19:48 | WARNING  | app.crew_pipeline.scripts.image_generator | ⚠️ Step 21 image generation failed. Using default.
+2025-12-14 03:19:48 | INFO     | app.crew_pipeline.scripts.step_template_generator |     ✅ Template created: GPS (-22.9064, -43.1822), Image: True
+2025-12-14 03:19:48 | INFO     | app.crew_pipeline.scripts.step_template_generator |     ✅ Template created: GPS (-22.9064, -43.1822), Image: True
+2025-12-14 03:19:48 | WARNING  | app.crew_pipeline.scripts.image_generator |    ⚠️ Attempt 3 failed with exception: Tool 'images.background' not found. Available: []
+2025-12-14 03:19:48 | WARNING  | app.crew_pipeline.scripts.image_generator | ⚠️ Step 24 image generation failed. Using default.
+2025-12-14 03:19:48 | INFO     | app.crew_pipeline.scripts.step_template_generator |     ✅ Template created: GPS (-22.9064, -43.1822), Image: True
+2025-12-14 03:19:49 | WARNING  | app.crew_pipeline.scripts.redis_cache | ⚠️ Redis GET failed (400): image:images.background|visiting sightseeing in Zone nature/plage (sightseeing) in Rio de Janeiro, Brésil 🌍, Brésil travel p
+2025-12-14 03:19:49 | WARNING  | app.crew_pipeline.scripts.image_generator |    ⚠️ Attempt 1 failed with exception: Tool 'images.background' not found. Available: []
+2025-12-14 03:19:50 | WARNING  | app.crew_pipeline.scripts.image_generator |    ⚠️ Attempt 2 failed with exception: Tool 'images.background' not found. Available: []
+2025-12-14 03:19:51 | WARNING  | app.crew_pipeline.scripts.image_generator |    ⚠️ Attempt 3 failed with exception: Tool 'images.background' not found. Available: []
+2025-12-14 03:19:51 | WARNING  | app.crew_pipeline.scripts.image_generator | ⚠️ Step 25 image generation failed. Using default.
+2025-12-14 03:19:51 | INFO     | app.crew_pipeline.scripts.step_template_generator |     ✅ Template created: GPS (-22.9064, -43.1822), Image: True
+2025-12-14 03:19:51 | INFO     | app.crew_pipeline.scripts.step_template_generator | ✅ 25 templates générés (activités seulement, summary step déjà existante)
+2025-12-14 03:19:51 | INFO     | app.crew_pipeline.pipeline | ✅ 25 step templates generated with GPS and images
+2025-12-14 03:19:51 | INFO     | app.crew_pipeline.scripts.incremental_trip_builder | 🖼️ Step 1: Image définie (Supabase)
+2025-12-14 03:19:51 | INFO     | app.crew_pipeline.scripts.incremental_trip_builder | 🖼️ Step 2: Image définie (Supabase)
+2025-12-14 03:19:51 | INFO     | app.crew_pipeline.scripts.incremental_trip_builder | 🖼️ Step 3: Image définie (Supabase)
+2025-12-14 03:19:51 | INFO     | app.crew_pipeline.scripts.incremental_trip_builder | 🖼️ Step 4: Image définie (Supabase)
+2025-12-14 03:19:51 | INFO     | app.crew_pipeline.scripts.incremental_trip_builder | 🖼️ Step 5: Image définie (Supabase)
+2025-12-14 03:19:51 | INFO     | app.crew_pipeline.scripts.incremental_trip_builder | 🖼️ Step 6: Image définie (Supabase)
+2025-12-14 03:19:51 | INFO     | app.crew_pipeline.scripts.incremental_trip_builder | 🖼️ Step 7: Image définie (Supabase)
+2025-12-14 03:19:51 | INFO     | app.crew_pipeline.scripts.incremental_trip_builder | 🖼️ Step 8: Image définie (Supabase)
+2025-12-14 03:19:51 | INFO     | app.crew_pipeline.scripts.incremental_trip_builder | 🖼️ Step 9: Image définie (Supabase)
+2025-12-14 03:19:51 | INFO     | app.crew_pipeline.scripts.incremental_trip_builder | 🖼️ Step 10: Image définie (Supabase)
+2025-12-14 03:19:51 | INFO     | app.crew_pipeline.scripts.incremental_trip_builder | 🖼️ Step 11: Image définie (Supabase)
+2025-12-14 03:19:51 | INFO     | app.crew_pipeline.scripts.incremental_trip_builder | 🖼️ Step 12: Image définie (Supabase)
+2025-12-14 03:19:51 | INFO     | app.crew_pipeline.scripts.incremental_trip_builder | 🖼️ Step 13: Image définie (Supabase)
+2025-12-14 03:19:51 | INFO     | app.crew_pipeline.scripts.incremental_trip_builder | 🖼️ Step 14: Image définie (Supabase)
+2025-12-14 03:19:51 | INFO     | app.crew_pipeline.scripts.incremental_trip_builder | 🖼️ Step 15: Image définie (Supabase)
+2025-12-14 03:19:51 | INFO     | app.crew_pipeline.scripts.incremental_trip_builder | 🖼️ Step 16: Image définie (Supabase)
+2025-12-14 03:19:51 | INFO     | app.crew_pipeline.scripts.incremental_trip_builder | 🖼️ Step 17: Image définie (Supabase)
+2025-12-14 03:19:51 | INFO     | app.crew_pipeline.scripts.incremental_trip_builder | 🖼️ Step 18: Image définie (Supabase)
+2025-12-14 03:19:51 | WARNING  | app.crew_pipeline.scripts.incremental_trip_builder | ⚠️ Step 19: Image invalide/vide, appel ImageGenerator...
+2025-12-14 03:19:51 | INFO     | app.crew_pipeline.scripts.image_generator | 🖼️ Generating STEP 19 image: 'Activity 19'...
+2025-12-14 03:19:51 | INFO     | app.crew_pipeline.scripts.incremental_trip_builder | ✅ Step 19: Image générée via ImageGenerator
+2025-12-14 03:19:51 | WARNING  | app.crew_pipeline.scripts.incremental_trip_builder | ⚠️ Step 20: Image invalide/vide, appel ImageGenerator...
+2025-12-14 03:19:51 | INFO     | app.crew_pipeline.scripts.image_generator | 🖼️ Generating STEP 20 image: 'Activity 20'...
+2025-12-14 03:19:51 | INFO     | app.crew_pipeline.scripts.incremental_trip_builder | ✅ Step 20: Image générée via ImageGenerator
+2025-12-14 03:19:51 | WARNING  | app.crew_pipeline.scripts.incremental_trip_builder | ⚠️ Step 21: Image invalide/vide, appel ImageGenerator...
+2025-12-14 03:19:51 | INFO     | app.crew_pipeline.scripts.image_generator | 🖼️ Generating STEP 21 image: 'Activity 21'...
+2025-12-14 03:19:51 | INFO     | app.crew_pipeline.scripts.incremental_trip_builder | ✅ Step 21: Image générée via ImageGenerator
+2025-12-14 03:19:51 | WARNING  | app.crew_pipeline.scripts.incremental_trip_builder | ⚠️ Step 22: Image invalide/vide, appel ImageGenerator...
+2025-12-14 03:19:51 | INFO     | app.crew_pipeline.scripts.image_generator | 🖼️ Generating STEP 22 image: 'Activity 22'...
+2025-12-14 03:19:52 | INFO     | app.crew_pipeline.scripts.incremental_trip_builder | ✅ Step 22: Image générée via ImageGenerator
+2025-12-14 03:19:52 | WARNING  | app.crew_pipeline.scripts.incremental_trip_builder | ⚠️ Step 23: Image invalide/vide, appel ImageGenerator...
+2025-12-14 03:19:52 | INFO     | app.crew_pipeline.scripts.image_generator | 🖼️ Generating STEP 23 image: 'Activity 23'...
+2025-12-14 03:19:52 | INFO     | app.crew_pipeline.scripts.incremental_trip_builder | ✅ Step 23: Image générée via ImageGenerator
+2025-12-14 03:19:52 | WARNING  | app.crew_pipeline.scripts.incremental_trip_builder | ⚠️ Step 24: Image invalide/vide, appel ImageGenerator...
+2025-12-14 03:19:52 | INFO     | app.crew_pipeline.scripts.image_generator | 🖼️ Generating STEP 24 image: 'Activity 24'...
+2025-12-14 03:19:52 | INFO     | app.crew_pipeline.scripts.incremental_trip_builder | ✅ Step 24: Image générée via ImageGenerator
+2025-12-14 03:19:52 | WARNING  | app.crew_pipeline.scripts.incremental_trip_builder | ⚠️ Step 25: Image invalide/vide, appel ImageGenerator...
+2025-12-14 03:19:52 | INFO     | app.crew_pipeline.scripts.image_generator | 🖼️ Generating STEP 25 image: 'Activity 25'...
+2025-12-14 03:19:52 | INFO     | app.crew_pipeline.scripts.incremental_trip_builder | ✅ Step 25: Image générée via ImageGenerator
+2025-12-14 03:19:52 | INFO     | app.crew_pipeline.pipeline | ✅ Builder enriched with GPS and images from templates
+2025-12-14 03:19:52 | INFO     | app.crew_pipeline.pipeline | ✅ inputs_phase2 updated with enriched trip JSON and templates
+2025-12-14 03:19:52 | INFO     | app.crew_pipeline.pipeline | 🚀 Step 3/3: Executing Phase 2 (Flights, Accommodation, Itinerary Design)...
+2025-12-14 03:19:52 | INFO     | app.crew_pipeline.pipeline | ⚡ Launching 3 crews in parallel...
+2025-12-14 03:19:52 | INFO     | root | OpenAI: Successfully validated tool 'create_reasoning_plan'
+2025-12-14 03:19:58 | INFO     | root | OpenAI API usage: {'prompt_tokens': 1551, 'completion_tokens': 304, 'total_tokens': 1855}
+2025-12-14 03:19:58 | INFO     | app.crew_pipeline.pipeline | 📁 PHASE2_FLIGHTS_RESEARCH - Step 1: flights_research → output\crew_runs\63a10241-48ec-4607-98d0-2736ee6f0966-4046c782\PHASE2_FLIGHTS_RESEARCH\step_1_flights_research
+2025-12-14 03:19:58 | INFO     | app.crew_pipeline.pipeline | ✅ flights_research completed
+2025-12-14 03:20:02 | INFO     | root | OpenAI API usage: {'prompt_tokens': 10551, 'completion_tokens': 557, 'total_tokens': 11108}
+2025-12-14 03:20:02 | INFO     | root | OpenAI API usage: {'prompt_tokens': 1727, 'completion_tokens': 636, 'total_tokens': 2363}
+2025-12-14 03:20:02 | INFO     | app.crew_pipeline.pipeline | 📁 PHASE2_ACCOMMODATION_RESEARCH - Step 1: accommodation_research → output\crew_runs\63a10241-48ec-4607-98d0-2736ee6f0966-4046c782\PHASE2_ACCOMMODATION_RESEARCH\step_1_accommodation_research
+2025-12-14 03:20:02 | INFO     | app.crew_pipeline.pipeline | ✅ accommodation_research completed
+2025-12-14 03:25:52 | INFO     | root | OpenAI API usage: {'prompt_tokens': 10881, 'completion_tokens': 6450, 'total_tokens': 17331}
+2025-12-14 03:25:53 | INFO     | app.crew_pipeline.pipeline | 📁 PHASE2_ITINERARY_DESIGN - Step 1: itinerary_design → output\crew_runs\63a10241-48ec-4607-98d0-2736ee6f0966-4046c782\PHASE2_ITINERARY_DESIGN\step_1_itinerary_design
+2025-12-14 03:25:53 | INFO     | app.crew_pipeline.pipeline | ✅ itinerary_design completed
+2025-12-14 03:25:53 | INFO     | app.crew_pipeline.pipeline | 🔧 Enrichissement du trip JSON avec les résultats de PHASE2...
+2025-12-14 03:25:53 | INFO     | app.crew_pipeline.scripts.incremental_trip_builder | ✈️ Flight info updated: Paris (CDG) -> Rio de Janeiro (GIG)
+2025-12-14 03:25:53 | INFO     | app.crew_pipeline.pipeline | ✅ Vol info set: Paris (CDG) → Rio de Janeiro (GIG)
+2025-12-14 03:25:53 | INFO     | app.crew_pipeline.scripts.incremental_trip_builder | 🏨 Hotel info updated: Windsor Excelsior Copacabana (4.5)
+2025-12-14 03:25:53 | INFO     | app.crew_pipeline.pipeline | ✅ Hébergement set: Windsor Excelsior Copacabana (4.5★)
+2025-12-14 03:25:53 | INFO     | app.crew_pipeline.pipeline | 📊 Agent itinerary_design returned 25 steps
+2025-12-14 03:25:53 | WARNING  | app.crew_pipeline.scripts.incremental_trip_builder | ⚠️ Hero image vide ou invalide fournie, appel ImageGenerator...
+2025-12-14 03:25:53 | INFO     | app.crew_pipeline.scripts.image_generator | 🖼️ Generating HERO image for Rio de Janeiro, Brésil 🌍...
+2025-12-14 03:25:53 | ERROR    | app.crew_pipeline.pipeline | ❌ Erreur lors de l'enrichissement depuis PHASE2: slice(None, 80, None)
 Traceback (most recent call last):
   File "E:\CrewTravliaq\Travliaq-Agents\app\crew_pipeline\pipeline.py", line 1270, in _enrich_builder_from_phase2
     builder.set_hero_image(hero_image)
-  File "E:\CrewTravliaq\Travliaq-Agents\app\crew_pipeline\scripts\incremental_trip_builder.py", line 231, in set_hero_image
+  File "E:\CrewTravliaq\Travliaq-Agents\app\crew_pipeline\scripts\incremental_trip_builder.py", line 235, in set_hero_image
     logger.info(f"🖼️ Hero image définie: {url[:80] if url else 'N/A'}")
                                           ~~~^^^^^
 KeyError: slice(None, 80, None)
-2025-12-14 02:56:13 | INFO     | app.crew_pipeline.pipeline | 🌍 Translating itinerary content FR → EN...
-2025-12-14 02:56:13 | WARNING  | app.crew_pipeline.scripts.translation_service | ⚠️ DeepL API key not found, will use LLM fallback
-2025-12-14 02:56:13 | INFO     | app.crew_pipeline.scripts.translation_service | 🌍 Translating 26 steps FR → EN (parallel=True)
-2025-12-14 02:56:13 | INFO     | app.crew_pipeline.scripts.translation_service | ⚡ Translating 25 steps in parallel (max_workers=6)
-2025-12-14 02:56:13 | INFO     | app.crew_pipeline.scripts.translation_service | ✅ 26 steps translated
-2025-12-14 02:56:13 | INFO     | app.crew_pipeline.pipeline | ✅ 26 steps translated FR → EN
-2025-12-14 02:56:13 | INFO     | app.crew_pipeline.pipeline | 🔍 Validating all steps...
-2025-12-14 02:56:13 | INFO     | app.crew_pipeline.scripts.step_validator | 🔍 Validating 26 steps (auto_fix=True, parallel=True)
-2025-12-14 02:56:13 | INFO     | app.crew_pipeline.scripts.step_validator | ⚡ Validating 26 steps in parallel (max_workers=6)
-2025-12-14 02:56:13 | WARNING  | app.crew_pipeline.scripts.step_validator | ⚠️ Step 1 validation: 2 erreur(s)
-2025-12-14 02:56:13 | INFO     | app.crew_pipeline.scripts.step_validator |   🔧 Fixing image for step 1...
-2025-12-14 02:56:13 | WARNING  | app.crew_pipeline.scripts.step_validator | ⚠️ Step 2 validation: 1 erreur(s)
-2025-12-14 02:56:13 | WARNING  | app.crew_pipeline.scripts.step_validator | ⚠️ Step 1 validation: 2 erreur(s)
-2025-12-14 02:56:13 | WARNING  | app.crew_pipeline.scripts.step_validator | ⚠️ Step 3 validation: 3 erreur(s)
-2025-12-14 02:56:13 | WARNING  | app.crew_pipeline.scripts.step_validator | ⚠️ Step 2 validation: 1 erreur(s)
-2025-12-14 02:56:13 | WARNING  | app.crew_pipeline.scripts.step_validator | ⚠️ Step 4 validation: 2 erreur(s)
-2025-12-14 02:56:13 | WARNING  | app.crew_pipeline.scripts.step_validator | ⚠️ Step 5 validation: 3 erreur(s)
-2025-12-14 02:56:13 | WARNING  | app.crew_pipeline.scripts.step_validator | ⚠️ Step 6 validation: 1 erreur(s)
-2025-12-14 02:56:13 | WARNING  | app.crew_pipeline.scripts.step_validator | ⚠️ Step 7 validation: 1 erreur(s)
-2025-12-14 02:56:13 | INFO     | app.crew_pipeline.scripts.step_validator |   🔧 Fixing image for step 3...
-2025-12-14 02:56:13 | WARNING  | app.crew_pipeline.scripts.step_validator | ⚠️ Step 8 validation: 3 erreur(s)
-2025-12-14 02:56:13 | INFO     | app.crew_pipeline.scripts.step_validator |   🔧 Fixing image for step 4...
-2025-12-14 02:56:13 | INFO     | app.crew_pipeline.scripts.step_validator |   🔧 Fixing image for step 5...
-2025-12-14 02:56:13 | WARNING  | app.crew_pipeline.scripts.step_validator | ⚠️ Step 6 validation: 1 erreur(s)
-2025-12-14 02:56:13 | WARNING  | app.crew_pipeline.scripts.step_validator | ⚠️ Step 7 validation: 1 erreur(s)
-2025-12-14 02:56:13 | WARNING  | app.crew_pipeline.scripts.step_validator | ⚠️ Step 3 validation: 3 erreur(s)
-2025-12-14 02:56:13 | INFO     | app.crew_pipeline.scripts.step_validator |   🔧 Fixing image for step 8...
-2025-12-14 02:56:13 | WARNING  | app.crew_pipeline.scripts.step_validator | ⚠️ Step 4 validation: 2 erreur(s)
-2025-12-14 02:56:13 | WARNING  | app.crew_pipeline.scripts.step_validator | ⚠️ Step 5 validation: 3 erreur(s)
-2025-12-14 02:56:13 | WARNING  | app.crew_pipeline.scripts.step_validator | ⚠️ Step 9 validation: 3 erreur(s)
-2025-12-14 02:56:13 | WARNING  | app.crew_pipeline.scripts.step_validator | ⚠️ Step 10 validation: 2 erreur(s)
-2025-12-14 02:56:13 | WARNING  | app.crew_pipeline.scripts.step_validator | ⚠️ Step 11 validation: 2 erreur(s)
-2025-12-14 02:56:13 | WARNING  | app.crew_pipeline.scripts.step_validator | ⚠️ Step 8 validation: 3 erreur(s)
-2025-12-14 02:56:13 | WARNING  | app.crew_pipeline.scripts.step_validator | ⚠️ Step 12 validation: 2 erreur(s)
-2025-12-14 02:56:13 | WARNING  | app.crew_pipeline.scripts.step_validator | ⚠️ Step 13 validation: 2 erreur(s)
-2025-12-14 02:56:13 | INFO     | app.crew_pipeline.scripts.step_validator |   🔧 Fixing image for step 9...
-2025-12-14 02:56:13 | INFO     | app.crew_pipeline.scripts.step_validator |   🔧 Fixing image for step 10...
-2025-12-14 02:56:13 | INFO     | app.crew_pipeline.scripts.step_validator |   🔧 Fixing image for step 11...
-2025-12-14 02:56:13 | WARNING  | app.crew_pipeline.scripts.step_validator | ⚠️ Step 14 validation: 2 erreur(s)
-2025-12-14 02:56:13 | INFO     | app.crew_pipeline.scripts.step_validator |   🔧 Fixing image for step 12...
-2025-12-14 02:56:13 | INFO     | app.crew_pipeline.scripts.step_validator |   🔧 Fixing image for step 13...
-2025-12-14 02:56:13 | WARNING  | app.crew_pipeline.scripts.step_validator | ⚠️ Step 9 validation: 3 erreur(s)
-2025-12-14 02:56:13 | WARNING  | app.crew_pipeline.scripts.step_validator | ⚠️ Step 10 validation: 2 erreur(s)
-2025-12-14 02:56:13 | WARNING  | app.crew_pipeline.scripts.step_validator | ⚠️ Step 11 validation: 2 erreur(s)
-2025-12-14 02:56:13 | INFO     | app.crew_pipeline.scripts.step_validator |   🔧 Fixing image for step 14...
-2025-12-14 02:56:13 | WARNING  | app.crew_pipeline.scripts.step_validator | ⚠️ Step 12 validation: 2 erreur(s)
-2025-12-14 02:56:13 | WARNING  | app.crew_pipeline.scripts.step_validator | ⚠️ Step 13 validation: 2 erreur(s)
-2025-12-14 02:56:13 | WARNING  | app.crew_pipeline.scripts.step_validator | ⚠️ Step 15 validation: 2 erreur(s)
-2025-12-14 02:56:13 | WARNING  | app.crew_pipeline.scripts.step_validator | ⚠️ Step 16 validation: 2 erreur(s)
-2025-12-14 02:56:13 | WARNING  | app.crew_pipeline.scripts.step_validator | ⚠️ Step 17 validation: 2 erreur(s)
-2025-12-14 02:56:13 | WARNING  | app.crew_pipeline.scripts.step_validator | ⚠️ Step 14 validation: 2 erreur(s)
-2025-12-14 02:56:13 | WARNING  | app.crew_pipeline.scripts.step_validator | ⚠️ Step 18 validation: 2 erreur(s)
-2025-12-14 02:56:13 | WARNING  | app.crew_pipeline.scripts.step_validator | ⚠️ Step 19 validation: 1 erreur(s)
-2025-12-14 02:56:13 | INFO     | app.crew_pipeline.scripts.step_validator |   🔧 Fixing image for step 15...
-2025-12-14 02:56:13 | INFO     | app.crew_pipeline.scripts.step_validator |   🔧 Fixing image for step 16...
-2025-12-14 02:56:13 | INFO     | app.crew_pipeline.scripts.step_validator |   🔧 Fixing image for step 17...
-2025-12-14 02:56:13 | WARNING  | app.crew_pipeline.scripts.step_validator | ⚠️ Step 20 validation: 1 erreur(s)
-2025-12-14 02:56:13 | INFO     | app.crew_pipeline.scripts.step_validator |   🔧 Fixing image for step 18...
-2025-12-14 02:56:13 | WARNING  | app.crew_pipeline.scripts.step_validator | ⚠️ Step 19 validation: 1 erreur(s)
-2025-12-14 02:56:13 | WARNING  | app.crew_pipeline.scripts.step_validator | ⚠️ Step 15 validation: 2 erreur(s)
-2025-12-14 02:56:13 | WARNING  | app.crew_pipeline.scripts.step_validator | ⚠️ Step 16 validation: 2 erreur(s)
-2025-12-14 02:56:13 | WARNING  | app.crew_pipeline.scripts.step_validator | ⚠️ Step 17 validation: 2 erreur(s)
-2025-12-14 02:56:13 | WARNING  | app.crew_pipeline.scripts.step_validator | ⚠️ Step 20 validation: 1 erreur(s)
-2025-12-14 02:56:13 | WARNING  | app.crew_pipeline.scripts.step_validator | ⚠️ Step 18 validation: 2 erreur(s)
-2025-12-14 02:56:13 | WARNING  | app.crew_pipeline.scripts.step_validator | ⚠️ Step 21 validation: 1 erreur(s)
-2025-12-14 02:56:13 | WARNING  | app.crew_pipeline.scripts.step_validator | ⚠️ Step 22 validation: 1 erreur(s)
-2025-12-14 02:56:13 | WARNING  | app.crew_pipeline.scripts.step_validator | ⚠️ Step 23 validation: 1 erreur(s)
-2025-12-14 02:56:13 | WARNING  | app.crew_pipeline.scripts.step_validator | ⚠️ Step 24 validation: 1 erreur(s)
-2025-12-14 02:56:13 | WARNING  | app.crew_pipeline.scripts.step_validator | ⚠️ Step 25 validation: 1 erreur(s)
-2025-12-14 02:56:13 | WARNING  | app.crew_pipeline.scripts.step_validator | ⚠️ Step 21 validation: 1 erreur(s)
-2025-12-14 02:56:13 | WARNING  | app.crew_pipeline.scripts.step_validator | ⚠️ Step 22 validation: 1 erreur(s)
-2025-12-14 02:56:13 | WARNING  | app.crew_pipeline.scripts.step_validator | ⚠️ Step 23 validation: 1 erreur(s)
-2025-12-14 02:56:13 | WARNING  | app.crew_pipeline.scripts.step_validator | ⚠️ Step 24 validation: 1 erreur(s)
-2025-12-14 02:56:13 | WARNING  | app.crew_pipeline.scripts.step_validator | ⚠️ Step 25 validation: 1 erreur(s)
-2025-12-14 02:56:13 | INFO     | app.crew_pipeline.scripts.step_validator | ✅ Validation complete: 1/26 valid
-2025-12-14 02:56:13 | INFO     | app.crew_pipeline.scripts.step_validator |   🔧 25 steps auto-fixed
-2025-12-14 02:56:13 | INFO     | app.crew_pipeline.pipeline | ✅ Validation: 1/26 valid, 25 auto-fixed
-2025-12-14 02:56:13 | WARNING  | app.crew_pipeline.pipeline | ⚠️ 25 steps still invalid after auto-fix
-2025-12-14 02:56:13 | WARNING  | app.crew_pipeline.pipeline |   Step 1: ["Step 1: Champ obligatoire manquant 'title'", 'Step 1: Image invalide (pas Supabase URL)']
-2025-12-14 02:56:13 | WARNING  | app.crew_pipeline.pipeline |   Step 2: ["Step 2: Champ obligatoire manquant 'title'"]
-2025-12-14 02:56:13 | WARNING  | app.crew_pipeline.pipeline |   Step 6: ["Step 6: Champ obligatoire manquant 'title'"]
-2025-12-14 02:56:13 | WARNING  | app.crew_pipeline.pipeline |   Step 7: ["Step 7: Champ obligatoire manquant 'title'"]
-2025-12-14 02:56:13 | WARNING  | app.crew_pipeline.pipeline |   Step 3: ["Step 3: Champ obligatoire manquant 'title'", 'Step 3: GPS manquants ou invalides (lat=0, lon=0)', 'Step 3: Image invalide (pas Supabase URL)']
-2025-12-14 02:56:13 | WARNING  | app.crew_pipeline.pipeline |   Step 4: ["Step 4: Champ obligatoire manquant 'title'", 'Step 4: Image invalide (pas Supabase URL)']
-2025-12-14 02:56:13 | WARNING  | app.crew_pipeline.pipeline |   Step 5: ["Step 5: Champ obligatoire manquant 'title'", 'Step 5: GPS manquants ou invalides (lat=0, lon=0)', 'Step 5: Image invalide (pas Supabase URL)']
-2025-12-14 02:56:13 | WARNING  | app.crew_pipeline.pipeline |   Step 8: ["Step 8: Champ obligatoire manquant 'title'", 'Step 8: GPS manquants ou invalides (lat=0, lon=0)', 'Step 8: Image invalide (pas Supabase URL)']
-2025-12-14 02:56:13 | WARNING  | app.crew_pipeline.pipeline |   Step 9: ["Step 9: Champ obligatoire manquant 'title'", 'Step 9: GPS manquants ou invalides (lat=0, lon=0)', 'Step 9: Image invalide (pas Supabase URL)']
-2025-12-14 02:56:13 | WARNING  | app.crew_pipeline.pipeline |   Step 10: ["Step 10: Champ obligatoire manquant 'title'", 'Step 10: Image invalide (pas Supabase URL)']
-2025-12-14 02:56:13 | WARNING  | app.crew_pipeline.pipeline |   Step 11: ["Step 11: Champ obligatoire manquant 'title'", 'Step 11: Image invalide (pas Supabase URL)']
-2025-12-14 02:56:13 | WARNING  | app.crew_pipeline.pipeline |   Step 12: ["Step 12: Champ obligatoire manquant 'title'", 'Step 12: Image invalide (pas Supabase URL)']
-2025-12-14 02:56:13 | WARNING  | app.crew_pipeline.pipeline |   Step 13: ["Step 13: Champ obligatoire manquant 'title'", 'Step 13: Image invalide (pas Supabase URL)']
-2025-12-14 02:56:13 | WARNING  | app.crew_pipeline.pipeline |   Step 14: ["Step 14: Champ obligatoire manquant 'title'", 'Step 14: Image invalide (pas Supabase URL)']
-2025-12-14 02:56:13 | WARNING  | app.crew_pipeline.pipeline |   Step 19: ["Step 19: Champ obligatoire manquant 'title'"]
-2025-12-14 02:56:13 | WARNING  | app.crew_pipeline.pipeline |   Step 15: ["Step 15: Champ obligatoire manquant 'title'", 'Step 15: Image invalide (pas Supabase URL)']
-2025-12-14 02:56:13 | WARNING  | app.crew_pipeline.pipeline |   Step 16: ["Step 16: Champ obligatoire manquant 'title'", 'Step 16: Image invalide (pas Supabase URL)']
-2025-12-14 02:56:13 | WARNING  | app.crew_pipeline.pipeline |   Step 17: ["Step 17: Champ obligatoire manquant 'title'", 'Step 17: Image invalide (pas Supabase URL)']
-2025-12-14 02:56:13 | WARNING  | app.crew_pipeline.pipeline |   Step 20: ["Step 20: Champ obligatoire manquant 'title'"]
-2025-12-14 02:56:13 | WARNING  | app.crew_pipeline.pipeline |   Step 18: ["Step 18: Champ obligatoire manquant 'title'", 'Step 18: Image invalide (pas Supabase URL)']
-2025-12-14 02:56:13 | WARNING  | app.crew_pipeline.pipeline |   Step 21: ["Step 21: Champ obligatoire manquant 'title'"]
-2025-12-14 02:56:13 | WARNING  | app.crew_pipeline.pipeline |   Step 22: ["Step 22: Champ obligatoire manquant 'title'"]
-2025-12-14 02:56:13 | WARNING  | app.crew_pipeline.pipeline |   Step 23: ["Step 23: Champ obligatoire manquant 'title'"]
-2025-12-14 02:56:13 | WARNING  | app.crew_pipeline.pipeline |   Step 24: ["Step 24: Champ obligatoire manquant 'title'"]
-2025-12-14 02:56:13 | WARNING  | app.crew_pipeline.pipeline |   Step 25: ["Step 25: Champ obligatoire manquant 'title'"]
-2025-12-14 02:56:13 | INFO     | app.crew_pipeline.pipeline | ✅ Steps validation complete, builder updated
-2025-12-14 02:56:13 | INFO     | app.crew_pipeline.pipeline | 💰 Calculating budget with deterministic script...
-2025-12-14 02:56:13 | INFO     | app.crew_pipeline.scripts.budget_calculator | 💰 Calculating trip budget...
-2025-12-14 02:56:13 | INFO     | app.crew_pipeline.scripts.budget_calculator | ✅ Budget calculated: 1830€ total, 610€ per person (status: EXCEED)
-2025-12-14 02:56:13 | INFO     | app.crew_pipeline.pipeline | 💾 Budget saved to output\crew_runs\63a10241-48ec-4607-98d0-2736ee6f0966-6134e947\budget_calculation.json
-2025-12-14 02:56:13 | INFO     | app.crew_pipeline.pipeline | 🔧 Enriching trip JSON with budget (script-based)...
-2025-12-14 02:56:13 | INFO     | app.crew_pipeline.scripts.incremental_trip_builder | 💰 Prices updated: Total  EUR
-2025-12-14 02:56:13 | INFO     | app.crew_pipeline.pipeline | ✅ Builder enrichi avec le budget depuis PHASE3
-2025-12-14 02:56:13 | INFO     | app.crew_pipeline.scripts.incremental_trip_builder | 📊 Summary stats updated
-2025-12-14 02:56:13 | INFO     | app.crew_pipeline.pipeline | 📊 Rapport de complétude du trip:
-2025-12-14 02:56:13 | INFO     | app.crew_pipeline.pipeline |    - Complétude trip: 0%
-2025-12-14 02:56:13 | INFO     | app.crew_pipeline.pipeline |    - Steps avec titre: 0/25
-2025-12-14 02:56:13 | INFO     | app.crew_pipeline.pipeline |    - Steps avec image: 25/25
-2025-12-14 02:56:13 | INFO     | app.crew_pipeline.pipeline |    - Steps avec GPS: 21/25
-2025-12-14 02:56:13 | WARNING  | app.crew_pipeline.pipeline |    - ⚠️ Champs critiques manquants: ['trip.total_price', 'step_1.title', 'step_2.title', 'step_3.title', 'step_4.title', 'step_5.title', 'step_6.title', 'step_7.title', 'step_8.title', 'step_9.title', 'step_10.title', 'step_11.title', 'step_12.title', 'step_13.title', 'step_14.title', 'step_15.title', 'step_16.title', 'step_17.title', 'step_18.title', 'step_19.title', 'step_20.title', 'step_21.title', 'step_22.title', 'step_23.title', 'step_24.title', 'step_25.title']
-2025-12-14 02:56:13 | WARNING  | app.crew_pipeline.pipeline |    - ⚠️ Content validation: 25/26 steps have validation errors (see warnings above for details)
-2025-12-14 02:56:13 | WARNING  | app.crew_pipeline.pipeline |    - ⚠️ Despite 100% structure completeness, content quality may be insufficient
-2025-12-14 02:56:13 | WARNING  | app.crew_pipeline.pipeline | ⚠️ Fixed empty title in regular step 1 (Day 1)
-2025-12-14 02:56:13 | WARNING  | app.crew_pipeline.pipeline | ⚠️ Fixed empty title in regular step 2 (Day 1)
-2025-12-14 02:56:13 | WARNING  | app.crew_pipeline.pipeline | ⚠️ Fixed empty title in regular step 3 (Day 2)
-2025-12-14 02:56:13 | WARNING  | app.crew_pipeline.pipeline | ⚠️ Fixed empty title in regular step 4 (Day 3)
-2025-12-14 02:56:13 | WARNING  | app.crew_pipeline.pipeline | ⚠️ Fixed empty title in regular step 5 (Day 3)
-2025-12-14 02:56:13 | WARNING  | app.crew_pipeline.pipeline | ⚠️ Fixed empty title in regular step 6 (Day 4)
-2025-12-14 02:56:13 | WARNING  | app.crew_pipeline.pipeline | ⚠️ Fixed empty title in regular step 7 (Day 5)
-2025-12-14 02:56:13 | WARNING  | app.crew_pipeline.pipeline | ⚠️ Fixed empty title in regular step 8 (Day 5)
-2025-12-14 02:56:13 | WARNING  | app.crew_pipeline.pipeline | ⚠️ Fixed empty title in regular step 9 (Day 6)
-2025-12-14 02:56:13 | WARNING  | app.crew_pipeline.pipeline | ⚠️ Fixed empty title in regular step 10 (Day 7)
-2025-12-14 02:56:13 | WARNING  | app.crew_pipeline.pipeline | ⚠️ Fixed empty title in regular step 11 (Day 7)
-2025-12-14 02:56:13 | WARNING  | app.crew_pipeline.pipeline | ⚠️ Fixed empty title in regular step 12 (Day 8)
-2025-12-14 02:56:13 | WARNING  | app.crew_pipeline.pipeline | ⚠️ Fixed empty title in regular step 13 (Day 9)
-2025-12-14 02:56:13 | WARNING  | app.crew_pipeline.pipeline | ⚠️ Fixed empty title in regular step 14 (Day 9)
-2025-12-14 02:56:13 | WARNING  | app.crew_pipeline.pipeline | ⚠️ Fixed empty title in regular step 15 (Day 10)
-2025-12-14 02:56:13 | WARNING  | app.crew_pipeline.pipeline | ⚠️ Fixed empty title in regular step 16 (Day 11)
-2025-12-14 02:56:13 | WARNING  | app.crew_pipeline.pipeline | ⚠️ Fixed empty title in regular step 17 (Day 11)
-2025-12-14 02:56:13 | WARNING  | app.crew_pipeline.pipeline | ⚠️ Fixed empty title in regular step 18 (Day 12)
-2025-12-14 02:56:13 | WARNING  | app.crew_pipeline.pipeline | ⚠️ Fixed empty title in regular step 19 (Day 13)
-2025-12-14 02:56:13 | WARNING  | app.crew_pipeline.pipeline | ⚠️ Fixed empty title in regular step 20 (Day 13)
-2025-12-14 02:56:13 | WARNING  | app.crew_pipeline.pipeline | ⚠️ Fixed empty title in regular step 21 (Day 14)
-2025-12-14 02:56:13 | WARNING  | app.crew_pipeline.pipeline | ⚠️ Fixed empty title in regular step 22 (Day 15)
-2025-12-14 02:56:13 | WARNING  | app.crew_pipeline.pipeline | ⚠️ Fixed empty title in regular step 23 (Day 15)
-2025-12-14 02:56:13 | WARNING  | app.crew_pipeline.pipeline | ⚠️ Fixed empty title in regular step 24 (Day 16)
-2025-12-14 02:56:13 | WARNING  | app.crew_pipeline.pipeline | ⚠️ Fixed empty title in regular step 25 (Day 17)
-2025-12-14 02:56:14 | INFO     | app.services.supabase_service | ✅ Connexion PostgreSQL établie
-2025-12-14 02:56:14 | INFO     | app.services.supabase_service | 💾 Trip JSON persisté dans Supabase
-2025-12-14 02:56:14 | INFO     | app.crew_pipeline.pipeline | 💾 Résumé complet sauvegardé dans output\crew_runs\63a10241-48ec-4607-98d0-2736ee6f0966-6134e947/_SUMMARY_run_output.yaml
-2025-12-14 02:56:14 | INFO     | app.crew_pipeline.cli | ✅ Pipeline exécutée avec succès
+2025-12-14 03:25:53 | INFO     | app.crew_pipeline.pipeline | 🌍 Translating itinerary content FR → EN...
+2025-12-14 03:25:53 | WARNING  | app.crew_pipeline.scripts.translation_service | ⚠️ DeepL API key not found, will use LLM fallback
+2025-12-14 03:25:53 | INFO     | app.crew_pipeline.scripts.translation_service | 🌍 Translating 26 steps FR → EN (parallel=True)
+2025-12-14 03:25:53 | INFO     | app.crew_pipeline.scripts.translation_service | ⚡ Translating 25 steps in parallel (max_workers=6)
+2025-12-14 03:25:53 | INFO     | app.crew_pipeline.scripts.translation_service | ✅ 26 steps translated
+2025-12-14 03:25:53 | INFO     | app.crew_pipeline.pipeline | ✅ 26 steps translated FR → EN
+2025-12-14 03:25:53 | INFO     | app.crew_pipeline.pipeline | 🔍 Validating all steps...
+2025-12-14 03:25:53 | INFO     | app.crew_pipeline.scripts.step_validator | 🔍 Validating 26 steps (auto_fix=True, parallel=True)
+2025-12-14 03:25:53 | INFO     | app.crew_pipeline.scripts.step_validator | ⚡ Validating 26 steps in parallel (max_workers=6)
+2025-12-14 03:25:53 | WARNING  | app.crew_pipeline.scripts.step_validator | ⚠️ Step 1 validation: 1 erreur(s)
+2025-12-14 03:25:53 | WARNING  | app.crew_pipeline.scripts.step_validator | ⚠️ Step 2 validation: 1 erreur(s)
+2025-12-14 03:25:53 | WARNING  | app.crew_pipeline.scripts.step_validator | ⚠️ Step 1 validation: 1 erreur(s)
+2025-12-14 03:25:53 | WARNING  | app.crew_pipeline.scripts.step_validator | ⚠️ Step 3 validation: 2 erreur(s)
+2025-12-14 03:25:53 | WARNING  | app.crew_pipeline.scripts.step_validator | ⚠️ Step 2 validation: 1 erreur(s)
+2025-12-14 03:25:53 | WARNING  | app.crew_pipeline.scripts.step_validator | ⚠️ Step 4 validation: 1 erreur(s)
+2025-12-14 03:25:53 | WARNING  | app.crew_pipeline.scripts.step_validator | ⚠️ Step 5 validation: 2 erreur(s)
+2025-12-14 03:25:53 | WARNING  | app.crew_pipeline.scripts.step_validator | ⚠️ Step 6 validation: 1 erreur(s)
+2025-12-14 03:25:53 | WARNING  | app.crew_pipeline.scripts.step_validator | ⚠️ Step 7 validation: 2 erreur(s)
+2025-12-14 03:25:53 | WARNING  | app.crew_pipeline.scripts.step_validator | ⚠️ Step 3 validation: 2 erreur(s)
+2025-12-14 03:25:53 | WARNING  | app.crew_pipeline.scripts.step_validator | ⚠️ Step 8 validation: 2 erreur(s)
+2025-12-14 03:25:53 | WARNING  | app.crew_pipeline.scripts.step_validator | ⚠️ Step 4 validation: 1 erreur(s)
+2025-12-14 03:25:53 | WARNING  | app.crew_pipeline.scripts.step_validator | ⚠️ Step 5 validation: 2 erreur(s)
+2025-12-14 03:25:53 | WARNING  | app.crew_pipeline.scripts.step_validator | ⚠️ Step 6 validation: 1 erreur(s)
+2025-12-14 03:25:53 | WARNING  | app.crew_pipeline.scripts.step_validator | ⚠️ Step 7 validation: 2 erreur(s)
+2025-12-14 03:25:53 | WARNING  | app.crew_pipeline.scripts.step_validator | ⚠️ Step 9 validation: 1 erreur(s)
+2025-12-14 03:25:53 | WARNING  | app.crew_pipeline.scripts.step_validator | ⚠️ Step 8 validation: 2 erreur(s)
+2025-12-14 03:25:53 | WARNING  | app.crew_pipeline.scripts.step_validator | ⚠️ Step 10 validation: 1 erreur(s)
+2025-12-14 03:25:53 | WARNING  | app.crew_pipeline.scripts.step_validator | ⚠️ Step 11 validation: 2 erreur(s)
+2025-12-14 03:25:53 | WARNING  | app.crew_pipeline.scripts.step_validator | ⚠️ Step 12 validation: 1 erreur(s)
+2025-12-14 03:25:53 | WARNING  | app.crew_pipeline.scripts.step_validator | ⚠️ Step 13 validation: 1 erreur(s)
+2025-12-14 03:25:53 | WARNING  | app.crew_pipeline.scripts.step_validator | ⚠️ Step 9 validation: 1 erreur(s)
+2025-12-14 03:25:53 | WARNING  | app.crew_pipeline.scripts.step_validator | ⚠️ Step 14 validation: 1 erreur(s)
+2025-12-14 03:25:53 | WARNING  | app.crew_pipeline.scripts.step_validator | ⚠️ Step 10 validation: 1 erreur(s)
+2025-12-14 03:25:53 | WARNING  | app.crew_pipeline.scripts.step_validator | ⚠️ Step 11 validation: 2 erreur(s)
+2025-12-14 03:25:53 | WARNING  | app.crew_pipeline.scripts.step_validator | ⚠️ Step 12 validation: 1 erreur(s)
+2025-12-14 03:25:53 | WARNING  | app.crew_pipeline.scripts.step_validator | ⚠️ Step 13 validation: 1 erreur(s)
+2025-12-14 03:25:53 | WARNING  | app.crew_pipeline.scripts.step_validator | ⚠️ Step 15 validation: 1 erreur(s)
+2025-12-14 03:25:53 | WARNING  | app.crew_pipeline.scripts.step_validator | ⚠️ Step 14 validation: 1 erreur(s)
+2025-12-14 03:25:53 | WARNING  | app.crew_pipeline.scripts.step_validator | ⚠️ Step 16 validation: 1 erreur(s)
+2025-12-14 03:25:53 | WARNING  | app.crew_pipeline.scripts.step_validator | ⚠️ Step 17 validation: 1 erreur(s)
+2025-12-14 03:25:53 | WARNING  | app.crew_pipeline.scripts.step_validator | ⚠️ Step 18 validation: 1 erreur(s)
+2025-12-14 03:25:53 | WARNING  | app.crew_pipeline.scripts.step_validator | ⚠️ Step 19 validation: 2 erreur(s)
+2025-12-14 03:25:53 | WARNING  | app.crew_pipeline.scripts.step_validator | ⚠️ Step 15 validation: 1 erreur(s)
+2025-12-14 03:25:53 | WARNING  | app.crew_pipeline.scripts.step_validator | ⚠️ Step 20 validation: 2 erreur(s)
+2025-12-14 03:25:53 | WARNING  | app.crew_pipeline.scripts.step_validator | ⚠️ Step 16 validation: 1 erreur(s)
+2025-12-14 03:25:53 | WARNING  | app.crew_pipeline.scripts.step_validator | ⚠️ Step 17 validation: 1 erreur(s)
+2025-12-14 03:25:53 | WARNING  | app.crew_pipeline.scripts.step_validator | ⚠️ Step 18 validation: 1 erreur(s)
+2025-12-14 03:25:53 | WARNING  | app.crew_pipeline.scripts.step_validator | ⚠️ Step 21 validation: 2 erreur(s)
+2025-12-14 03:25:53 | ERROR    | app.crew_pipeline.scripts.step_validator |   ❌ Step 19 validation failed: expected string or bytes-like object, got 'dict'
+2025-12-14 03:25:53 | WARNING  | app.crew_pipeline.scripts.step_validator | ⚠️ Step 22 validation: 2 erreur(s)
+2025-12-14 03:25:53 | WARNING  | app.crew_pipeline.scripts.step_validator | ⚠️ Step 23 validation: 2 erreur(s)
+2025-12-14 03:25:53 | WARNING  | app.crew_pipeline.scripts.step_validator | ⚠️ Step 24 validation: 2 erreur(s)
+2025-12-14 03:25:53 | WARNING  | app.crew_pipeline.scripts.step_validator | ⚠️ Step 25 validation: 2 erreur(s)
+2025-12-14 03:25:53 | ERROR    | app.crew_pipeline.scripts.step_validator |   ❌ Step 20 validation failed: expected string or bytes-like object, got 'dict'
+2025-12-14 03:25:53 | ERROR    | app.crew_pipeline.scripts.step_validator |   ❌ Step 21 validation failed: expected string or bytes-like object, got 'dict'
+2025-12-14 03:25:53 | ERROR    | app.crew_pipeline.scripts.step_validator |   ❌ Step 22 validation failed: expected string or bytes-like object, got 'dict'
+2025-12-14 03:25:53 | ERROR    | app.crew_pipeline.scripts.step_validator |   ❌ Step 23 validation failed: expected string or bytes-like object, got 'dict'
+2025-12-14 03:25:53 | ERROR    | app.crew_pipeline.scripts.step_validator |   ❌ Step 24 validation failed: expected string or bytes-like object, got 'dict'
+2025-12-14 03:25:53 | ERROR    | app.crew_pipeline.scripts.step_validator |   ❌ Step 25 validation failed: expected string or bytes-like object, got 'dict'
+2025-12-14 03:25:53 | INFO     | app.crew_pipeline.scripts.step_validator | ✅ Validation complete: 1/26 valid
+2025-12-14 03:25:53 | INFO     | app.crew_pipeline.scripts.step_validator |   🔧 18 steps auto-fixed
+2025-12-14 03:25:53 | INFO     | app.crew_pipeline.pipeline | ✅ Validation: 1/26 valid, 18 auto-fixed
+2025-12-14 03:25:53 | WARNING  | app.crew_pipeline.pipeline | ⚠️ 25 steps still invalid after auto-fix
+2025-12-14 03:25:53 | WARNING  | app.crew_pipeline.pipeline |   Step 1: ["Step 1: Champ obligatoire manquant 'title'"]
+2025-12-14 03:25:53 | WARNING  | app.crew_pipeline.pipeline |   Step 2: ["Step 2: Champ obligatoire manquant 'title'"]
+2025-12-14 03:25:53 | WARNING  | app.crew_pipeline.pipeline |   Step 3: ["Step 3: Champ obligatoire manquant 'title'", 'Step 3: GPS manquants ou invalides (lat=0, lon=0)']
+2025-12-14 03:25:53 | WARNING  | app.crew_pipeline.pipeline |   Step 4: ["Step 4: Champ obligatoire manquant 'title'"]
+2025-12-14 03:25:53 | WARNING  | app.crew_pipeline.pipeline |   Step 5: ["Step 5: Champ obligatoire manquant 'title'", 'Step 5: GPS manquants ou invalides (lat=0, lon=0)']
+2025-12-14 03:25:53 | WARNING  | app.crew_pipeline.pipeline |   Step 6: ["Step 6: Champ obligatoire manquant 'title'"]
+2025-12-14 03:25:53 | WARNING  | app.crew_pipeline.pipeline |   Step 7: ["Step 7: Champ obligatoire manquant 'title'", 'Step 7: GPS manquants ou invalides (lat=0, lon=0)']
+2025-12-14 03:25:53 | WARNING  | app.crew_pipeline.pipeline |   Step 8: ["Step 8: Champ obligatoire manquant 'title'", 'Step 8: GPS manquants ou invalides (lat=0, lon=0)']
+2025-12-14 03:25:53 | WARNING  | app.crew_pipeline.pipeline |   Step 9: ["Step 9: Champ obligatoire manquant 'title'"]
+2025-12-14 03:25:53 | WARNING  | app.crew_pipeline.pipeline |   Step 10: ["Step 10: Champ obligatoire manquant 'title'"]
+2025-12-14 03:25:53 | WARNING  | app.crew_pipeline.pipeline |   Step 11: ["Step 11: Champ obligatoire manquant 'title'", 'Step 11: GPS manquants ou invalides (lat=0, lon=0)']
+2025-12-14 03:25:53 | WARNING  | app.crew_pipeline.pipeline |   Step 12: ["Step 12: Champ obligatoire manquant 'title'"]
+2025-12-14 03:25:53 | WARNING  | app.crew_pipeline.pipeline |   Step 13: ["Step 13: Champ obligatoire manquant 'title'"]
+2025-12-14 03:25:53 | WARNING  | app.crew_pipeline.pipeline |   Step 14: ["Step 14: Champ obligatoire manquant 'title'"]
+2025-12-14 03:25:53 | WARNING  | app.crew_pipeline.pipeline |   Step 15: ["Step 15: Champ obligatoire manquant 'title'"]
+2025-12-14 03:25:53 | WARNING  | app.crew_pipeline.pipeline |   Step 16: ["Step 16: Champ obligatoire manquant 'title'"]
+2025-12-14 03:25:53 | WARNING  | app.crew_pipeline.pipeline |   Step 17: ["Step 17: Champ obligatoire manquant 'title'"]
+2025-12-14 03:25:53 | WARNING  | app.crew_pipeline.pipeline |   Step 18: ["Step 18: Champ obligatoire manquant 'title'"]
+2025-12-14 03:25:53 | INFO     | app.crew_pipeline.pipeline | ✅ Steps validation complete, builder updated
+2025-12-14 03:25:53 | INFO     | app.crew_pipeline.pipeline | 💰 Calculating budget with deterministic script...
+2025-12-14 03:25:53 | INFO     | app.crew_pipeline.scripts.budget_calculator | 💰 Calculating trip budget...
+2025-12-14 03:25:53 | INFO     | app.crew_pipeline.scripts.budget_calculator | ✅ Budget calculated: 7370€ total, 2460€ per person (status: EXCEED)
+2025-12-14 03:25:53 | INFO     | app.crew_pipeline.pipeline | 💾 Budget saved to output\crew_runs\63a10241-48ec-4607-98d0-2736ee6f0966-4046c782\budget_calculation.json
+2025-12-14 03:25:53 | INFO     | app.crew_pipeline.pipeline | 🔧 Enriching trip JSON with budget (script-based)...
+2025-12-14 03:25:53 | INFO     | app.crew_pipeline.scripts.incremental_trip_builder | 💰 Prices updated: Total  EUR
+2025-12-14 03:25:53 | INFO     | app.crew_pipeline.pipeline | ✅ Builder enrichi avec le budget depuis PHASE3
+2025-12-14 03:25:53 | INFO     | app.crew_pipeline.scripts.incremental_trip_builder | 📊 Summary stats updated
+2025-12-14 03:25:53 | INFO     | app.crew_pipeline.pipeline | 📊 Rapport de complétude du trip:
+2025-12-14 03:25:53 | INFO     | app.crew_pipeline.pipeline |    - Complétude trip: 0%
+2025-12-14 03:25:53 | INFO     | app.crew_pipeline.pipeline |    - Steps avec titre: 0/25
+2025-12-14 03:25:53 | INFO     | app.crew_pipeline.pipeline |    - Steps avec image: 25/25
+2025-12-14 03:25:53 | INFO     | app.crew_pipeline.pipeline |    - Steps avec GPS: 20/25
+2025-12-14 03:25:53 | WARNING  | app.crew_pipeline.pipeline |    - ⚠️ Champs critiques manquants: ['trip.total_price', 'step_1.title', 'step_2.title', 'step_3.title', 'step_4.title', 'step_5.title', 'step_6.title', 'step_7.title', 'step_8.title', 'step_9.title', 'step_10.title', 'step_11.title', 'step_12.title', 'step_13.title', 'step_14.title', 'step_15.title', 'step_16.title', 'step_17.title', 'step_18.title', 'step_19.title', 'step_20.title', 'step_21.title', 'step_22.title', 'step_23.title', 'step_24.title', 'step_25.title']
+2025-12-14 03:25:53 | WARNING  | app.crew_pipeline.pipeline |    - ⚠️ Content validation: 25/26 steps have validation errors (see warnings above for details)
+2025-12-14 03:25:53 | WARNING  | app.crew_pipeline.pipeline |    - ⚠️ Despite 100% structure completeness, content quality may be insufficient
+2025-12-14 03:25:53 | WARNING  | app.crew_pipeline.pipeline | ⚠️ Fixed empty title in regular step 1 (Day 1)
+2025-12-14 03:25:53 | WARNING  | app.crew_pipeline.pipeline | ⚠️ Fixed empty title in regular step 2 (Day 1)
+2025-12-14 03:25:53 | WARNING  | app.crew_pipeline.pipeline | ⚠️ Fixed empty title in regular step 3 (Day 2)
+2025-12-14 03:25:53 | WARNING  | app.crew_pipeline.pipeline | ⚠️ Fixed empty title in regular step 4 (Day 3)
+2025-12-14 03:25:53 | WARNING  | app.crew_pipeline.pipeline | ⚠️ Fixed empty title in regular step 5 (Day 3)
+2025-12-14 03:25:53 | WARNING  | app.crew_pipeline.pipeline | ⚠️ Fixed empty title in regular step 6 (Day 4)
+2025-12-14 03:25:53 | WARNING  | app.crew_pipeline.pipeline | ⚠️ Fixed empty title in regular step 7 (Day 5)
+2025-12-14 03:25:53 | WARNING  | app.crew_pipeline.pipeline | ⚠️ Fixed empty title in regular step 8 (Day 5)
+2025-12-14 03:25:53 | WARNING  | app.crew_pipeline.pipeline | ⚠️ Fixed empty title in regular step 9 (Day 6)
+2025-12-14 03:25:53 | WARNING  | app.crew_pipeline.pipeline | ⚠️ Fixed empty title in regular step 10 (Day 7)
+2025-12-14 03:25:53 | WARNING  | app.crew_pipeline.pipeline | ⚠️ Fixed empty title in regular step 11 (Day 7)
+2025-12-14 03:25:53 | WARNING  | app.crew_pipeline.pipeline | ⚠️ Fixed empty title in regular step 12 (Day 8)
+2025-12-14 03:25:53 | WARNING  | app.crew_pipeline.pipeline | ⚠️ Fixed empty title in regular step 13 (Day 9)
+2025-12-14 03:25:53 | WARNING  | app.crew_pipeline.pipeline | ⚠️ Fixed empty title in regular step 14 (Day 9)
+2025-12-14 03:25:53 | WARNING  | app.crew_pipeline.pipeline | ⚠️ Fixed empty title in regular step 15 (Day 10)
+2025-12-14 03:25:53 | WARNING  | app.crew_pipeline.pipeline | ⚠️ Fixed empty title in regular step 16 (Day 11)
+2025-12-14 03:25:53 | WARNING  | app.crew_pipeline.pipeline | ⚠️ Fixed empty title in regular step 17 (Day 11)
+2025-12-14 03:25:53 | WARNING  | app.crew_pipeline.pipeline | ⚠️ Fixed empty title in regular step 18 (Day 12)
+2025-12-14 03:25:53 | WARNING  | app.crew_pipeline.pipeline | ⚠️ Fixed empty title in regular step 19 (Day 13)
+2025-12-14 03:25:53 | WARNING  | app.crew_pipeline.pipeline | ⚠️ Fixed empty title in regular step 20 (Day 13)
+2025-12-14 03:25:53 | WARNING  | app.crew_pipeline.pipeline | ⚠️ Fixed empty title in regular step 21 (Day 14)
+2025-12-14 03:25:53 | WARNING  | app.crew_pipeline.pipeline | ⚠️ Fixed empty title in regular step 22 (Day 15)
+2025-12-14 03:25:53 | WARNING  | app.crew_pipeline.pipeline | ⚠️ Fixed empty title in regular step 23 (Day 15)
+2025-12-14 03:25:53 | WARNING  | app.crew_pipeline.pipeline | ⚠️ Fixed empty title in regular step 24 (Day 16)
+2025-12-14 03:25:53 | WARNING  | app.crew_pipeline.pipeline | ⚠️ Fixed empty title in regular step 25 (Day 17)
+2025-12-14 03:25:54 | INFO     | app.services.supabase_service | ✅ Connexion PostgreSQL établie
+2025-12-14 03:25:54 | INFO     | app.services.supabase_service | 💾 Trip JSON persisté dans Supabase
+2025-12-14 03:25:54 | INFO     | app.crew_pipeline.pipeline | 💾 Résumé complet sauvegardé dans output\crew_runs\63a10241-48ec-4607-98d0-2736ee6f0966-4046c782/_SUMMARY_run_output.yaml
+2025-12-14 03:25:54 | INFO     | app.crew_pipeline.cli | ✅ Pipeline exécutée avec succès
