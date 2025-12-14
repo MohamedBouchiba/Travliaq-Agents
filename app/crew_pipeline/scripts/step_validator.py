@@ -25,18 +25,18 @@ logger = logging.getLogger(__name__)
 class StepValidator:
     """
     Validateur et correcteur automatique de steps.
-    
+
     Workflow:
     1. validate_step() → retourne (is_valid, liste_erreurs)
     2. auto_fix_step() → corrige erreurs détectées
     3. validate_all_steps() → valide batch complet
     """
-    
+
     # Regex pour valider URLs Supabase
     SUPABASE_URL_PATTERN = re.compile(
         r"https://[a-z0-9]+\.supabase\.co/storage/v1/object/public/TRIPS/.+"
     )
-    
+
     def __init__(self, mcp_tools: Optional[Any] = None, llm: Optional[Any] = None):
         """
         Initialiser validateur.
@@ -47,6 +47,25 @@ class StepValidator:
         """
         self.mcp_tools = mcp_tools
         self.llm = llm
+
+    def _extract_string_value(self, value: Any) -> str:
+        """
+        Extract string value from various formats (string, dict cache, None).
+
+        Handles Redis cache format: {'value': 'actual_string', 'ex': 604800}
+
+        Args:
+            value: Value to extract (str, dict, or None)
+
+        Returns:
+            String value or empty string
+        """
+        if value is None:
+            return ""
+        if isinstance(value, dict):
+            # Redis cache format
+            return str(value.get('value', ''))
+        return str(value)
 
     def _extract_results(self, mcp_response: Any) -> List[Dict[str, Any]]:
         """
@@ -113,9 +132,11 @@ class StepValidator:
         
         # 1. VALIDATION CHAMPS OBLIGATOIRES
         required_fields = ["step_number", "day_number", "title", "main_image"]
-        
+
         for field in required_fields:
-            if not step.get(field) or str(step.get(field)).strip() == "":
+            # 🔧 FIX: Handle dict values from Redis cache
+            field_value = self._extract_string_value(step.get(field))
+            if not field_value or field_value.strip() == "":
                 errors.append(f"Step {step_num}: Champ obligatoire manquant '{field}'")
         
         # 2. VALIDATION GPS
@@ -128,8 +149,9 @@ class StepValidator:
             errors.append(f"Step {step_num}: GPS hors limites (lat={lat}, lon={lon})")
         
         # 3. VALIDATION IMAGES SUPABASE
-        main_image = step.get("main_image", "")
-        
+        # 🔧 FIX: Handle dict values from Redis cache
+        main_image = self._extract_string_value(step.get("main_image", ""))
+
         if not main_image or main_image.strip() == "":
             errors.append(f"Step {step_num}: Image manquante")
         elif not self._is_supabase_url(main_image):
@@ -137,10 +159,11 @@ class StepValidator:
         
         # 4. VALIDATION CONTENU FR
         content_fields_fr = ["subtitle", "why", "tips", "transfer"]
-        
+
         for field in content_fields_fr:
-            content = step.get(field, "")
-            
+            # 🔧 FIX: Handle dict values from Redis cache
+            content = self._extract_string_value(step.get(field, ""))
+
             if strict and (not content or content.strip() == ""):
                 errors.append(f"Step {step_num}: Contenu FR manquant '{field}'")
             elif content and len(content.split()) < 5:  # Minimum 5 mots
@@ -148,19 +171,22 @@ class StepValidator:
         
         # 5. VALIDATION TRADUCTIONS EN
         content_fields_en = ["title_en", "subtitle_en", "why_en", "tips_en", "transfer_en"]
-        
+
         for field in content_fields_en:
             fr_field = field.replace("_en", "")
-            fr_content = step.get(fr_field, "")
-            en_content = step.get(field, "")
-            
+            # 🔧 FIX: Handle dict values from Redis cache
+            fr_content = self._extract_string_value(step.get(fr_field, ""))
+            en_content = self._extract_string_value(step.get(field, ""))
+
             # Si contenu FR existe mais pas EN
             if fr_content and fr_content.strip() and (not en_content or en_content.strip() == ""):
                 errors.append(f"Step {step_num}: Traduction manquante '{field}'")
         
         # 6. VALIDATION PRIX/DURÉE
         if strict:
-            if not step.get("duration") or step.get("duration", "").strip() == "":
+            # 🔧 FIX: Handle dict values from Redis cache
+            duration = self._extract_string_value(step.get("duration", ""))
+            if not duration or duration.strip() == "":
                 errors.append(f"Step {step_num}: Durée manquante")
             
             if "price" not in step:
@@ -596,9 +622,10 @@ class StepValidator:
         ]
         
         for fr_field, en_field in fields_to_translate:
-            fr_text = step.get(fr_field, "")
-            en_text = step.get(en_field, "")
-            
+            # 🔧 FIX: Handle dict values from Redis cache
+            fr_text = self._extract_string_value(step.get(fr_field, ""))
+            en_text = self._extract_string_value(step.get(en_field, ""))
+
             # Si FR existe mais pas EN
             if fr_text and fr_text.strip() and (not en_text or en_text.strip() == ""):
                 try:

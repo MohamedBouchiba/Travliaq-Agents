@@ -142,10 +142,15 @@ class SupabaseService:
                 # Le champ SQL est de type DATE ; on ne garde que la partie date
                 start_date = start_date.split("T", 1)[0]
 
+            # 🔧 FIX: Extract string from Redis cache dict if needed
+            main_image = trip_json.get("main_image")
+            if isinstance(main_image, dict):
+                main_image = main_image.get('value', None)
+
             payload = {
                 "code": trip_json.get("code"),
                 "destination": trip_json.get("destination") or "UNKNOWN",
-                "main_image": trip_json.get("main_image") or DEFAULT_TRIP_IMAGE,
+                "main_image": main_image or DEFAULT_TRIP_IMAGE,
                 "flight_from": trip_json.get("flight_from"),
                 "flight_to": trip_json.get("flight_to"),
                 "flight_duration": trip_json.get("flight_duration"),
@@ -588,12 +593,20 @@ class SupabaseService:
             average_weather = trip_json.get("average_weather") if trip_json else None
             
             # 12. Images
+            # 🔧 FIX: Extract string from Redis cache dict if needed
             main_image_url = trip_json.get("main_image") if trip_json else None
+            if isinstance(main_image_url, dict):
+                main_image_url = main_image_url.get('value', None)
+
             gallery_urls = []
             if trip_json and trip_json.get("steps"):
                 for step in trip_json["steps"][:5]:  # Top 5 steps
-                    if step.get("main_image"):
-                        gallery_urls.append(step["main_image"])
+                    step_image = step.get("main_image")
+                    # 🔧 FIX: Extract string from Redis cache dict if needed
+                    if isinstance(step_image, dict):
+                        step_image = step_image.get('value', None)
+                    if step_image:
+                        gallery_urls.append(step_image)
             
             # 13. Stats
             steps_count = len(trip_json.get("steps", [])) if trip_json else 0
@@ -601,8 +614,11 @@ class SupabaseService:
             if trip_json and trip_json.get("steps"):
                 for step in trip_json["steps"][:5]:
                     title = step.get("title") or step.get("title_en")
+                    # 🔧 FIX: Extract string from Redis cache dict if needed
+                    if isinstance(title, dict):
+                        title = title.get('value', None)
                     if title and not step.get("is_summary"):
-                        activities_summary.append(title)
+                        activities_summary.append(str(title))
 
             # 14. Trip code
             trip_code = trip_json.get("code") if trip_json else None

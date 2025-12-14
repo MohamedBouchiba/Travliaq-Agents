@@ -205,10 +205,14 @@ class IncrementalTripBuilder:
 
     def set_hero_image(self, url: str) -> None:
         """Définir l'image hero du trip."""
+        # 🔧 FIX: Extract URL string from Redis cache dict if needed FIRST (before validation)
+        if isinstance(url, dict):
+            url = url.get('value', None)
+
         # Si URL vide ou invalide, générer via ImageGenerator
         if not url or url == "" or "supabase.co" not in url:
             logger.warning("⚠️ Hero image vide ou invalide fournie, appel ImageGenerator...")
-            
+
             # Initialiser ImageGenerator si besoin (lazy init si mcp_tools dispo)
             if not hasattr(self, 'image_gen') or not self.image_gen:
                 if self.mcp_tools:
@@ -223,7 +227,7 @@ class IncrementalTripBuilder:
                 trip_code=self.trip_json.get("code", "TRIP")
             )
 
-        self.trip_json["main_image"] = url  # 🔧 FIX: Accès direct
+        self.trip_json["main_image"] = url
         logger.info(f"🖼️ Hero image définie: {url[:80] if url else 'N/A'}")
 
     # ... (Keep other setters unchanged) ...
@@ -234,8 +238,12 @@ class IncrementalTripBuilder:
         """
         step = self._get_step(step_number)
 
+        # 🔧 FIX: Extract URL string from Redis cache dict if needed
+        if isinstance(image_url, dict):
+            image_url = image_url.get('value', None)
+
         # Vérifier si l'image est valide (Supabase)
-        if image_url and "supabase.co" in image_url and "FAILED" not in image_url.upper():
+        if image_url and "supabase.co" in str(image_url) and "FAILED" not in str(image_url).upper():
             step["main_image"] = image_url
             logger.info(f"🖼️ Step {step_number}: Image définie (Supabase)")
         else:
