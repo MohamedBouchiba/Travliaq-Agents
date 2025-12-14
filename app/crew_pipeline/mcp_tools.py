@@ -15,11 +15,13 @@ from pydantic import BaseModel, Field, create_model
 try:
     from mcp import ClientSession
     from mcp.client.sse import sse_client, aconnect_sse, remove_request_params, create_mcp_http_client, SSEError
+    from mcp.client.streamable_http import streamablehttp_client
     from mcp.client.session import SessionMessage
     import mcp.types as types
 except ImportError:
     ClientSession = None
     sse_client = None
+    streamablehttp_client = None
     aconnect_sse = None
     remove_request_params = None
     create_mcp_http_client = None
@@ -604,20 +606,13 @@ def get_mcp_tools(server_url: str) -> List[BaseTool]:
         return []
 
     async def _fetch_tools():
-        # 🔧 FIX: Laisser fastMCP gérer les sessions automatiquement
-        # Pas de session ID manuel pour l'initialisation
-        headers = {"Accept": "application/json, text/event-stream"}
-        logger.info(f"Connecting to SSE with headers: {headers}")
+        # 🔧 FIX: Utiliser streamablehttp_client qui gère correctement le protocole fastMCP v2
+        # Le serveur attend Accept: "application/json, text/event-stream"
+        logger.info(f"Connecting to MCP server via streamable HTTP: {server_url}")
 
-        # 🔧 FIX: Timeouts augmentés pour initialisation (60s au lieu de 30s)
-        async with custom_sse_client(
-            server_url,
-            headers=headers,
-            override_endpoint_url=server_url,  # Pas de modification d'URL
-            timeout=10,
-            sse_read_timeout=60
-        ) as (read, write):
-            logger.info("SSE connection established")
+        # streamablehttp_client retourne (read, write, get_session_id)
+        async with streamablehttp_client(server_url) as (read, write, get_session_id):
+            logger.info(f"Streamable HTTP connection established (session_id: {get_session_id()})")
             async with ClientSession(read, write) as session:
                 logger.info("Initializing session...")
                 await session.initialize()
