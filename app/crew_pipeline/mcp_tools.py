@@ -606,32 +606,11 @@ def get_mcp_tools(server_url: str) -> List[BaseTool]:
         return []
 
     async def _fetch_tools():
-        # 🔧 FIX: Utiliser streamablehttp_client (protocole fastMCP v2)
-        # C'est la seule approche qui a fonctionné dans les tests
-        logger.info(f"Connecting to MCP server via streamable HTTP: {server_url}")
-
-        # streamablehttp_client retourne (read, write, get_session_id)
-        async with streamablehttp_client(server_url) as (read, write, get_session_id):
-            logger.info(f"Streamable HTTP connection established (session_id: {get_session_id()})")
-            async with ClientSession(read, write) as session:
-                logger.info("Initializing session...")
-                await session.initialize()
-
-                # Fetch tools
-                logger.info("Session initialized. Listing tools...")
-                tools = await session.list_tools()
-                logger.info(f"Tools listed: {len(tools.tools)} found")
-
-                # Fetch resources (knowledge base)
-                logger.info("Listing resources (knowledge base)...")
-                try:
-                    resources = await session.list_resources()
-                    logger.info(f"Resources listed: {len(resources.resources)} found")
-                except Exception as e:
-                    logger.warning(f"Failed to list resources: {e}")
-                    resources = None
-
-                return tools, resources
+        # 🔧 WORKAROUND: Le serveur MCP est intermittent sur Railway
+        # Désactiver temporairement pour permettre à la pipeline de fonctionner
+        logger.warning("⚠️ MCP tools disabled temporarily due to server instability")
+        logger.info("Pipeline will use fallback values for geo, weather, and images")
+        return types.ListToolsResult(tools=[]), None
 
     # 🔧 FIX: Gérer les erreurs de terminaison au niveau de asyncio.run()
     tools_list = None
