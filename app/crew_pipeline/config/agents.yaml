@@ -88,7 +88,7 @@ agents:
     inject_date: true
     date_format: "%Y-%m-%d"
     memory: true
-    max_iter: 15
+    max_iter: 40  # 🔧 FIX: Augmenté de 15 à 40 pour permettre génération de 25+ steps
 
   # ============================================================================
   # AGENT 7: BUDGET CALCULATOR

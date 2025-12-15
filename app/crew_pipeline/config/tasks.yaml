@@ -760,23 +760,28 @@ tasks:
   # ==========================================================================
   itinerary_design:
     description: |-
-      MISSION: Enrichir {step_templates} avec contenu FR détaillé.
+      MISSION CRITIQUE: Enrichir TOUTES les {step_templates} avec contenu FR détaillé.
+
+      ⚠️ RÈGLE #1: Tu DOIS remplir CHAQUE step avec du contenu complet. PAS DE STEPS VIDES!
 
       TEMPLATES REÇUS: {step_templates}
       Champs déjà remplis: step_number, day_number, latitude, longitude, main_image, step_type.
 
-      TON TRAVAIL (FR uniquement):
-      1. title (FR): 4-8 mots accrocheurs
-      2. subtitle (FR): 6-10 mots descriptifs
-      3. why (FR): 3-4 phrases (intérêt, histoire, incontournables)
-      4. tips (FR): 3-5 phrases (horaires, prix, astuces, moment optimal)
-      5. transfer (FR): moyen transport + durée + prix depuis lieu précédent
-      6. suggestion (FR): idées complémentaires
-      7. weather_description (FR): météo selon saison
+      TON TRAVAIL (FR uniquement) - À FAIRE POUR CHAQUE STEP:
+      1. title (FR): 4-8 mots accrocheurs (OBLIGATOIRE - jamais vide)
+      2. subtitle (FR): 6-10 mots descriptifs (OBLIGATOIRE - jamais vide)
+      3. why (FR): 3-4 phrases (intérêt, histoire, incontournables) (OBLIGATOIRE)
+      4. tips (FR): 3-5 phrases (horaires, prix, astuces, moment optimal) (OBLIGATOIRE)
+      5. transfer (FR): moyen transport + durée + prix depuis lieu précédent (OBLIGATOIRE)
+      6. suggestion (FR): idées complémentaires (OBLIGATOIRE)
+      7. weather_description (FR): météo selon saison (OBLIGATOIRE)
       8. price: euros (0 si gratuit)
-      9. duration: format "2h", "3h30"
+      9. duration: format "2h", "3h30" (OBLIGATOIRE)
+
+      ⚠️ VÉRIFICATION FINALE: Compte le nombre de steps avec title non-vide. Ce nombre DOIT être égal au nombre total de templates reçus!
 
       RÈGLES CRITIQUES:
+      - REMPLIR TOUTES LES STEPS (ne laisse AUCUNE step avec title/why/tips vides)
       - COPIER latitude/longitude/main_image depuis templates (ne PAS modifier)
       - LAISSER champs *_en VIDES (traduits automatiquement après)
       - NE PAS appeler geo.place ou images.* (déjà générés)
@@ -797,7 +802,8 @@ tasks:
       STEP 99 (summary): Existe déjà, remplir title/subtitle/summary_stats uniquement (4-8 stats: days, budget, weather, style).
 
     expected_output: |-
-      YAML avec structure itinerary_plan: steps (array avec champs title/subtitle/why/tips/transfer/duration/price + GPS/images copiés depuis templates) + step 99 (summary) remplie.
+      YAML avec structure itinerary_plan: steps (array avec TOUTES les steps remplies: title/subtitle/why/tips/transfer/duration/price + GPS/images copiés depuis templates) + step 99 (summary) remplie.
+      IMPORTANT: Le nombre de steps avec title non-vide DOIT être égal au nombre de templates reçus.
 
     async_execution: false
 
