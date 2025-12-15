@@ -99,9 +99,9 @@ def validate_date_params(func):
 _FAST_TEST_MODE = os.getenv("FAST_TEST_MODE", "").lower() in {"1", "true", "yes", "on"}
 
 # Timeouts réduits en mode test rapide afin d'éviter les longues attentes pendant les tests
-MCP_TIMEOUT_SECONDS = 15 if _FAST_TEST_MODE else 30
-MCP_TIMEOUT_GEO_PLACES = 45 if _FAST_TEST_MODE else 90  # Timeout étendu pour geo/places qui peuvent être lents
-MCP_TIMEOUT_BOOKING_FLIGHTS = 90 if _FAST_TEST_MODE else 180  # Timeout étendu pour booking et flights (scraping)
+MCP_TIMEOUT_SECONDS = 15 if _FAST_TEST_MODE else 60
+MCP_TIMEOUT_GEO_PLACES = 45 if _FAST_TEST_MODE else 240  # Timeout étendu pour geo/places qui peuvent être lents (Wikipedia, OSM)
+MCP_TIMEOUT_BOOKING_FLIGHTS = 90 if _FAST_TEST_MODE else 300  # Timeout étendu pour booking et flights (scraping)
 
 # Moins de retries pour accélérer les tests en mode rapide
 MCP_MAX_RETRIES = 1 if _FAST_TEST_MODE else 3
@@ -632,7 +632,9 @@ def get_mcp_tools(server_url: str) -> List[BaseTool]:
         import json
 
         try:
-            async with httpx.AsyncClient(timeout=30.0) as client:
+            # Timeout élevé pour permettre aux outils lents (places.overview, booking) de fonctionner
+            # Note: Ce timeout est pour la connexion initiale, pas pour l'exécution des outils
+            async with httpx.AsyncClient(timeout=120.0) as client:
                 # Step 1: Initialize session
                 logger.debug(f"Initializing MCP session with POST to {server_url}")
 
