@@ -200,13 +200,89 @@ def _sanitize_tool_arguments(arguments: Dict[str, Any]) -> Dict[str, Any]:
 class MCPToolWrapper(BaseTool):
     """
     A generic wrapper for MCP tools to be used in CrewAI.
-    
+
     Inclut retry logic, timeout et gestion d'erreurs robuste.
     """
     server_url: str = Field(..., description="URL of the MCP server")
     tool_name: str = Field(..., description="Name of the tool on the MCP server")
     timeout: int = Field(default=MCP_TIMEOUT_SECONDS, description="Timeout en secondes")
     max_retries: int = Field(default=MCP_MAX_RETRIES, description="Nombre maximum de tentatives")
+
+    async def _call_tool_via_post_sse(self, arguments: dict) -> str:
+        """
+        Call MCP tool using POST+SSE (bypasses GET requests which Railway rejects).
+
+        This method:
+        1. Uses session ID from _fetch_tools() initialization
+        2. Sends tools/call via POST with SSE headers
+        3. Parses SSE response to extract tool result
+        """
+        import json
+
+        async with httpx.AsyncClient(timeout=self.timeout) as client:
+            # 🔧 FIX: Use cached session ID from _fetch_tools() (avoid GET probe)
+            headers = {
+                "Accept": "application/json, text/event-stream",
+                "Content-Type": "application/json"
+            }
+
+            # Reuse session ID from initialization if available
+            session_id = _server_session_cache.get(self.server_url)
+            if session_id:
+                headers["Mcp-Session-Id"] = session_id
+                logger.debug(f"Reusing MCP session: {session_id[:16]}...")
+            else:
+                logger.warning("No cached session ID found - tool call may fail")
+
+            # Build tools/call JSON-RPC request
+            call_request = {
+                "jsonrpc": "2.0",
+                "method": "tools/call",
+                "params": {
+                    "name": self.tool_name,
+                    "arguments": arguments
+                },
+                "id": 3  # Arbitrary ID for this request
+            }
+
+            logger.debug(f"Calling {self.tool_name} via POST+SSE with args: {arguments}")
+
+            # Send POST request and parse SSE response
+            async with client.stream(
+                "POST",
+                self.server_url,
+                json=call_request,
+                headers=headers
+            ) as response:
+                response.raise_for_status()
+
+                # Parse SSE stream to find tool result
+                async for event_data in _parse_sse_events(response.aiter_lines()):
+                    if event_data.get("id") == 3:
+                        # Found our response
+                        if "error" in event_data:
+                            error_msg = event_data["error"].get("message", str(event_data["error"]))
+                            raise Exception(f"MCP tool error: {error_msg}")
+
+                        # Extract result content
+                        result = event_data.get("result", {})
+                        content_list = result.get("content", [])
+
+                        # Format output from content items
+                        output = []
+                        for item in content_list:
+                            if isinstance(item, dict):
+                                if "text" in item:
+                                    output.append(item["text"])
+                                else:
+                                    output.append(str(item))
+                            else:
+                                output.append(str(item))
+
+                        return "\n".join(output) if output else str(result)
+
+                # If we got here, response wasn't found in stream
+                raise Exception(f"No response received for {self.tool_name} (id=3)")
 
     @validate_date_params
     def _run(self, **kwargs: Any) -> Any:
@@ -233,44 +309,22 @@ class MCPToolWrapper(BaseTool):
                 
                 # Timeout pour la connexion et l'exécution
                 async with asyncio.timeout(self.timeout):
-                    # Récupération des headers de session
-                    headers = await _get_session_headers(self.server_url)
+                    # 🔧 FIX: Use POST+SSE instead of GET (Railway rejects GET requests)
+                    # This method reuses the session from _fetch_tools() and sends tools/call via POST
+                    success_output = await self._call_tool_via_post_sse(normalized_kwargs)
 
-                    # Force Accept header for both SSE and POST
-                    headers["Accept"] = "application/json, text/event-stream"
-
-                    # 🔧 FIX: Pas de session ID dans l'URL, seulement dans les headers
-                    # Le serveur MCP gère les sessions via headers uniquement
-                    post_url = self.server_url
-
-                    async with custom_sse_client(self.server_url, headers=headers, override_endpoint_url=post_url) as (read, write):
-                        async with ClientSession(read, write) as session:
-                            await session.initialize()
-                            result = await session.call_tool(self.tool_name, arguments=normalized_kwargs)
-                            
-                            # Format the result
-                            output = []
-                            if result.content:
-                                for item in result.content:
-                                    if hasattr(item, "text"):
-                                        output.append(item.text)
-                                    else:
-                                        output.append(str(item))
-                            
-                            success_output = "\n".join(output)
-
-                            # Log détaillé pour les outils images pour debug
-                            if self.tool_name.startswith("images."):
-                                logger.info(
-                                    f"✅ MCP tool {self.tool_name} exécuté avec succès - Résultat: {success_output[:500]}",
-                                    extra={"tool": self.tool_name, "output_size": len(success_output), "output_preview": success_output[:200]}
-                                )
-                            else:
-                                logger.info(
-                                    f"✅ MCP tool {self.tool_name} exécuté avec succès",
-                                    extra={"tool": self.tool_name, "output_size": len(success_output)}
-                                )
-                            return success_output
+                    # Log détaillé pour les outils images pour debug
+                    if self.tool_name.startswith("images."):
+                        logger.info(
+                            f"✅ MCP tool {self.tool_name} exécuté avec succès - Résultat: {success_output[:500]}",
+                            extra={"tool": self.tool_name, "output_size": len(success_output), "output_preview": success_output[:200]}
+                        )
+                    else:
+                        logger.info(
+                            f"✅ MCP tool {self.tool_name} exécuté avec succès",
+                            extra={"tool": self.tool_name, "output_size": len(success_output)}
+                        )
+                    return success_output
                             
             except asyncio.TimeoutError as e:
                 last_error = f"Timeout après {self.timeout}s"
@@ -595,6 +649,25 @@ def _create_pydantic_model_from_schema(name: str, schema: Dict[str, Any]) -> Typ
     
     return create_model(f"{name}Args", **fields)
 
+async def _parse_sse_events(lines_iter):
+    """Parse SSE events from async line iterator, handling multi-line data."""
+    import json
+
+    current_data = []
+
+    async for line in lines_iter:
+        if line.startswith("data: "):
+            # Accumulate data lines
+            current_data.append(line[6:])
+        elif line == "" and current_data:
+            # Blank line marks end of event - parse accumulated data
+            json_str = "".join(current_data)
+            current_data = []
+            try:
+                yield json.loads(json_str)
+            except json.JSONDecodeError:
+                pass
+
 def get_mcp_tools(server_url: str) -> List[BaseTool]:
     """
     Connects to the MCP server, lists available tools, and returns them as CrewAI tools.
@@ -602,25 +675,6 @@ def get_mcp_tools(server_url: str) -> List[BaseTool]:
     if not sse_client:
         logger.error("MCP library not installed. Cannot fetch tools.")
         return []
-
-    async def _parse_sse_events(lines_iter):
-        """Parse SSE events from async line iterator, handling multi-line data."""
-        import json
-
-        current_data = []
-
-        async for line in lines_iter:
-            if line.startswith("data: "):
-                # Accumulate data lines
-                current_data.append(line[6:])
-            elif line == "" and current_data:
-                # Blank line marks end of event - parse accumulated data
-                json_str = "".join(current_data)
-                current_data = []
-                try:
-                    yield json.loads(json_str)
-                except json.JSONDecodeError:
-                    pass
 
     async def _fetch_tools():
         """
@@ -668,6 +722,10 @@ def get_mcp_tools(server_url: str) -> List[BaseTool]:
                     session_id = response.headers.get("mcp-session-id")
                     logger.debug(f"MCP session ID: {session_id}")
 
+                    # 🔧 FIX: Store session ID globally for reuse in tool execution
+                    if session_id:
+                        _server_session_cache[server_url] = session_id
+
                     # Read SSE stream and find our response
                     init_data = None
                     async for event_data in _parse_sse_events(response.aiter_lines()):
@@ -696,7 +754,7 @@ def get_mcp_tools(server_url: str) -> List[BaseTool]:
                     "Accept": "application/json, text/event-stream"
                 }
                 if session_id:
-                    tools_headers["mcp-session-id"] = session_id
+                    tools_headers["Mcp-Session-Id"] = session_id
 
                 async with client.stream(
                     "POST",
