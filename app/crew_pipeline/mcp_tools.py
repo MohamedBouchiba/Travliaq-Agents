@@ -109,15 +109,107 @@ MCP_RETRY_DELAY_SECONDS = 0.5 if _FAST_TEST_MODE else 1
 
 # 🔧 FIX: Thread-local storage pour sessions MCP (évite conflits 409)
 _thread_local = local()
-_server_session_cache: Dict[str, Optional[str]] = {}  # Cache global pour session IDs du serveur
+_server_session_cache: Dict[str, Dict[str, Any]] = {}  # Cache global pour session IDs avec timestamp
+# Structure: {server_url: {"session_id": str, "timestamp": float, "retries": int}}
+
+# Session expiry time (5 minutes = 300 seconds)
+MCP_SESSION_EXPIRY_SECONDS = 300
+
+async def _ensure_fresh_session(server_url: str, force_refresh: bool = False) -> Optional[str]:
+    """
+    Assure qu'on a une session MCP fraîche (< 5 minutes).
+
+    Args:
+        server_url: URL du serveur MCP
+        force_refresh: Si True, force la création d'une nouvelle session
+
+    Returns:
+        Session ID ou None si échec
+    """
+    cached = _server_session_cache.get(server_url)
+
+    # Vérifier si session existe et est toujours valide
+    if cached and not force_refresh:
+        session_age = time.time() - cached.get("timestamp", 0)
+        if session_age < MCP_SESSION_EXPIRY_SECONDS:
+            logger.debug(f"Reusing fresh session (age: {int(session_age)}s)")
+            return cached.get("session_id")
+        else:
+            logger.info(f"🔄 Session expired (age: {int(session_age)}s), refreshing...")
+
+    # Créer nouvelle session via initialize
+    try:
+        session_id = await _initialize_new_session(server_url)
+        if session_id:
+            _server_session_cache[server_url] = {
+                "session_id": session_id,
+                "timestamp": time.time(),
+                "retries": 0
+            }
+            logger.info(f"✅ New MCP session created: {session_id[:16]}...")
+            return session_id
+    except Exception as e:
+        logger.error(f"❌ Failed to create new session: {e}")
+        return None
+
+    return None
+
+async def _initialize_new_session(server_url: str) -> Optional[str]:
+    """
+    Initialise une nouvelle session MCP et retourne le session ID.
+    """
+    import json
+
+    try:
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            async with client.stream(
+                "POST",
+                server_url,
+                json={
+                    "jsonrpc": "2.0",
+                    "method": "initialize",
+                    "params": {
+                        "protocolVersion": "2024-11-05",
+                        "capabilities": {
+                            "roots": {"listChanged": False},
+                            "sampling": {}
+                        },
+                        "clientInfo": {
+                            "name": "travliaq-pipeline",
+                            "version": "1.0.0"
+                        }
+                    },
+                    "id": 1
+                },
+                headers={
+                    "Content-Type": "application/json",
+                    "Accept": "application/json, text/event-stream"
+                }
+            ) as response:
+                response.raise_for_status()
+
+                # Extract session ID from response headers
+                session_id = response.headers.get("mcp-session-id")
+
+                if session_id:
+                    logger.debug(f"Initialized new session: {session_id[:16]}...")
+                    return session_id
+
+                logger.warning("No session ID returned from initialize")
+                return None
+
+    except Exception as e:
+        logger.error(f"Failed to initialize session: {e}")
+        return None
 
 async def _probe_server_session(server_url: str) -> Optional[str]:
     """
     Tente d'obtenir un session ID depuis le serveur MCP.
     Retourne None si le serveur ne fournit pas de session ID.
     """
-    if server_url in _server_session_cache:
-        return _server_session_cache[server_url]
+    cached = _server_session_cache.get(server_url)
+    if cached:
+        return cached.get("session_id")
 
     try:
         # Probe initial pour voir si le serveur fournit un session ID
@@ -128,13 +220,16 @@ async def _probe_server_session(server_url: str) -> Optional[str]:
             if "Mcp-Session-Id" in resp.headers:
                 session_id = resp.headers["Mcp-Session-Id"]
                 logger.info(f"🔄 Session ID reçu du serveur: {session_id[:16]}...")
-                _server_session_cache[server_url] = session_id
+                _server_session_cache[server_url] = {
+                    "session_id": session_id,
+                    "timestamp": time.time(),
+                    "retries": 0
+                }
                 return session_id
     except Exception as e:
         logger.debug(f"⚠️ Probe serveur échoué (normal si serveur n'exige pas de session): {e}")
 
     # Pas de session ID fourni par le serveur
-    _server_session_cache[server_url] = None
     return None
 
 def _get_thread_session_id(server_url: str) -> str:
@@ -208,31 +303,37 @@ class MCPToolWrapper(BaseTool):
     timeout: int = Field(default=MCP_TIMEOUT_SECONDS, description="Timeout en secondes")
     max_retries: int = Field(default=MCP_MAX_RETRIES, description="Nombre maximum de tentatives")
 
-    async def _call_tool_via_post_sse(self, arguments: dict) -> str:
+    async def _call_tool_via_post_sse(self, arguments: dict, retry_on_400: bool = True) -> str:
         """
         Call MCP tool using POST+SSE (bypasses GET requests which Railway rejects).
 
         This method:
-        1. Uses session ID from _fetch_tools() initialization
+        1. Ensures session is fresh (< 5 minutes)
         2. Sends tools/call via POST with SSE headers
         3. Parses SSE response to extract tool result
+        4. Auto-reinitializes session on 400 errors
         """
         import json
 
         async with httpx.AsyncClient(timeout=self.timeout) as client:
-            # 🔧 FIX: Use cached session ID from _fetch_tools() (avoid GET probe)
+            # 🔧 FIX: Ensure session is fresh (refresh if expired)
+            session_id = await _ensure_fresh_session(self.server_url)
+
+            if not session_id:
+                # Try one more time with force refresh
+                logger.warning("No session available, forcing refresh...")
+                session_id = await _ensure_fresh_session(self.server_url, force_refresh=True)
+
+            if not session_id:
+                raise Exception("Could not obtain MCP session ID")
+
             headers = {
                 "Accept": "application/json, text/event-stream",
-                "Content-Type": "application/json"
+                "Content-Type": "application/json",
+                "Mcp-Session-Id": session_id
             }
 
-            # Reuse session ID from initialization if available
-            session_id = _server_session_cache.get(self.server_url)
-            if session_id:
-                headers["Mcp-Session-Id"] = session_id
-                logger.debug(f"Reusing MCP session: {session_id[:16]}...")
-            else:
-                logger.warning("No cached session ID found - tool call may fail")
+            logger.debug(f"Calling {self.tool_name} via POST+SSE (session: {session_id[:16]}...)")
 
             # Build tools/call JSON-RPC request
             call_request = {
@@ -245,44 +346,55 @@ class MCPToolWrapper(BaseTool):
                 "id": 3  # Arbitrary ID for this request
             }
 
-            logger.debug(f"Calling {self.tool_name} via POST+SSE with args: {arguments}")
+            try:
+                # Send POST request and parse SSE response
+                async with client.stream(
+                    "POST",
+                    self.server_url,
+                    json=call_request,
+                    headers=headers
+                ) as response:
+                    response.raise_for_status()
 
-            # Send POST request and parse SSE response
-            async with client.stream(
-                "POST",
-                self.server_url,
-                json=call_request,
-                headers=headers
-            ) as response:
-                response.raise_for_status()
+                    # Parse SSE stream to find tool result
+                    async for event_data in _parse_sse_events(response.aiter_lines()):
+                        if event_data.get("id") == 3:
+                            # Found our response
+                            if "error" in event_data:
+                                error_msg = event_data["error"].get("message", str(event_data["error"]))
+                                raise Exception(f"MCP tool error: {error_msg}")
 
-                # Parse SSE stream to find tool result
-                async for event_data in _parse_sse_events(response.aiter_lines()):
-                    if event_data.get("id") == 3:
-                        # Found our response
-                        if "error" in event_data:
-                            error_msg = event_data["error"].get("message", str(event_data["error"]))
-                            raise Exception(f"MCP tool error: {error_msg}")
+                            # Extract result content
+                            result = event_data.get("result", {})
+                            content_list = result.get("content", [])
 
-                        # Extract result content
-                        result = event_data.get("result", {})
-                        content_list = result.get("content", [])
-
-                        # Format output from content items
-                        output = []
-                        for item in content_list:
-                            if isinstance(item, dict):
-                                if "text" in item:
-                                    output.append(item["text"])
+                            # Format output from content items
+                            output = []
+                            for item in content_list:
+                                if isinstance(item, dict):
+                                    if "text" in item:
+                                        output.append(item["text"])
+                                    else:
+                                        output.append(str(item))
                                 else:
                                     output.append(str(item))
-                            else:
-                                output.append(str(item))
 
-                        return "\n".join(output) if output else str(result)
+                            return "\n".join(output) if output else str(result)
 
-                # If we got here, response wasn't found in stream
-                raise Exception(f"No response received for {self.tool_name} (id=3)")
+                    # If we got here, response wasn't found in stream
+                    raise Exception(f"No response received for {self.tool_name} (id=3)")
+
+            except httpx.HTTPStatusError as e:
+                # 🔧 FIX: Auto-reinitialize on 400 Bad Request
+                if e.response.status_code == 400 and retry_on_400:
+                    logger.warning(f"⚠️ 400 Bad Request - session may be invalid, refreshing session...")
+                    # Force refresh session
+                    await _ensure_fresh_session(self.server_url, force_refresh=True)
+                    # Retry once with new session
+                    return await self._call_tool_via_post_sse(arguments, retry_on_400=False)
+                else:
+                    # Re-raise other HTTP errors
+                    raise
 
     @validate_date_params
     def _run(self, **kwargs: Any) -> Any:
@@ -722,9 +834,13 @@ def get_mcp_tools(server_url: str) -> List[BaseTool]:
                     session_id = response.headers.get("mcp-session-id")
                     logger.debug(f"MCP session ID: {session_id}")
 
-                    # 🔧 FIX: Store session ID globally for reuse in tool execution
+                    # 🔧 FIX: Store session ID globally with timestamp for reuse in tool execution
                     if session_id:
-                        _server_session_cache[server_url] = session_id
+                        _server_session_cache[server_url] = {
+                            "session_id": session_id,
+                            "timestamp": time.time(),
+                            "retries": 0
+                        }
 
                     # Read SSE stream and find our response
                     init_data = None

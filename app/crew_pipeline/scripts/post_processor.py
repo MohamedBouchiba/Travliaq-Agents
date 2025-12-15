@@ -62,7 +62,7 @@ class PostProcessor:
         translate_fields: bool = True,
         validate_steps: bool = True,
         parallel: bool = True,
-        max_workers: int = 6,
+        max_workers: int = 2,  # 🔧 FIX: Reduced from 6 to 2 to avoid Railway concurrency limits
     ) -> Dict[str, Any]:
         """
         Traitement complet du trip en UNE SEULE PASSE.
@@ -321,7 +321,7 @@ class PostProcessor:
             prompt = f"Translate the following French text to English. Provide ONLY the translation, no explanation.\n\nFrench text:\n{text}\n\nEnglish translation:"
 
             # Appeler LLM CrewAI (interface simple: .call(prompt))
-            response = self.llm.call(prompt, max_tokens=500)
+            response = self.llm.call(prompt)
 
             return response.strip()
 

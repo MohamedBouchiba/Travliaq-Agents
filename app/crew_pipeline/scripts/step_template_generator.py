@@ -88,7 +88,7 @@ class StepTemplateGenerator:
         destination_country: str,
         trip_code: str,
         parallel: bool = True,
-        max_workers: int = 6,
+        max_workers: int = 2,  # 🔧 FIX: Reduced from 6 to 2 to avoid Railway concurrency limits
     ) -> List[Dict[str, Any]]:
         """
         Générer templates de steps avec GPS et images pré-remplies.

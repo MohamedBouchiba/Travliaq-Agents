@@ -1370,7 +1370,7 @@ class CrewPipeline:
                         translate_fields=True,   # Traduire FR → EN automatiquement (DeepL + LLM fallback)
                         validate_steps=True,     # Valider structure
                         parallel=True,           # Paralléliser traitement
-                        max_workers=6,           # 6 threads parallèles
+                        max_workers=2,           # 🔧 FIX: Reduced from 6 to 2 to avoid Railway concurrency limits
                     )
 
                     # Mettre à jour le builder avec le trip enrichi
