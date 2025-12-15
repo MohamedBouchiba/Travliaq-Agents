@@ -88,7 +88,7 @@ agents:
     inject_date: true
     date_format: "%Y-%m-%d"
     memory: true
-    max_iter: 40  # 🔧 FIX: Augmenté de 15 à 40 pour permettre génération de 25+ steps
+    max_iter: 30  # 🔧 FIX: Reduced from 40 to 30 - balanced approach to avoid OpenAI timeouts while still allowing 25+ steps
 
   # ============================================================================
   # AGENT 7: BUDGET CALCULATOR

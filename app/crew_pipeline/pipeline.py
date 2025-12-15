@@ -132,7 +132,7 @@ def _build_default_llm() -> LLM:
             base_url=settings.azure_openai_endpoint,
             api_version=settings.azure_openai_api_version,
             temperature=temperature,
-            timeout=120,
+            timeout=600,  # 🔧 FIX: Increased from 120s to 600s (10 min) for long-running tasks like itinerary design
             max_retries=3,
         )
 
@@ -141,7 +141,7 @@ def _build_default_llm() -> LLM:
             model=model,
             api_key=_pick_first_secret(os.getenv("GROQ_API_KEY"), settings.groq_api_key),
             temperature=temperature,
-            timeout=120,
+            timeout=600,  # 🔧 FIX: Increased from 120s to 600s (10 min) for long-running tasks like itinerary design
             max_retries=3,
         )
 
@@ -149,7 +149,7 @@ def _build_default_llm() -> LLM:
         model=model,
         api_key=_pick_first_secret(os.getenv("OPENAI_API_KEY"), settings.openai_api_key),
         temperature=temperature,
-        timeout=120,
+        timeout=600,  # 🔧 FIX: Increased from 120s to 600s (10 min) for long-running tasks like itinerary design
         max_retries=3,
     )
 

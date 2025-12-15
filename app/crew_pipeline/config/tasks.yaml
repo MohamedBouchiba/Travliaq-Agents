@@ -764,6 +764,12 @@ tasks:
 
       ⚠️ RÈGLE #1: Tu DOIS remplir CHAQUE step avec du contenu complet. PAS DE STEPS VIDES!
 
+      🔧 STRATÉGIE DE TRAITEMENT (pour éviter timeouts):
+      - Si tu as plus de 15 steps à traiter, travaille par LOTS de 8-10 steps
+      - Remplis complètement chaque lot avant de passer au suivant
+      - Utilise tes iterations efficacement: 1-2 iterations par step maximum
+      - Génère du contenu concis mais complet (qualité > quantité)
+
       TEMPLATES REÇUS: {step_templates}
       Champs déjà remplis: step_number, day_number, latitude, longitude, main_image, step_type.
 
@@ -787,6 +793,7 @@ tasks:
       - NE PAS appeler geo.place ou images.* (déjà générés)
       - Suivre PLAN STRUCTUREL du context (steps/jour, zones, activity_mix)
       - S'adapter à TOUTE destination (ville/région/pays/montagne/désert)
+      - EFFICACITÉ: Génère du contenu pertinent rapidement, évite les répétitions inutiles
 
       CONTEXTE:
       {trip_context}
