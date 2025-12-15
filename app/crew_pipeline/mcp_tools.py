@@ -107,6 +107,10 @@ MCP_TIMEOUT_BOOKING_FLIGHTS = 90 if _FAST_TEST_MODE else 300  # Timeout étendu 
 MCP_MAX_RETRIES = 1 if _FAST_TEST_MODE else 3
 MCP_RETRY_DELAY_SECONDS = 0.5 if _FAST_TEST_MODE else 1
 
+# 🔧 FIX: Retry configuration pour la connexion initiale MCP (au démarrage de la pipeline)
+MCP_STARTUP_MAX_RETRIES = 2 if _FAST_TEST_MODE else 5  # Plus de tentatives au démarrage
+MCP_STARTUP_RETRY_DELAY = 1 if _FAST_TEST_MODE else 2  # Délai initial avant retry (secondes)
+
 # 🔧 FIX: Thread-local storage pour sessions MCP (évite conflits 409)
 _thread_local = local()
 _server_session_cache: Dict[str, Dict[str, Any]] = {}  # Cache global pour session IDs avec timestamp
@@ -929,24 +933,64 @@ def get_mcp_tools(server_url: str) -> List[BaseTool]:
             logger.debug(f"   Traceback: {traceback.format_exc()}")
             return types.ListToolsResult(tools=[]), None
 
-    # 🔧 FIX: Gérer les erreurs de terminaison au niveau de asyncio.run()
+    # 🔧 FIX: Retry logic pour connexion MCP au démarrage (Railway peut être slow/down)
     tools_list = None
     resources_list = None
+    last_error = None
 
-    try:
-        logger.info(f"Fetching MCP tools from {server_url}...")
-        tools_list, resources_list = asyncio.run(_fetch_tools())
-    except BaseExceptionGroup as eg:
-        # Vérifier si on a récupéré les outils malgré l'erreur
-        logger.error(f"❌ TaskGroup error fetching tools from MCP server: {eg}")
-        # L'erreur a déjà été loggée, retourner liste vide
-        return []
-    except Exception as e:
-        logger.error(f"❌ Failed to fetch tools from MCP server: {e}")
-        return []
+    for attempt in range(1, MCP_STARTUP_MAX_RETRIES + 1):
+        try:
+            if attempt == 1:
+                logger.info(f"Fetching MCP tools from {server_url}...")
+            else:
+                logger.info(f"🔄 Retry {attempt}/{MCP_STARTUP_MAX_RETRIES}: Fetching MCP tools from {server_url}...")
+
+            tools_list, resources_list = asyncio.run(_fetch_tools())
+
+            # Success! Break out of retry loop
+            if tools_list is not None:
+                if attempt > 1:
+                    logger.info(f"✅ MCP connection succeeded on attempt {attempt}/{MCP_STARTUP_MAX_RETRIES}")
+                break
+
+        except BaseExceptionGroup as eg:
+            last_error = f"TaskGroup error: {eg}"
+            # Check if it's a retryable error (502, timeout, connection error)
+            error_str = str(eg)
+            is_retryable = any(code in error_str for code in ["502", "503", "timeout", "Connection", "Timeout"])
+
+            if is_retryable and attempt < MCP_STARTUP_MAX_RETRIES:
+                retry_delay = MCP_STARTUP_RETRY_DELAY * (2 ** (attempt - 1))  # Exponential backoff
+                logger.warning(f"⚠️ MCP connection failed (attempt {attempt}/{MCP_STARTUP_MAX_RETRIES}): {error_str[:100]}")
+                logger.info(f"⏳ Retrying in {retry_delay}s...")
+                time.sleep(retry_delay)
+            else:
+                logger.error(f"❌ TaskGroup error fetching tools from MCP server: {eg}")
+                if attempt >= MCP_STARTUP_MAX_RETRIES:
+                    logger.error(f"❌ MCP connection failed after {MCP_STARTUP_MAX_RETRIES} attempts")
+                return []
+
+        except Exception as e:
+            last_error = str(e)
+            # Check if it's a retryable error
+            error_str = str(e)
+            is_retryable = any(code in error_str for code in ["502", "503", "500", "timeout", "Connection", "Timeout"])
+
+            if is_retryable and attempt < MCP_STARTUP_MAX_RETRIES:
+                retry_delay = MCP_STARTUP_RETRY_DELAY * (2 ** (attempt - 1))  # Exponential backoff
+                logger.warning(f"⚠️ MCP connection failed (attempt {attempt}/{MCP_STARTUP_MAX_RETRIES}): {error_str[:100]}")
+                logger.info(f"⏳ Retrying in {retry_delay}s...")
+                time.sleep(retry_delay)
+            else:
+                logger.error(f"❌ Failed to fetch tools from MCP server: {e}")
+                if attempt >= MCP_STARTUP_MAX_RETRIES:
+                    logger.error(f"❌ MCP connection failed after {MCP_STARTUP_MAX_RETRIES} attempts")
+                return []
 
     if tools_list is None:
-        logger.error("❌ Failed to fetch tools (returned None)")
+        logger.error(f"❌ Failed to fetch tools (returned None) after {MCP_STARTUP_MAX_RETRIES} attempts")
+        if last_error:
+            logger.error(f"   Last error: {last_error}")
         return []
 
     try:
