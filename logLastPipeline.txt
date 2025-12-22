@@ -1,17 +1,14 @@
-2025-12-15 06:52:32 | INFO     | root | ================================================================================
-2025-12-15 06:52:32 | INFO     | root | TRAVLIAQ PIPELINE - LOGS INITIALIZED
-2025-12-15 06:52:32 | INFO     | root | Log file: E:\CrewTravliaq\Travliaq-Agents\logLastPipeline.txt
-2025-12-15 06:52:32 | INFO     | root | Log level: INFO
-2025-12-15 06:52:32 | INFO     | root | Console output: Enabled
-2025-12-15 06:52:32 | INFO     | root | ================================================================================
-2025-12-15 06:52:32 | INFO     | app.crew_pipeline.pipeline | 🚀 Lancement Pipeline CrewAI (Run ID: 63a10241-48ec-4607-98d0-2736ee6f0966-fc8ffa09, Questionnaire: 63a10241...)
-2025-12-15 06:52:32 | INFO     | app.crew_pipeline.mcp_tools | Fetching MCP tools from https://travliaq-mcp-production.up.railway.app/mcp...
-2025-12-15 06:52:32 | INFO     | app.crew_pipeline.mcp_tools | ✅ MCP Server initialized: TravliaqMCP
-2025-12-15 06:52:32 | ERROR    | app.crew_pipeline.mcp_tools | ❌ HTTP error from MCP server: 400 Bad Request
-2025-12-15 06:52:32 | ERROR    | app.crew_pipeline.mcp_tools |    URL: https://travliaq-mcp-production.up.railway.app/mcp
-2025-12-15 06:52:32 | ERROR    | app.crew_pipeline.mcp_tools |    Request headers: {'host': 'travliaq-mcp-production.up.railway.app', 'accept-encoding': 'gzip, deflate', 'connection': 'keep-alive', 'user-agent': 'python-httpx/0.28.1', 'content-type': 'application/json', 'accept': 'application/json, text/event-stream', 'mcp-session-id': '9e51f551a9a640098b4da3c61a21c839', 'content-length': '58'}
-2025-12-15 06:52:32 | ERROR    | app.crew_pipeline.mcp_tools |    Response headers: {'content-length': '41', 'date': 'Mon, 15 Dec 2025 05:52:32 GMT', 'server': 'railway-edge', 'x-railway-edge': 'railway/europe-west4-drams3a', 'x-railway-request-id': '92F47Uk1SsqjPZsm5nX1uw', 'content-type': 'text/plain; charset=utf-8'}
-2025-12-15 06:52:32 | INFO     | app.crew_pipeline.mcp_tools | ✅ Total MCP tools and resources loaded: 0
-2025-12-15 06:52:32 | INFO     | app.crew_pipeline.pipeline | ✅ 0 outils MCP chargés.
-2025-12-15 06:52:42 | INFO     | root | OpenAI API usage: {'prompt_tokens': 2698, 'completion_tokens': 423, 'total_tokens': 3121}
-2025-12-15 06:52:42 | INFO     | root | OpenAI: Successfully validated tool 'create_reasoning_plan'
+2025-12-15 07:03:14 | INFO     | root | ================================================================================
+2025-12-15 07:03:14 | INFO     | root | TRAVLIAQ PIPELINE - LOGS INITIALIZED
+2025-12-15 07:03:14 | INFO     | root | Log file: E:\CrewTravliaq\Travliaq-Agents\logLastPipeline.txt
+2025-12-15 07:03:14 | INFO     | root | Log level: INFO
+2025-12-15 07:03:14 | INFO     | root | Console output: Enabled
+2025-12-15 07:03:14 | INFO     | root | ================================================================================
+2025-12-15 07:03:14 | INFO     | app.crew_pipeline.pipeline | 🚀 Lancement Pipeline CrewAI (Run ID: 63a10241-48ec-4607-98d0-2736ee6f0966-7a805609, Questionnaire: 63a10241...)
+2025-12-15 07:03:14 | INFO     | app.crew_pipeline.mcp_tools | Fetching MCP tools from https://travliaq-mcp-production.up.railway.app/mcp...
+2025-12-15 07:03:16 | ERROR    | app.crew_pipeline.mcp_tools | ❌ HTTP error from MCP server: 502 Bad Gateway
+2025-12-15 07:03:16 | ERROR    | app.crew_pipeline.mcp_tools |    URL: https://travliaq-mcp-production.up.railway.app/mcp
+2025-12-15 07:03:16 | ERROR    | app.crew_pipeline.mcp_tools |    Request headers: {'host': 'travliaq-mcp-production.up.railway.app', 'accept-encoding': 'gzip, deflate', 'connection': 'keep-alive', 'user-agent': 'python-httpx/0.28.1', 'content-type': 'application/json', 'accept': 'application/json, text/event-stream', 'content-length': '209'}
+2025-12-15 07:03:16 | ERROR    | app.crew_pipeline.mcp_tools |    Response headers: {'content-length': '109', 'content-type': 'application/json', 'server': 'railway-edge', 'x-railway-edge': 'railway/europe-west4-drams3a', 'x-railway-fallback': 'true', 'x-railway-request-id': 'qBBrJiwgRmOAEOq1rJsmnA', 'date': 'Mon, 15 Dec 2025 06:03:16 GMT'}
+2025-12-15 07:03:16 | INFO     | app.crew_pipeline.mcp_tools | ✅ Total MCP tools and resources loaded: 0
+2025-12-15 07:03:16 | INFO     | app.crew_pipeline.pipeline | ✅ 0 outils MCP chargés.
